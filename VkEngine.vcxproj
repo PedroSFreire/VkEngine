@@ -136,10 +136,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="vkDebugHandler.cpp" />
+    <ClCompile Include="VulkanDebugHandler.cpp" />
+    <ClCompile Include="VulkanInstance.cpp" />
+    <ClCompile Include="Window.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="vkDebugHandler.h" />
+    <ClInclude Include="VulkanDebugHandler.h" />
+    <ClInclude Include="VulkanInstance.h" />
+    <ClInclude Include="Window.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\compileShaders.bat" />

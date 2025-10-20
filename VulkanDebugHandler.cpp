@@ -1,17 +1,16 @@
-#include "vkDebugHandler.h" 
+#include "VulkanDebugHandler.h" 
 
 
-VkDebugUtilsMessengerEXT vkDebugHandler::debugMessenger;
 
-const std::vector<const char*> vkDebugHandler::validationLayers = {
+const std::vector<const char*> VulkanDebugHandler::validationLayers = {
     "VK_LAYER_KHRONOS_validation"
 };
 
 
-VkResult vkDebugHandler::CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
+VkResult VulkanDebugHandler::CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator) {
     auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
     if (func != nullptr) {
-        return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
+        return func(instance, pCreateInfo, pAllocator, &debugMessenger);
     }
     else {
         return VK_ERROR_EXTENSION_NOT_PRESENT;
@@ -19,7 +18,7 @@ VkResult vkDebugHandler::CreateDebugUtilsMessengerEXT(VkInstance instance, const
 }
 
 
-std::vector<const char*> vkDebugHandler::getRequiredExtensions() {
+std::vector<const char*> VulkanDebugHandler::getRequiredExtensions() {
     uint32_t glfwExtensionCount = 0;
     const char** glfwExtensions;
     glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
@@ -33,7 +32,11 @@ std::vector<const char*> vkDebugHandler::getRequiredExtensions() {
     return extensions;
 }
 
-void vkDebugHandler::setupDebugMessenger(VkInstance instance) {
+const std::vector<const char*> VulkanDebugHandler::getValidationLayers() {
+    return validationLayers;
+}
+
+void VulkanDebugHandler::setupDebugMessenger(VkInstance instance) {
     if (!enableValidationLayers) return;
 
     VkDebugUtilsMessengerCreateInfoEXT createInfo{};
@@ -43,13 +46,13 @@ void vkDebugHandler::setupDebugMessenger(VkInstance instance) {
     createInfo.pfnUserCallback = debugCallback;
     createInfo.pUserData = nullptr; // Optional
 
-    if (CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS) {
+    if (CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr) != VK_SUCCESS) {
         throw std::runtime_error("failed to set up debug messenger!");
     }
 
 }
 
-void vkDebugHandler::DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) {
+void VulkanDebugHandler::DestroyDebugUtilsMessengerEXT(VkInstance instance,  const VkAllocationCallbacks* pAllocator) {
     auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
     if (func != nullptr) {
         func(instance, debugMessenger, pAllocator);

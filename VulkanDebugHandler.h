@@ -17,21 +17,23 @@ const bool enableValidationLayers = false;
 const bool enableValidationLayers = true;
 #endif
 
-namespace vkDebugHandler
+class VulkanDebugHandler
 {
-    
-    extern VkDebugUtilsMessengerEXT debugMessenger;
-    extern const std::vector<const char*> validationLayers;
 
-    
-    VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger);
+public:
+    VkDebugUtilsMessengerEXT debugMessenger;
+    static const std::vector<const char*> validationLayers;
+
+public:
+    VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator);
 
     std::vector<const char*> getRequiredExtensions();
 
     void setupDebugMessenger(VkInstance instance);
 
-    void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator);
+    void DestroyDebugUtilsMessengerEXT(VkInstance instance,  const VkAllocationCallbacks* pAllocator);
 
+    const std::vector<const char*> getValidationLayers();
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
         VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -46,7 +48,7 @@ namespace vkDebugHandler
         return VK_FALSE;
     }
 
-   
 
 
-}
+
+};

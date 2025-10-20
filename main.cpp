@@ -9,11 +9,11 @@
 #include <vector>
 #include <fstream>
 
-#include "vkDebugHandler.h"
+#include "VulkanDebugHandler.h"
+#include "VulkanInstance.h"
+#include "Window.h"
 
 #define VK_USE_PLATFORM_WIN32_KHR
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
 
@@ -21,21 +21,21 @@
 #include <cstdint>
 #include <limits>
 
-const uint32_t WIDTH = 800;
-const uint32_t HEIGHT = 600;
+
 
 class HelloTriangleApplication {
  public:
   void run() {
-    initWindow();
+    //initWindow();
     initVulkan();
     mainLoop();
     cleanup();
   }
 
  private:
-  GLFWwindow* window;
-  VkInstance instance;
+  Window window;
+  VulkanInstance vkInstance;
+  VulkanDebugHandler debugHandler;
   VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
   VkDevice device;
   VkQueue graphicsQueue;
@@ -55,6 +55,7 @@ class HelloTriangleApplication {
   VkSemaphore imageAvailableSemaphore;
   VkSemaphore renderFinishedSemaphore;
   VkFence inFlightFence;
+
 
   struct QueueFamilyIndices {
     std::optional<uint32_t> graphicsFamily;
@@ -82,12 +83,13 @@ class HelloTriangleApplication {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-    window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
+    //window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
   }
   void initVulkan() {
-    createVkInstance();
+    //createVkInstance();
 
-    vkDebugHandler::setupDebugMessenger(instance);
+    //debugHandler.setupDebugMessenger(instance);
+	  vkInstance.vulkanInstanceCreator();
 
     createSurface();
 
@@ -114,7 +116,7 @@ class HelloTriangleApplication {
 
 
   void mainLoop() {
-    while (!glfwWindowShouldClose(window)) {
+    while (!window.shouldClose()) {
       glfwPollEvents();
       drawFrame();
     }
@@ -145,20 +147,19 @@ class HelloTriangleApplication {
       vkDestroyImageView(device, imageView, nullptr);
     }
 
-    vkDebugHandler::DestroyDebugUtilsMessengerEXT(
-        instance, vkDebugHandler::debugMessenger, nullptr);
+    
 
     vkDestroySwapchainKHR(device, swapChain, nullptr);
 
     vkDestroyDevice(device, nullptr);
 
-    vkDestroySurfaceKHR(instance, surface, nullptr);
+    vkDestroySurfaceKHR(vkInstance.getInstance(), surface, nullptr);
 
-    vkDestroyInstance(instance, nullptr);
 
-    glfwDestroyWindow(window);
 
-    glfwTerminate();
+    
+
+   
   }
 
 
@@ -767,7 +768,7 @@ VkShaderModule createShaderModule(const std::vector<char>& code) {
     std::vector<VkLayerProperties> availableLayers(layerCount);
     vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
 
-    for (const char* layerName : vkDebugHandler::validationLayers) {
+    for (const char* layerName : debugHandler.getValidationLayers()) {
       bool layerFound = false;
 
       for (const auto& layerProperties : availableLayers) {
@@ -802,8 +803,8 @@ VkShaderModule createShaderModule(const std::vector<char>& code) {
     VkInstanceCreateInfo createInfo{};
     if (enableValidationLayers) {
       createInfo.enabledLayerCount =
-          static_cast<uint32_t>(vkDebugHandler::validationLayers.size());
-      createInfo.ppEnabledLayerNames = vkDebugHandler::validationLayers.data();
+          static_cast<uint32_t>(debugHandler.validationLayers.size());
+      createInfo.ppEnabledLayerNames = debugHandler.validationLayers.data();
     } else {
       createInfo.enabledLayerCount = 0;
     }
@@ -817,11 +818,11 @@ VkShaderModule createShaderModule(const std::vector<char>& code) {
     createInfo.enabledExtensionCount = glfwExtensionCount;
     createInfo.ppEnabledExtensionNames = glfwExtensions;
 
-    auto extensions = vkDebugHandler::getRequiredExtensions();
+    auto extensions = debugHandler.getRequiredExtensions();
     createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
     createInfo.ppEnabledExtensionNames = extensions.data();
 
-    if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
+    if (vkCreateInstance(&createInfo, nullptr, &vkInstance.getInstance()) != VK_SUCCESS) {
       throw std::runtime_error("failed to create instance!");
     }
   }
@@ -843,7 +844,7 @@ VkShaderModule createShaderModule(const std::vector<char>& code) {
       return capabilities.currentExtent;
     } else {
       int width, height;
-      glfwGetFramebufferSize(window, &width, &height);
+      glfwGetFramebufferSize(window.getWindow(), &width, &height);
 
       VkExtent2D actualExtent = {static_cast<uint32_t>(width),
                                  static_cast<uint32_t>(height)};
@@ -923,14 +924,14 @@ VkShaderModule createShaderModule(const std::vector<char>& code) {
 
   void pickPhisicalDevice() {
     uint32_t deviceCount = 0;
-    vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
+    vkEnumeratePhysicalDevices(vkInstance.getInstance(), &deviceCount, nullptr);
 
     if (deviceCount == 0) {
       throw std::runtime_error("failed to find GPUs with Vulkan support!");
     }
 
     std::vector<VkPhysicalDevice> devices(deviceCount);
-    vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
+    vkEnumeratePhysicalDevices(vkInstance.getInstance(), &deviceCount, devices.data());
 
     for (const auto& device : devices) {
       if (isDeviceSuitable(device)) {
@@ -979,8 +980,8 @@ VkShaderModule createShaderModule(const std::vector<char>& code) {
 
     if (enableValidationLayers) {
       createInfo.enabledLayerCount =
-          static_cast<uint32_t>(vkDebugHandler::validationLayers.size());
-      createInfo.ppEnabledLayerNames = vkDebugHandler::validationLayers.data();
+          static_cast<uint32_t>(debugHandler.validationLayers.size());
+      createInfo.ppEnabledLayerNames = debugHandler.validationLayers.data();
     } else {
       createInfo.enabledLayerCount = 0;
     }
@@ -999,7 +1000,8 @@ VkShaderModule createShaderModule(const std::vector<char>& code) {
   }
 
   void createSurface() {
-    if (glfwCreateWindowSurface(instance, window, nullptr, &surface) !=
+
+    if (glfwCreateWindowSurface(vkInstance.getInstance(), window.getWindow(), nullptr, &surface) !=
         VK_SUCCESS) {
       throw std::runtime_error("failed to create window surface!");
     }
