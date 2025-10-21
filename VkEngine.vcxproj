@@ -135,14 +135,20 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="VulkanLogicalDevice.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="VulkanDebugHandler.cpp" />
+    <ClCompile Include="VulkanPhysicalDevice.cpp" />
     <ClCompile Include="VulkanInstance.cpp" />
+    <ClCompile Include="VulkanSurface.cpp" />
     <ClCompile Include="Window.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="VulkanLogicalDevice.h" />
     <ClInclude Include="VulkanDebugHandler.h" />
+    <ClInclude Include="VulkanPhysicalDevice.h" />
     <ClInclude Include="VulkanInstance.h" />
+    <ClInclude Include="VulkanSurface.h" />
     <ClInclude Include="Window.h" />
   </ItemGroup>
   <ItemGroup>

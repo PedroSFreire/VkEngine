@@ -32,9 +32,7 @@ std::vector<const char*> VulkanDebugHandler::getRequiredExtensions() {
     return extensions;
 }
 
-const std::vector<const char*> VulkanDebugHandler::getValidationLayers() {
-    return validationLayers;
-}
+
 
 void VulkanDebugHandler::setupDebugMessenger(VkInstance instance) {
     if (!enableValidationLayers) return;

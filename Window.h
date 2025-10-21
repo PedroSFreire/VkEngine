@@ -13,6 +13,9 @@ private:
 public:
 	Window();
 	~Window();
+
+	Window(const Window&) = delete;
+
 	GLFWwindow* const getWindow();
 	bool shouldClose();
 };

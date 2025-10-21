@@ -15,7 +15,7 @@ class VulkanInstance {
 
   public:
 
-	  VulkanInstance();
+	 VulkanInstance();
 
 	 void vulkanInstanceCreator();
 
@@ -24,9 +24,13 @@ class VulkanInstance {
 
 	~VulkanInstance();
 
-	VkInstance& const getInstance();
+	VkInstance& getInstance();
 
-	VulkanDebugHandler& const  getDebugHandler();
+	VulkanDebugHandler&   getDebugHandler();
+
+	const std::vector<const char*>& getValidationLayers() {
+		return debugHandler.getValidationLayers();
+	};
 
 
 private:

@@ -12,9 +12,9 @@
 
 
 #ifdef NDEBUG
-const bool enableValidationLayers = false;
+inline const bool enableValidationLayers = false;
 #else
-const bool enableValidationLayers = true;
+inline const bool enableValidationLayers = true;
 #endif
 
 class VulkanDebugHandler
@@ -25,6 +25,11 @@ public:
     static const std::vector<const char*> validationLayers;
 
 public:
+    VulkanDebugHandler() = default;
+
+	VulkanDebugHandler(const VulkanDebugHandler&) = delete;
+
+
     VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator);
 
     std::vector<const char*> getRequiredExtensions();
@@ -33,7 +38,7 @@ public:
 
     void DestroyDebugUtilsMessengerEXT(VkInstance instance,  const VkAllocationCallbacks* pAllocator);
 
-    const std::vector<const char*> getValidationLayers();
+    const std::vector<const char*>& getValidationLayers() {return validationLayers;}
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
         VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
