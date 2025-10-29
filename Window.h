@@ -9,14 +9,19 @@ class Window
 {
 private:
 	GLFWwindow* window;
+	bool framebufferResized = false;
 
 public:
 	Window();
 	~Window();
-
 	Window(const Window&) = delete;
 
 	GLFWwindow* const getWindow();
+	
+	bool getFramebufferResized() const { return framebufferResized; }
+	void setFramebufferResized(bool val) { framebufferResized = val; }
+	
+	
 	bool shouldClose();
 };
 

@@ -1,0 +1,66 @@
+# -----------------------------------------------------------------------------
+# id Software–inspired C++ style (for Vulkan engine)
+# -----------------------------------------------------------------------------
+
+Language:        Cpp
+BasedOnStyle:    LLVM
+
+# --- Indentation / Braces ---
+IndentWidth:               4
+TabWidth:                  4
+UseTab:                    Never
+BreakBeforeBraces:         Allman
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine:       Never
+IndentCaseLabels:          true
+IndentGotoLabels:          true
+NamespaceIndentation:      All
+
+# --- Spacing / Alignment ---
+PointerAlignment:          Right         # "int *ptr"
+SpaceBeforeParens:         ControlStatements
+SpaceAfterCStyleCast:      true
+SpacesInParentheses:       false
+SpacesInSquareBrackets:    false
+SpaceBeforeAssignmentOperators: true
+AlignConsecutiveAssignments: true
+AlignConsecutiveDeclarations: true
+AlignConsecutiveMacros:    true
+AlignEscapedNewlines:      Left
+AlignTrailingComments:     true
+ColumnLimit:               120
+
+# --- Functions / Parameters ---
+BinPackArguments:          false
+BinPackParameters:         false
+AllowAllParametersOfDeclarationOnNextLine: false
+PenaltyBreakBeforeFirstCallParameter: 1
+
+# --- Includes ---
+IncludeBlocks:             Regroup
+SortIncludes:              false
+IncludeCategories:
+  - Regex:           '^<GLFW'
+    Priority:        1
+  - Regex:           '^<vulkan'
+    Priority:        2
+  - Regex:           '^"'
+    Priority:        3
+  - Regex:           '.*'
+    Priority:        4
+
+# --- Comments / Formatting ---
+ReflowComments:            false
+CommentPragmas:            '^ IWAD:|TODO|FIXME|NOTE'
+KeepEmptyLinesAtTheStartOfBlocks: false
+
+# --- Other preferences ---
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
+AccessModifierOffset:       -4
+SortUsingDeclarations:      false
+EmptyLineBeforeAccessModifier: Always
+Cpp11BracedListStyle:       true
+AlwaysBreakTemplateDeclarations: Yes
+DerivePointerAlignment:     false
+SpacesBeforeTrailingComments: 2

@@ -16,13 +16,11 @@ class VulkanInstance {
   public:
 
 	 VulkanInstance();
+	 VulkanInstance(const VulkanInstance&) = delete;
+	 ~VulkanInstance();
+
 
 	 void vulkanInstanceCreator();
-
-
-	VulkanInstance(const VulkanInstance&) = delete;
-
-	~VulkanInstance();
 
 	VkInstance& getInstance();
 

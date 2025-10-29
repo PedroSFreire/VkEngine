@@ -1,5 +1,13 @@
 #include "Window.h"
 
+
+static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
+    auto app = reinterpret_cast<Window*>(glfwGetWindowUserPointer(window));
+    app->setFramebufferResized(true);
+}
+
+
+
 Window::Window()
 {
     glfwInit();
@@ -8,6 +16,8 @@ Window::Window()
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
     window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
+    glfwSetWindowUserPointer(window, this);
+    glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
 }
 
 Window::~Window()
@@ -16,6 +26,10 @@ Window::~Window()
     glfwDestroyWindow(window);
     glfwTerminate();
 }
+
+
+
+
 
 bool Window::shouldClose()
 {
@@ -26,3 +40,4 @@ GLFWwindow* const Window::getWindow()
 {
     return window;
 }
+

@@ -40,7 +40,7 @@ class VulkanPhysicalDevice
 
     public:
         VulkanPhysicalDevice() = default;
-
+		~VulkanPhysicalDevice() = default;
         VulkanPhysicalDevice(const VulkanPhysicalDevice&) = delete;
 
         void pickPhysicalDevice(VulkanInstance& instance, VulkanSurface& surface);
