@@ -23,7 +23,7 @@ public:
 
 
 private:
-	VulkanLogicalDevice* logicalDevice;
+	VulkanLogicalDevice* logicalDevice = NULL;
 	int framesInFlight = 0;
 	
 };

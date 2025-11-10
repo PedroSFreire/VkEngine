@@ -77,20 +77,27 @@ QueueFamilyIndices VulkanPhysicalDevice::findQueueFamilies(VkPhysicalDevice devi
         if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
             indices.graphicsFamily = i;
         }
+
+        if (queueFamily.queueFlags & VK_QUEUE_TRANSFER_BIT &&
+            !(queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)) {
+            indices.transferFamily = i;
+		}
         if (indices.isComplete()) {
             break;
         }
         i++;
     }
-
+    if(indices.transferFamily.has_value() == false) {
+        indices.transferFamily = indices.graphicsFamily;
+	}
     return indices;
 }
 
 bool VulkanPhysicalDevice::isDeviceSuitable(VkPhysicalDevice device, VulkanSurface& surface) {
-    /* VkPhysicalDeviceProperties deviceProperties;
+    VkPhysicalDeviceProperties deviceProperties;
     VkPhysicalDeviceFeatures deviceFeatures;
     vkGetPhysicalDeviceProperties(device, &deviceProperties);
-    vkGetPhysicalDeviceFeatures(device, &deviceFeatures);*/
+    vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
 
     QueueFamilyIndices indices = findQueueFamilies(device, surface);
 
@@ -103,7 +110,7 @@ bool VulkanPhysicalDevice::isDeviceSuitable(VkPhysicalDevice device, VulkanSurfa
             !swapChainSupport.presentModes.empty();
     }
 
-    return indices.isComplete() && extensionsSupported && swapChainAdequate;
+    return indices.isComplete() && extensionsSupported && swapChainAdequate && deviceFeatures.samplerAnisotropy;
 }
 
 void VulkanPhysicalDevice::pickPhysicalDevice(VulkanInstance& instance, VulkanSurface& surface) {

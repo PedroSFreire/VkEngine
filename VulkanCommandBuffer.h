@@ -9,31 +9,48 @@
 #include "VulkanRenderPass.h"
 #include "VulkanFrameBuffers.h"
 #include "VulkanGraphicsPipeline.h"
+#include "VulkanBuffer.h"
+#include "VulkanCommandPool.h"
+
 
 
 class VulkanCommandBuffer
 {
 private:
 
-	VkCommandPool commandPool{};
-	std::vector<VkCommandBuffer> commandBuffers;
+	VkCommandBuffer commandBuffer;
 
-	VulkanLogicalDevice* logicalDevice = NULL;
-	int framesInFlight = 0;
 
 public:
 	VulkanCommandBuffer() = default;
-	~VulkanCommandBuffer();
+	~VulkanCommandBuffer() = default;
 	VulkanCommandBuffer(const VulkanCommandBuffer&) = delete;
-
-	VkCommandBuffer& getCommandBuffer(int frameId) { return commandBuffers[frameId]; }
-
-	void recordCommandBuffer(uint32_t imageIndex, int frameId, VulkanLogicalDevice& logicalDevice, VulkanSwapChain& swapChain, VulkanGraphicsPipeline& graphicsPipeline, VulkanRenderPass& renderPass, VulkanFrameBuffers& frameBuffers);
-
-
-	void createCommandBuffer(VulkanLogicalDevice& device, const int MAX_FRAMES_IN_FLIGHT);
+	VulkanCommandBuffer(VulkanCommandBuffer&& other) noexcept {
+		commandBuffer = other.commandBuffer;
+		other.commandBuffer = VK_NULL_HANDLE;
+	}
 
 
-	void createCommandPool(VulkanPhysicalDevice& physicalDevice, VulkanLogicalDevice& device, VulkanSurface& surface);
+	
+
+
+
+	inline VkCommandBuffer& getCommandBuffer() { return commandBuffer; }
+
+
+	void recordCommandBuffer(uint32_t imageIndex, VulkanLogicalDevice& logicalDevice, VulkanSwapChain& swapChain, VulkanGraphicsPipeline& graphicsPipeline, VulkanRenderPass& renderPass, VulkanFrameBuffers& frameBuffers, VulkanBuffer& vertBuffer, VulkanBuffer& indexBuffer, VkDescriptorSet& descriptorSet);
+
+
+	void createCommandBuffer(VulkanLogicalDevice& device, VulkanCommandPool& commandPool);
+
+	
+	void recordCommandBufferCopyBuffer(VulkanPhysicalDevice& physicalDevice, VulkanLogicalDevice& device, VkBuffer&  srcBuffer, VkBuffer&   dstBuffer, VkDeviceSize size);
+
+
+
+	void beginRecordindSingleTimeCommands(VulkanLogicalDevice& device, VulkanCommandPool& commandPool);
+
+	void endRecordingSingleTimeCommands(VulkanLogicalDevice& device,  VulkanCommandPool& commandPool);
+
 };
 

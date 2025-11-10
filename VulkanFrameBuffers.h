@@ -22,6 +22,7 @@ public:
 	VulkanFrameBuffers(const VulkanFrameBuffers&) = delete;
 
 
+
 	void clean();
 
 	std::vector<VkFramebuffer>& getSwapChainFramebuffers() { return swapChainFramebuffers; }

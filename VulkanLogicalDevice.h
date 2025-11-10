@@ -15,6 +15,9 @@ private:
     VkQueue graphicsQueue;
 
     VkQueue presentQueue;
+
+	VkQueue transferQueue;
+
 	VkDevice device;
 public:
 	VulkanLogicalDevice() = default;
@@ -24,6 +27,7 @@ public:
 	VkDevice& getDevice() { return device; }
 	VkQueue& getGraphicsQueue() { return graphicsQueue; }
 	VkQueue& getPresentQueue() { return presentQueue; }
+	VkQueue& getTransferQueue() { return transferQueue; }
 	void createLogicalDevice(VulkanInstance& instance, VulkanPhysicalDevice& physicalDevice, VulkanSurface& surface);
 
 };

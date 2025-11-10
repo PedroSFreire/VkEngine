@@ -18,7 +18,8 @@ void VulkanLogicalDevice::createLogicalDevice(VulkanInstance& instance, VulkanPh
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
     std::set<uint32_t> uniqueQueueFamilies = { indices.graphicsFamily.value(),
-                                              indices.presentFamily.value() };
+                                              indices.presentFamily.value(),
+                                              indices.transferFamily.value()};
 
     float queuePriority = 1.0f;
     for (uint32_t queueFamily : uniqueQueueFamilies) {
@@ -31,6 +32,7 @@ void VulkanLogicalDevice::createLogicalDevice(VulkanInstance& instance, VulkanPh
     }
 
     VkPhysicalDeviceFeatures deviceFeatures{};
+    deviceFeatures.samplerAnisotropy = VK_TRUE;
 
     VkDeviceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -64,4 +66,7 @@ void VulkanLogicalDevice::createLogicalDevice(VulkanInstance& instance, VulkanPh
 
     // Get present queue
     vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
+
+	// Get transfer queue
+	vkGetDeviceQueue(device, indices.transferFamily.value(), 0, &transferQueue);
 }

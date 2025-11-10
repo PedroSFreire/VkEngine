@@ -44,7 +44,7 @@ VkShaderModule VulkanGraphicsPipeline::createShaderModule(VulkanLogicalDevice& d
     return shaderModule;
 }
 
-void VulkanGraphicsPipeline::createGraphicsPipeline(VulkanLogicalDevice& logicalDevice, VulkanSwapChain& swapChain, VulkanRenderPass& renderPass) {
+void VulkanGraphicsPipeline::createGraphicsPipeline(VulkanLogicalDevice& logicalDevice, VulkanSwapChain& swapChain, VulkanRenderPass& renderPass , VkDescriptorSetLayout& descriptorSetLayout) {
     auto vertShaderCode = readFile("shaders/vert.spv");
     auto fragShaderCode = readFile("shaders/frag.spv");
 
@@ -81,12 +81,18 @@ void VulkanGraphicsPipeline::createGraphicsPipeline(VulkanLogicalDevice& logical
     // vertex shader setup
 
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
+
+    auto bindingDescription = Vertex::getBindingDescription();
+    auto attributeDescriptions = Vertex::getAttributeDescriptions();
+
     vertexInputInfo.sType =
         VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertexInputInfo.vertexBindingDescriptionCount = 0;
-    vertexInputInfo.pVertexBindingDescriptions = nullptr;  // Optional
-    vertexInputInfo.vertexAttributeDescriptionCount = 0;
-    vertexInputInfo.pVertexAttributeDescriptions = nullptr;  // Optional
+
+    vertexInputInfo.vertexBindingDescriptionCount = 1;
+    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+    vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+    vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
+
 
     // viewport scissor setup
 
@@ -131,7 +137,7 @@ void VulkanGraphicsPipeline::createGraphicsPipeline(VulkanLogicalDevice& logical
     rasterizer.lineWidth = 1.0f;
 
     rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-    rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+    rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
     rasterizer.depthBiasEnable = VK_FALSE;
     rasterizer.depthBiasConstantFactor = 0.0f;  // Optional
@@ -185,10 +191,10 @@ void VulkanGraphicsPipeline::createGraphicsPipeline(VulkanLogicalDevice& logical
 
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = 0;             // Optional
-    pipelineLayoutInfo.pSetLayouts = nullptr;          // Optional
-    pipelineLayoutInfo.pushConstantRangeCount = 0;     // Optional
-    pipelineLayoutInfo.pPushConstantRanges = nullptr;  // Optional
+    pipelineLayoutInfo.setLayoutCount = 1;             
+    pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
+    pipelineLayoutInfo.pushConstantRangeCount = 0;     
+    pipelineLayoutInfo.pPushConstantRanges = nullptr;  
 
     if (vkCreatePipelineLayout(logicalDevice.getDevice(), &pipelineLayoutInfo, nullptr,
         &pipelineLayout) != VK_SUCCESS) {
