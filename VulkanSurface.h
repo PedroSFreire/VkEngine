@@ -7,11 +7,11 @@
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
 
-#include "Window.h"
-#include "VulkanInstance.h"
 
 #include <stdexcept>
 
+class Window;
+class VulkanInstance;
 
 class VulkanSurface
 {

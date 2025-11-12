@@ -1,5 +1,8 @@
 #include "VulkanFrameBuffers.h"
-
+#include "VulkanLogicalDevice.h"
+#include "VulkanSwapChain.h"
+#include "VulkanRenderPass.h"
+#include "VulkanImageView.h"
 
 
 VulkanFrameBuffers::~VulkanFrameBuffers() {
@@ -18,19 +21,20 @@ void VulkanFrameBuffers::clean() {
 }
 
 
-void VulkanFrameBuffers::createFramebuffers(VulkanLogicalDevice& device, VulkanSwapChain& swapChain, VulkanRenderPass& renderPass) {
+void VulkanFrameBuffers::createFramebuffers(VulkanLogicalDevice& device, VulkanSwapChain& swapChain, VulkanRenderPass& renderPass , VulkanImageView& depthImageView) {
 	logicalDevice = &device;
     
     swapChainFramebuffers.resize(swapChain.getSwapChainImageViews().size());
 
     for (size_t i = 0; i < swapChain.getSwapChainImageViews().size(); i++) {
-        VkImageView attachments[] = { swapChain.getSwapChainImageViews()[i] };
-
+        std::array<VkImageView, 2> attachments = { swapChain.getSwapChainImageViews()[i], depthImageView.getImageView()};
+        
+        
         VkFramebufferCreateInfo framebufferInfo{};
         framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
         framebufferInfo.renderPass = renderPass.getRenderPass();
-        framebufferInfo.attachmentCount = 1;
-        framebufferInfo.pAttachments = attachments;
+        framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+        framebufferInfo.pAttachments = attachments.data();
         framebufferInfo.width = swapChain.getSwapChainExtent().width;
         framebufferInfo.height = swapChain.getSwapChainExtent().height;
         framebufferInfo.layers = 1;

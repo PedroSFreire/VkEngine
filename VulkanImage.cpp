@@ -1,5 +1,6 @@
 #include "VulkanImage.h"
-
+#include "VulkanLogicalDevice.h"
+#include "VulkanPhysicalDevice.h"
 
 VulkanImage::~VulkanImage() {
 	if (logicalDevice) {
@@ -40,7 +41,7 @@ void VulkanImage::create2DImage(VulkanPhysicalDevice& physicalDevice, VulkanLogi
 	VkMemoryAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 	allocInfo.allocationSize = memRequirements.size;
-	allocInfo.memoryTypeIndex = VulkanBuffer::findMemoryType(memRequirements.memoryTypeBits, properties, physicalDevice);
+	allocInfo.memoryTypeIndex = physicalDevice.findMemoryType(memRequirements.memoryTypeBits, properties);
 
 	if (vkAllocateMemory(logicalDevice->getDevice(), &allocInfo, nullptr, &imageMemory) != VK_SUCCESS) {
 		throw std::runtime_error("failed to allocate image memory!");
@@ -48,3 +49,7 @@ void VulkanImage::create2DImage(VulkanPhysicalDevice& physicalDevice, VulkanLogi
 
 	vkBindImageMemory(logicalDevice->getDevice(), image, imageMemory, 0);
 }
+
+
+
+

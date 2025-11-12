@@ -2,17 +2,19 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
-#include "VulkanLogicalDevice.h"
-#include "VulkanImageView.h"
-#include "VulkanBuffer.h"
-#include <vector>
-#include "VulkanSampler.h"
-
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <array>
+#include <vector>
 #include <chrono>
+
+class VulkanLogicalDevice;
+class VulkanImageView;
+class VulkanBuffer;
+class VulkanSampler;
+
 
 struct UniformBufferObject {
 	glm::mat4 model;

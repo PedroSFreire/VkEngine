@@ -3,14 +3,14 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
-#include "VulkanPhysicalDevice.h"
-#include "VulkanLogicalDevice.h"
-#include "VulkanSwapChain.h"
-#include "VulkanRenderPass.h"
-#include "VulkanFrameBuffers.h"
-#include "VulkanGraphicsPipeline.h"
-#include "VulkanBuffer.h"
-#include "VulkanCommandPool.h"
+class VulkanPhysicalDevice;
+class VulkanLogicalDevice;
+class VulkanSwapChain;
+class VulkanRenderPass;
+class VulkanFrameBuffers;
+class VulkanGraphicsPipeline;
+class VulkanBuffer;
+class VulkanCommandPool;
 
 
 

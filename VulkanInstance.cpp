@@ -19,11 +19,11 @@ VulkanInstance::~VulkanInstance() {
 
     vkDestroyInstance(instance, nullptr);
 }
-VkInstance& const VulkanInstance::getInstance() {
+VkInstance&  VulkanInstance::getInstance() {
     return instance;
 }
 
-::VulkanDebugHandler& const VulkanInstance::getDebugHandler() {
+VulkanDebugHandler&  VulkanInstance::getDebugHandler() {
     return debugHandler;
 }
 

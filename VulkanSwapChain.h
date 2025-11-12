@@ -3,9 +3,15 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
-#include "VulkanPhysicalDevice.h"
-#include "VulkanLogicalDevice.h"
+
+#include <vector>
 #include <algorithm>
+
+
+class VulkanPhysicalDevice;
+class VulkanLogicalDevice;
+class VulkanSurface;
+class Window;
 
 class VulkanSwapChain
 {

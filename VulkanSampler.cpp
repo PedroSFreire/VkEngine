@@ -1,4 +1,7 @@
 #include "VulkanSampler.h"
+#include "VulkanLogicalDevice.h"
+#include "VulkanPhysicalDevice.h"
+
 
 VulkanSampler::~VulkanSampler() {
 	if (logicalDevice) {

@@ -1,5 +1,12 @@
 #include "VulkanCommandBuffer.h"
-
+#include "VulkanPhysicalDevice.h"
+#include "VulkanLogicalDevice.h"
+#include "VulkanSwapChain.h"
+#include "VulkanRenderPass.h"
+#include "VulkanFrameBuffers.h"
+#include "VulkanGraphicsPipeline.h"
+#include "VulkanBuffer.h"
+#include "VulkanCommandPool.h"
 
 
 void VulkanCommandBuffer::recordCommandBuffer(uint32_t imageIndex, VulkanLogicalDevice& logicalDevice, VulkanSwapChain& swapChain, VulkanGraphicsPipeline& graphicsPipeline, VulkanRenderPass& renderPass, VulkanFrameBuffers& frameBuffers, VulkanBuffer& vertBuffer, VulkanBuffer& indexBuffer, VkDescriptorSet& descriptorSet) {
@@ -21,9 +28,12 @@ void VulkanCommandBuffer::recordCommandBuffer(uint32_t imageIndex, VulkanLogical
     renderPassInfo.renderArea.offset = { 0, 0 };
     renderPassInfo.renderArea.extent = swapChain.getSwapChainExtent();
 
-    VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
-    renderPassInfo.clearValueCount = 1;
-    renderPassInfo.pClearValues = &clearColor;
+    std::array<VkClearValue, 2> clearValues{};
+    clearValues[0].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
+    clearValues[1].depthStencil = { 1.0f, 0 };
+
+    renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+    renderPassInfo.pClearValues = clearValues.data();
 
     
 

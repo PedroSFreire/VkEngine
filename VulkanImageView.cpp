@@ -1,4 +1,7 @@
 #include "VulkanImageView.h"
+#include "VulkanLogicalDevice.h"
+#include "VulkanImage.h"
+
 
 VulkanImageView::~VulkanImageView() {
 	if (logicalDevice) {

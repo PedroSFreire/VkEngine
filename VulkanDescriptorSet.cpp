@@ -1,4 +1,8 @@
 #include "VulkanDescriptorSet.h"
+#include "VulkanLogicalDevice.h"
+#include "VulkanImageView.h"
+#include "VulkanBuffer.h"
+#include "VulkanSampler.h"
 
 
 VulkanDescriptorSet::~VulkanDescriptorSet() {

@@ -3,12 +3,15 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
-#include "VulkanLogicalDevice.h"
-#include "VulkanSwapChain.h"
-#include "VulkanRenderPass.h"
-
-
 #include <vector>
+#include <stdexcept>
+
+class VulkanLogicalDevice;
+class VulkanSwapChain;
+class VulkanRenderPass;
+class VulkanImageView;
+
+
 class VulkanFrameBuffers
 {
 private:
@@ -29,6 +32,6 @@ public:
 
 	VkFramebuffer& getFrameBufferAtIndex(size_t index) { return swapChainFramebuffers[index]; }
 
-	void createFramebuffers(VulkanLogicalDevice& device, VulkanSwapChain& swapChain, VulkanRenderPass& renderPass);
+	void createFramebuffers(VulkanLogicalDevice& device, VulkanSwapChain& swapChain, VulkanRenderPass& renderPass , VulkanImageView& depthImageView);
 };
 

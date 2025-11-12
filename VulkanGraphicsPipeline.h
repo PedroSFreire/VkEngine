@@ -4,9 +4,10 @@
 #include <GLFW/glfw3.h>
 #include <vector>
 #include <fstream>
-#include "VulkanLogicalDevice.h"
-#include "VulkanSwapChain.h"
-#include "VulkanRenderPass.h"
+
+class VulkanLogicalDevice;
+class VulkanSwapChain;
+class VulkanRenderPass;
 
 #include <glm/glm.hpp>
 #include <array>

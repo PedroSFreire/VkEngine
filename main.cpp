@@ -116,6 +116,9 @@ private:
 
 	VulkanImage textureImage;
 	VulkanImageView textureImageView;
+
+	VulkanImage depthImage;
+	VulkanImageView depthImageView;
 	
 	VulkanSampler textureSampler;
 
@@ -137,13 +140,15 @@ private:
 
 		swapChain.createImageViews();
 
-		renderPass.createRenderPass(swapChain, logicalDevice);
+		renderPass.createRenderPass(physicalDevice, swapChain, logicalDevice);
 
 		descriptorSet.createDescriptorSetLayout(logicalDevice);
 
 		graphicsPipeline.createGraphicsPipeline(logicalDevice, swapChain, renderPass, descriptorSet.getDescriptorSetLayout());
 
-		frameBuffers.createFramebuffers(logicalDevice, swapChain, renderPass);
+		createDepthResources();
+
+		frameBuffers.createFramebuffers(logicalDevice, swapChain, renderPass, depthImageView);
 
 		commandPool.createGraphicsCommandPool(physicalDevice, logicalDevice, surface);
 
@@ -152,8 +157,7 @@ private:
 		for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 			commandBuffers[i].createCommandBuffer(logicalDevice, commandPool);
 		}
-		
-		std::cout << 5 << std::endl;
+
 		createTextureImage();
 
 		textureImageView.createImageView(logicalDevice, textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
@@ -249,7 +253,7 @@ private:
 
 		swapChain.createSwapChain(physicalDevice, logicalDevice, surface, window);
 		swapChain.createImageViews();
-		frameBuffers.createFramebuffers(logicalDevice, swapChain, renderPass);
+		frameBuffers.createFramebuffers(logicalDevice, swapChain, renderPass,depthImageView);
 	}
 
 
@@ -527,7 +531,16 @@ private:
 		commandBuffer.endRecordingSingleTimeCommands(logicalDevice, transferCommandPool);
 	}
 	
+	void createDepthResources() {
+		VkFormat depthFormat = physicalDevice.findDepthFormat();
 
+		depthImage.create2DImage(physicalDevice, logicalDevice, swapChain.getSwapChainExtent().width,
+				swapChain.getSwapChainExtent().height, depthFormat, VK_IMAGE_TILING_OPTIMAL,
+				VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		
+		depthImageView.createImageView(logicalDevice, depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+
+	}
 	
 
 };

@@ -7,9 +7,9 @@
 #include <set>
 #include <string>
 #include <stdexcept>
-#include "VulkanInstance.h"
 
-#include "VulkanSurface.h"
+class VulkanInstance;
+class VulkanSurface;
 
 
 
@@ -50,6 +50,11 @@ class VulkanPhysicalDevice
         QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device,  VulkanSurface& surface);
         SwapChainSupportDetails querySwapChainSupport( VulkanSurface& surface) { return querySwapChainSupport(physicalDevice, surface); };
         SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device,  VulkanSurface& surface);
+        VkFormat findSupportedFormat( const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+        uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
+        VkFormat findDepthFormat();
+
+        bool hasStencilComponent(VkFormat format) { return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT; }
 
 	private:
 

@@ -1,5 +1,7 @@
 #include "VulkanGraphicsPipeline.h"
-
+#include "VulkanLogicalDevice.h"
+#include "VulkanSwapChain.h"
+#include "VulkanRenderPass.h"
 
 
 VulkanGraphicsPipeline::~VulkanGraphicsPipeline() {
@@ -201,6 +203,18 @@ void VulkanGraphicsPipeline::createGraphicsPipeline(VulkanLogicalDevice& logical
         throw std::runtime_error("failed to create pipeline layout!");
     }
 
+    VkPipelineDepthStencilStateCreateInfo depthStencil{};
+    depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    depthStencil.depthTestEnable = VK_TRUE;
+    depthStencil.depthWriteEnable = VK_TRUE;
+    depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
+    depthStencil.depthBoundsTestEnable = VK_FALSE;
+    depthStencil.minDepthBounds = 0.0f; // Optional
+    depthStencil.maxDepthBounds = 1.0f; // Optional
+    depthStencil.stencilTestEnable = VK_FALSE;
+    depthStencil.front = {}; // Optional
+    depthStencil.back = {}; // Optional
+
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     pipelineInfo.stageCount = 2;
@@ -211,7 +225,7 @@ void VulkanGraphicsPipeline::createGraphicsPipeline(VulkanLogicalDevice& logical
     pipelineInfo.pViewportState = &viewportState;
     pipelineInfo.pRasterizationState = &rasterizer;
     pipelineInfo.pMultisampleState = &multisampling;
-    pipelineInfo.pDepthStencilState = nullptr;  // Optional
+    pipelineInfo.pDepthStencilState = &depthStencil;  // Optional
     pipelineInfo.pColorBlendState = &colorBlending;
     pipelineInfo.pDynamicState = &dynamicState;
 

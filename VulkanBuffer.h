@@ -3,9 +3,9 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
-#include "VulkanGraphicsPipeline.h"
-#include "VulkanPhysicalDevice.h"
-#include "VulkanLogicalDevice.h"
+
+class VulkanPhysicalDevice;
+class VulkanLogicalDevice;
 
 
 
@@ -33,7 +33,6 @@ class VulkanBuffer
 	VkBuffer& getBuffer() { return buffer; }
 	VkDeviceMemory& getBufferMemory() { return bufferMemory; }
 	uint32_t getVertCount() const { return vertCount; }
-	static uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties, VulkanPhysicalDevice& physicalDevice);
 
 
 private:
