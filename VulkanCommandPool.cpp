@@ -16,7 +16,7 @@ VulkanCommandPool::~VulkanCommandPool() {
 
 
 
-void VulkanCommandPool::createGraphicsCommandPool(VulkanPhysicalDevice& physicalDevice, VulkanLogicalDevice& device, VulkanSurface& surface) {
+void VulkanCommandPool::createGraphicsCommandPool(const VulkanPhysicalDevice& physicalDevice, const VulkanLogicalDevice& device, const VulkanSurface& surface) {
     
     logicalDevice = &device;
 	queue = &device.getGraphicsQueue();
@@ -33,7 +33,7 @@ void VulkanCommandPool::createGraphicsCommandPool(VulkanPhysicalDevice& physical
     }
 }
 
-void VulkanCommandPool::createTransferCommandPool(VulkanPhysicalDevice& physicalDevice, VulkanLogicalDevice& device, VulkanSurface& surface) {
+void VulkanCommandPool::createTransferCommandPool(const VulkanPhysicalDevice& physicalDevice, const VulkanLogicalDevice& device, const VulkanSurface& surface) {
     
 	logicalDevice = &device;
 	queue = &device.getTransferQueue();

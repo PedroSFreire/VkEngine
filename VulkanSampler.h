@@ -11,10 +11,6 @@ class VulkanPhysicalDevice;
 class VulkanSampler
 {
 
-	private:
-	VkSampler sampler;
-	VulkanLogicalDevice* logicalDevice = nullptr;
-
 public:
 	VulkanSampler() = default;
 	VulkanSampler(const VulkanSampler&) = delete;
@@ -25,7 +21,14 @@ public:
 		other.sampler = VK_NULL_HANDLE;
 		other.logicalDevice = nullptr;
 	}
-	void createTextureSampler(VulkanPhysicalDevice& physicalDevice, VulkanLogicalDevice& logicalDevice);
-	VkSampler& getSampler() { return sampler; }
+	void createTextureSampler(const VulkanPhysicalDevice& physicalDevice, const VulkanLogicalDevice& logicalDevice);
+	VkSampler getSampler() const { return sampler; }
+
+private:
+	VkSampler sampler{};
+
+	const VulkanLogicalDevice* logicalDevice = nullptr;
+
+
 };
 

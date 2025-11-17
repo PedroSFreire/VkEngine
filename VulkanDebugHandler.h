@@ -30,15 +30,15 @@ public:
 	VulkanDebugHandler(const VulkanDebugHandler&) = delete;
 
 
-	VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator);
+	VkResult CreateDebugUtilsMessengerEXT(const VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator);
 
-	std::vector<const char*> getRequiredExtensions();
+	std::vector<const char*> getRequiredExtensions() const;
 
-	void setupDebugMessenger(VkInstance instance);
+	void setupDebugMessenger(const VkInstance instance);
 
-	void DestroyDebugUtilsMessengerEXT(VkInstance instance, const VkAllocationCallbacks* pAllocator);
+	void DestroyDebugUtilsMessengerEXT(const VkInstance instance, const VkAllocationCallbacks* pAllocator);
 
-	const std::vector<const char*>& getValidationLayers() { return validationLayers; }
+	const std::vector<const char*>& getValidationLayers() const { return validationLayers; }
 
 	static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 		VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,

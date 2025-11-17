@@ -15,18 +15,7 @@ class Window;
 
 class VulkanSwapChain
 {
-private:
 
-	
-	
-	VkSwapchainKHR					swapChain{};
-	VkFormat						swapChainImageFormat{};
-	VkExtent2D						swapChainExtent{};
-	std::vector<VkImage>			swapChainImages;
-	std::vector<VkImageView>		swapChainImageViews;
-
-	//handle required for object destruction
-	VulkanLogicalDevice* logicalDevice = NULL;
 
 public:
 	VulkanSwapChain() = default;
@@ -34,24 +23,37 @@ public:
 	VulkanSwapChain(const VulkanSwapChain& other) = delete;
 
 	void clean();
-	VkSwapchainKHR& getSwapChain() { return swapChain; }
-	VkFormat& getSwapChainImageFormat() { return swapChainImageFormat; }
-	VkExtent2D& getSwapChainExtent() { return swapChainExtent; }
-	std::vector<VkImage>& getSwapChainImages() { return swapChainImages; }
-	std::vector<VkImageView>& getSwapChainImageViews() { return swapChainImageViews; }
+	VkSwapchainKHR getSwapChain() const { return swapChain; }
+	const VkFormat& getSwapChainImageFormat() const { return swapChainImageFormat; }
+	const VkExtent2D& getSwapChainExtent() const { return swapChainExtent; }
+	const std::vector<VkImage>& getSwapChainImages() const { return swapChainImages; }
+	const std::vector<VkImageView>& getSwapChainImageViews() const { return swapChainImageViews; }
 
 
-	void createSwapChain(VulkanPhysicalDevice& physicalDevice, VulkanLogicalDevice& device, VulkanSurface& surface,Window& window);
+	void createSwapChain(const VulkanPhysicalDevice& physicalDevice, const VulkanLogicalDevice& device, const VulkanSurface& surface,Window& window);
 
 	void createImageViews();
 private:
 
-	VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
+	VkSwapchainKHR					swapChain{};
 
-    VkExtent2D chooseSwapExtent(Window& window, const VkSurfaceCapabilitiesKHR& capabilities);
+	VkFormat						swapChainImageFormat{};
 
-    VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
+	VkExtent2D						swapChainExtent{};
 
+	std::vector<VkImage>			swapChainImages;
+
+	std::vector<VkImageView>		swapChainImageViews;
+
+	const VulkanLogicalDevice* logicalDevice = nullptr;
+
+
+
+	VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) const;
+
+	VkExtent2D chooseSwapExtent(Window& window, const VkSurfaceCapabilitiesKHR& capabilities) const;
+
+	VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) const;
 
 };
 

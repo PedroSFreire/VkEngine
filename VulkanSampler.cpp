@@ -9,7 +9,7 @@ VulkanSampler::~VulkanSampler() {
 	}
 }
 
-void VulkanSampler::createTextureSampler(VulkanPhysicalDevice& physicalDevice, VulkanLogicalDevice& device) {
+void VulkanSampler::createTextureSampler(const VulkanPhysicalDevice& physicalDevice, const VulkanLogicalDevice& device) {
 
 	logicalDevice = &device;
 

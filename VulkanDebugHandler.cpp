@@ -7,7 +7,7 @@ const std::vector<const char*> VulkanDebugHandler::validationLayers = {
 };
 
 
-VkResult VulkanDebugHandler::CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator) {
+VkResult VulkanDebugHandler::CreateDebugUtilsMessengerEXT(const VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator) {
     auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
     if (func != nullptr) {
         return func(instance, pCreateInfo, pAllocator, &debugMessenger);
@@ -18,7 +18,7 @@ VkResult VulkanDebugHandler::CreateDebugUtilsMessengerEXT(VkInstance instance, c
 }
 
 
-std::vector<const char*> VulkanDebugHandler::getRequiredExtensions() {
+std::vector<const char*> VulkanDebugHandler::getRequiredExtensions() const {
     uint32_t glfwExtensionCount = 0;
     const char** glfwExtensions;
     glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
@@ -34,7 +34,7 @@ std::vector<const char*> VulkanDebugHandler::getRequiredExtensions() {
 
 
 
-void VulkanDebugHandler::setupDebugMessenger(VkInstance instance) {
+void VulkanDebugHandler::setupDebugMessenger(const VkInstance instance) {
     if (!enableValidationLayers) return;
 
     VkDebugUtilsMessengerCreateInfoEXT createInfo{};
@@ -50,7 +50,7 @@ void VulkanDebugHandler::setupDebugMessenger(VkInstance instance) {
 
 }
 
-void VulkanDebugHandler::DestroyDebugUtilsMessengerEXT(VkInstance instance,  const VkAllocationCallbacks* pAllocator) {
+void VulkanDebugHandler::DestroyDebugUtilsMessengerEXT(const VkInstance instance,  const VkAllocationCallbacks* pAllocator) {
     auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
     if (func != nullptr) {
         func(instance, debugMessenger, pAllocator);

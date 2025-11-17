@@ -15,18 +15,20 @@ class VulkanInstance;
 
 class VulkanSurface
 {
-private:
-	VkSurfaceKHR surface = VK_NULL_HANDLE;
-	VulkanInstance* instanceRef = NULL;
+
 public:
 	VulkanSurface() = default;
 	VulkanSurface(const VulkanSurface&) = delete;
 	~VulkanSurface();
 
-	VkSurfaceKHR& getSurface() { return surface; }
+	VkSurfaceKHR getSurface() const { return surface; }
 
-	void createSurface(VulkanInstance& instance, Window& window);
+	void createSurface(const VulkanInstance& instance, const Window& window);
 
+private:
+	VkSurfaceKHR surface = VK_NULL_HANDLE;
+
+	const VulkanInstance* instanceRef = NULL;
 
 };
 

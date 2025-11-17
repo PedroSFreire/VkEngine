@@ -7,21 +7,23 @@ const uint32_t HEIGHT = 600;
 
 class Window
 {
-private:
-	GLFWwindow* window;
-	bool framebufferResized = false;
 
 public:
 	Window();
 	~Window();
 	Window(const Window&) = delete;
 
-	GLFWwindow* const getWindow();
+	GLFWwindow* getWindow() const;
 	
 	bool getFramebufferResized() const { return framebufferResized; }
-	void setFramebufferResized(bool val) { framebufferResized = val; }
-	
-	
-	bool shouldClose();
+
+	void setFramebufferResized(const bool val) { framebufferResized = val; }
+
+	bool shouldClose() const;
+
+private:
+	GLFWwindow* window;
+
+	bool framebufferResized = false;
 };
 

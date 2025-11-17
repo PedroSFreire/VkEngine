@@ -7,7 +7,7 @@
 
 
 
-SwapChainSupportDetails VulkanPhysicalDevice::querySwapChainSupport(VkPhysicalDevice device,  VulkanSurface& surface) {
+SwapChainSupportDetails VulkanPhysicalDevice::querySwapChainSupport(const VkPhysicalDevice device, const VulkanSurface& surface) const {
     SwapChainSupportDetails details;
 
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface.getSurface(),
@@ -36,7 +36,7 @@ SwapChainSupportDetails VulkanPhysicalDevice::querySwapChainSupport(VkPhysicalDe
     return details;
 }
 
-bool VulkanPhysicalDevice::checkDeviceExtensionSupport(VkPhysicalDevice device) {
+bool VulkanPhysicalDevice::checkDeviceExtensionSupport(const VkPhysicalDevice device)const {
     uint32_t extensionCount;
     vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount,
         nullptr);
@@ -56,7 +56,7 @@ bool VulkanPhysicalDevice::checkDeviceExtensionSupport(VkPhysicalDevice device) 
 }
 
 
-QueueFamilyIndices VulkanPhysicalDevice::findQueueFamilies(VkPhysicalDevice device,  VulkanSurface& surface) {
+QueueFamilyIndices VulkanPhysicalDevice::findQueueFamilies(const VkPhysicalDevice device,const  VulkanSurface& surface) const {
     QueueFamilyIndices indices;
     // Assign index to queue families that could be found
 
@@ -94,7 +94,7 @@ QueueFamilyIndices VulkanPhysicalDevice::findQueueFamilies(VkPhysicalDevice devi
     return indices;
 }
 
-bool VulkanPhysicalDevice::isDeviceSuitable(VkPhysicalDevice device, VulkanSurface& surface) {
+bool VulkanPhysicalDevice::isDeviceSuitable(const VkPhysicalDevice device, const VulkanSurface& surface) const  {
     VkPhysicalDeviceProperties deviceProperties;
     VkPhysicalDeviceFeatures deviceFeatures;
     vkGetPhysicalDeviceProperties(device, &deviceProperties);
@@ -114,7 +114,7 @@ bool VulkanPhysicalDevice::isDeviceSuitable(VkPhysicalDevice device, VulkanSurfa
     return indices.isComplete() && extensionsSupported && swapChainAdequate && deviceFeatures.samplerAnisotropy;
 }
 
-void VulkanPhysicalDevice::pickPhysicalDevice(VulkanInstance& instance, VulkanSurface& surface) {
+void VulkanPhysicalDevice::pickPhysicalDevice(const VulkanInstance& instance, const VulkanSurface& surface) {
     uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(instance.getInstance(), &deviceCount, nullptr);
 
@@ -137,7 +137,7 @@ void VulkanPhysicalDevice::pickPhysicalDevice(VulkanInstance& instance, VulkanSu
 }
 
 
-VkFormat VulkanPhysicalDevice::findSupportedFormat( const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) {
+VkFormat VulkanPhysicalDevice::findSupportedFormat( const std::vector<VkFormat>& candidates, const VkImageTiling tiling, const VkFormatFeatureFlags features) const {
     for (VkFormat format : candidates) {
         VkFormatProperties props;
         vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &props);
@@ -153,7 +153,7 @@ VkFormat VulkanPhysicalDevice::findSupportedFormat( const std::vector<VkFormat>&
     throw std::runtime_error("failed to find supported format!");
 }
 
-VkFormat VulkanPhysicalDevice::findDepthFormat() {
+VkFormat VulkanPhysicalDevice::findDepthFormat() const {
     return findSupportedFormat(
         { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
         VK_IMAGE_TILING_OPTIMAL,
@@ -162,7 +162,7 @@ VkFormat VulkanPhysicalDevice::findDepthFormat() {
 }
 
 
-uint32_t VulkanPhysicalDevice::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
+uint32_t VulkanPhysicalDevice::findMemoryType(const uint32_t typeFilter, const VkMemoryPropertyFlags properties)const {
     uint32_t foundType = 0;
 
     VkPhysicalDeviceMemoryProperties memProperties;

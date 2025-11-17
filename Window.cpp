@@ -31,13 +31,11 @@ Window::~Window()
 
 
 
-bool Window::shouldClose()
-{
+bool Window::shouldClose() const {
     return glfwWindowShouldClose(window);
 }
 
-GLFWwindow* const Window::getWindow()
-{
+ GLFWwindow* Window::getWindow() const {
     return window;
 }
 

@@ -4,12 +4,19 @@
 
 
 VulkanImageView::~VulkanImageView() {
+	clean();
+}
+
+
+void VulkanImageView::clean() {
 	if (logicalDevice) {
 		vkDestroyImageView(logicalDevice->getDevice(), imageView, nullptr);
+		imageView = VK_NULL_HANDLE;
+		logicalDevice = nullptr;
 	}
 }
 
-void VulkanImageView::createImageView(VulkanLogicalDevice& logicalDevice, VulkanImage& image, VkFormat format, VkImageAspectFlags aspectFlags) {
+void VulkanImageView::createImageView(const VulkanLogicalDevice& logicalDevice, const VulkanImage& image, const VkFormat format, const VkImageAspectFlags aspectFlags) {
 	this->logicalDevice = &logicalDevice;
 
 	VkImageCreateInfo imageInfo = image.getImageInfo();
@@ -17,13 +24,13 @@ void VulkanImageView::createImageView(VulkanLogicalDevice& logicalDevice, Vulkan
 	VkImageViewCreateInfo viewInfo{};
 	viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 	viewInfo.image = image.getImage();
-	if(imageInfo.imageType == VK_IMAGE_TYPE_3D) {
+	if(imageInfo.imageType & VK_IMAGE_TYPE_3D) {
 		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_3D;
 	}
-	else if(imageInfo.imageType == VK_IMAGE_TYPE_2D) {
+	else if(imageInfo.imageType & VK_IMAGE_TYPE_2D) {
 		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 	}
-	else if (imageInfo.imageType == VK_IMAGE_TYPE_1D) {
+	else if (imageInfo.imageType & VK_IMAGE_TYPE_1D) {
 		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_1D;
 	}
 	else {

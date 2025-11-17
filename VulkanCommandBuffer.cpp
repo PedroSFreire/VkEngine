@@ -9,7 +9,7 @@
 #include "VulkanCommandPool.h"
 
 
-void VulkanCommandBuffer::recordCommandBuffer(uint32_t imageIndex, VulkanLogicalDevice& logicalDevice, VulkanSwapChain& swapChain, VulkanGraphicsPipeline& graphicsPipeline, VulkanRenderPass& renderPass, VulkanFrameBuffers& frameBuffers, VulkanBuffer& vertBuffer, VulkanBuffer& indexBuffer, VkDescriptorSet& descriptorSet) {
+void VulkanCommandBuffer::recordCommandBuffer(const uint32_t imageIndex, const VulkanLogicalDevice& logicalDevice, const VulkanSwapChain& swapChain, const VulkanGraphicsPipeline& graphicsPipeline, const VulkanRenderPass& renderPass, const VulkanFrameBuffers& frameBuffers, const VulkanBuffer& vertBuffer, const VulkanBuffer& indexBuffer, const VkDescriptorSet& descriptorSet) {
 
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -81,7 +81,7 @@ void VulkanCommandBuffer::recordCommandBuffer(uint32_t imageIndex, VulkanLogical
 
 
 
-void VulkanCommandBuffer::createCommandBuffer(VulkanLogicalDevice& device ,VulkanCommandPool& commandPool) {
+void VulkanCommandBuffer::createCommandBuffer(const VulkanLogicalDevice& device , const VulkanCommandPool& commandPool) {
 
 
     VkCommandBufferAllocateInfo allocInfo{};
@@ -98,7 +98,7 @@ void VulkanCommandBuffer::createCommandBuffer(VulkanLogicalDevice& device ,Vulka
 }
 
 
-void VulkanCommandBuffer::recordCommandBufferCopyBuffer(VulkanPhysicalDevice& physicalDevice, VulkanLogicalDevice& device, VkBuffer&  srcBuffer, VkBuffer&   dstBuffer, VkDeviceSize size) {
+void VulkanCommandBuffer::recordCommandBufferCopyBuffer(const VulkanPhysicalDevice& physicalDevice, const VulkanLogicalDevice& device, const VkBuffer&  srcBuffer, const VkBuffer&   dstBuffer, const VkDeviceSize size) {
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
@@ -114,7 +114,7 @@ void VulkanCommandBuffer::recordCommandBufferCopyBuffer(VulkanPhysicalDevice& ph
 }
 
 
-void VulkanCommandBuffer::beginRecordindSingleTimeCommands(VulkanLogicalDevice& logicalDevice, VulkanCommandPool& commandPool) {
+void VulkanCommandBuffer::beginRecordindSingleTimeCommands(const VulkanLogicalDevice& logicalDevice, const VulkanCommandPool& commandPool) {
 
 
     createCommandBuffer(logicalDevice, commandPool);
@@ -128,7 +128,7 @@ void VulkanCommandBuffer::beginRecordindSingleTimeCommands(VulkanLogicalDevice& 
 
 }
 
-void VulkanCommandBuffer::endRecordingSingleTimeCommands(VulkanLogicalDevice& logicalDevice, VulkanCommandPool& commandPool) {
+void VulkanCommandBuffer::endRecordingSingleTimeCommands(const VulkanLogicalDevice& logicalDevice, const VulkanCommandPool& commandPool) {
     vkEndCommandBuffer(commandBuffer);
 
     VkSubmitInfo submitInfo{};
@@ -136,6 +136,6 @@ void VulkanCommandBuffer::endRecordingSingleTimeCommands(VulkanLogicalDevice& lo
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &commandBuffer;
 
-    vkQueueSubmit(*(commandPool.getQueue()), 1, &submitInfo, VK_NULL_HANDLE);
-    vkQueueWaitIdle(*(commandPool.getQueue()));
+    vkQueueSubmit(commandPool.getQueue(), 1, &submitInfo, VK_NULL_HANDLE);
+    vkQueueWaitIdle(commandPool.getQueue());
 }

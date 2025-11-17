@@ -16,9 +16,6 @@ class VulkanCommandPool;
 
 class VulkanCommandBuffer
 {
-private:
-
-	VkCommandBuffer commandBuffer;
 
 
 public:
@@ -35,22 +32,25 @@ public:
 
 
 
-	inline VkCommandBuffer& getCommandBuffer() { return commandBuffer; }
+	const VkCommandBuffer& getCommandBuffer() const { return commandBuffer; }
 
 
-	void recordCommandBuffer(uint32_t imageIndex, VulkanLogicalDevice& logicalDevice, VulkanSwapChain& swapChain, VulkanGraphicsPipeline& graphicsPipeline, VulkanRenderPass& renderPass, VulkanFrameBuffers& frameBuffers, VulkanBuffer& vertBuffer, VulkanBuffer& indexBuffer, VkDescriptorSet& descriptorSet);
+	void recordCommandBuffer(uint32_t imageIndex, const VulkanLogicalDevice& logicalDevice, const VulkanSwapChain& swapChain,
+		const VulkanGraphicsPipeline& graphicsPipeline, const VulkanRenderPass& renderPass, const VulkanFrameBuffers& frameBuffers,
+		const VulkanBuffer& vertBuffer, const VulkanBuffer& indexBuffer, const VkDescriptorSet& descriptorSet);
 
-
-	void createCommandBuffer(VulkanLogicalDevice& device, VulkanCommandPool& commandPool);
-
+	void createCommandBuffer(const VulkanLogicalDevice& device, const VulkanCommandPool& commandPool);
 	
-	void recordCommandBufferCopyBuffer(VulkanPhysicalDevice& physicalDevice, VulkanLogicalDevice& device, VkBuffer&  srcBuffer, VkBuffer&   dstBuffer, VkDeviceSize size);
+	void recordCommandBufferCopyBuffer(const VulkanPhysicalDevice& physicalDevice, const VulkanLogicalDevice& device, const VkBuffer&  srcBuffer, const VkBuffer&   dstBuffer, const VkDeviceSize size);
+
+	void beginRecordindSingleTimeCommands(const VulkanLogicalDevice& device, const VulkanCommandPool& commandPool);
+
+	void endRecordingSingleTimeCommands(const VulkanLogicalDevice& device, const VulkanCommandPool& commandPool);
 
 
+private:
 
-	void beginRecordindSingleTimeCommands(VulkanLogicalDevice& device, VulkanCommandPool& commandPool);
-
-	void endRecordingSingleTimeCommands(VulkanLogicalDevice& device,  VulkanCommandPool& commandPool);
+	VkCommandBuffer commandBuffer;
 
 };
 

@@ -12,18 +12,22 @@ class VulkanLogicalDevice;
 
 class VulkanRenderPass
 {
-private:
-	VkRenderPass renderPass;
-	VulkanLogicalDevice* logicalDevice;
 
 public:
 	VulkanRenderPass() = default;
 	VulkanRenderPass(const VulkanRenderPass&) = delete;
 	~VulkanRenderPass();
 
-	void createRenderPass(VulkanPhysicalDevice& physicalDevice , VulkanSwapChain& swapChain, VulkanLogicalDevice& logicalDevice);
+	void createRenderPass(const VulkanPhysicalDevice& physicalDevice , const VulkanSwapChain& swapChain, const VulkanLogicalDevice& logicalDevice);
 
-	VkRenderPass& getRenderPass() { return renderPass; }
+	VkRenderPass getRenderPass() const { return renderPass; }
+
+
+private:
+
+	VkRenderPass renderPass;
+
+	const VulkanLogicalDevice* logicalDevice;
 
 
 };

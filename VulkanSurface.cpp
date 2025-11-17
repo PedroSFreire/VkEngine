@@ -12,9 +12,9 @@ VulkanSurface::~VulkanSurface() {
 }
 
 
-void VulkanSurface::createSurface(VulkanInstance& instance, Window& window) {
+void VulkanSurface::createSurface(const VulkanInstance& instance, const Window& window) {
 	instanceRef = &instance;
-    if (glfwCreateWindowSurface((*instanceRef).getInstance(), window.getWindow(), nullptr, &surface) !=
+    if (glfwCreateWindowSurface(instanceRef->getInstance(), window.getWindow(), nullptr, &surface) !=
         VK_SUCCESS) {
         throw std::runtime_error("failed to create window surface!");
     }

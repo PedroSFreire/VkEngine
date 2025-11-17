@@ -21,7 +21,7 @@ void VulkanFrameBuffers::clean() {
 }
 
 
-void VulkanFrameBuffers::createFramebuffers(VulkanLogicalDevice& device, VulkanSwapChain& swapChain, VulkanRenderPass& renderPass , VulkanImageView& depthImageView) {
+void VulkanFrameBuffers::createFramebuffers(const VulkanLogicalDevice& device, const VulkanSwapChain& swapChain, const VulkanRenderPass& renderPass , const VulkanImageView& depthImageView) {
 	logicalDevice = &device;
     
     swapChainFramebuffers.resize(swapChain.getSwapChainImageViews().size());

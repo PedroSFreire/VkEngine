@@ -3,14 +3,24 @@
 #include "VulkanPhysicalDevice.h"
 
 VulkanImage::~VulkanImage() {
-	if (logicalDevice) {
-		vkDestroyImage(logicalDevice->getDevice(), image, nullptr);
-		vkFreeMemory(logicalDevice->getDevice(), imageMemory, nullptr);
-	}
+	clean();
 }
 
 
-void VulkanImage::create2DImage(VulkanPhysicalDevice& physicalDevice, VulkanLogicalDevice& device, int texWidth, int texHeight, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties) {
+void VulkanImage::clean() {
+	if (image != VK_NULL_HANDLE) {
+		vkDestroyImage(logicalDevice->getDevice(), image, nullptr);
+		image = VK_NULL_HANDLE;
+	}
+	if (imageMemory != VK_NULL_HANDLE) {
+		vkFreeMemory(logicalDevice->getDevice(), imageMemory, nullptr);
+		imageMemory = VK_NULL_HANDLE;
+	}
+	logicalDevice = nullptr;
+}
+
+
+void VulkanImage::create2DImage(const VulkanPhysicalDevice& physicalDevice, const VulkanLogicalDevice& device, const int texWidth, const int texHeight, const VkFormat format, const VkImageTiling tiling, const VkImageUsageFlags usage, const VkMemoryPropertyFlags properties) {
 	
 	logicalDevice = &device; 
 	imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;

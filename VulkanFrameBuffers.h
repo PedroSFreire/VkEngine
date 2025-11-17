@@ -14,11 +14,7 @@ class VulkanImageView;
 
 class VulkanFrameBuffers
 {
-private:
 
-	std::vector<VkFramebuffer> swapChainFramebuffers;
-
-	VulkanLogicalDevice* logicalDevice = NULL;
 public:
 	VulkanFrameBuffers() = default;
 	~VulkanFrameBuffers();
@@ -28,10 +24,16 @@ public:
 
 	void clean();
 
-	std::vector<VkFramebuffer>& getSwapChainFramebuffers() { return swapChainFramebuffers; }
+	const std::vector<VkFramebuffer>& getSwapChainFramebuffers() const { return swapChainFramebuffers; }
 
-	VkFramebuffer& getFrameBufferAtIndex(size_t index) { return swapChainFramebuffers[index]; }
+	VkFramebuffer getFrameBufferAtIndex(size_t index) const { return swapChainFramebuffers[index]; }
 
-	void createFramebuffers(VulkanLogicalDevice& device, VulkanSwapChain& swapChain, VulkanRenderPass& renderPass , VulkanImageView& depthImageView);
+	void createFramebuffers(const VulkanLogicalDevice& device, const VulkanSwapChain& swapChain, const VulkanRenderPass& renderPass , const VulkanImageView& depthImageView);
+
+private:
+
+	std::vector<VkFramebuffer> swapChainFramebuffers;
+
+	const VulkanLogicalDevice* logicalDevice = NULL;
 };
 

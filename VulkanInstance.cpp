@@ -19,20 +19,14 @@ VulkanInstance::~VulkanInstance() {
 
     vkDestroyInstance(instance, nullptr);
 }
-VkInstance&  VulkanInstance::getInstance() {
-    return instance;
-}
-
-VulkanDebugHandler&  VulkanInstance::getDebugHandler() {
-    return debugHandler;
-}
 
 
 
 
 
 
-bool VulkanInstance::checkExtensions() {
+
+bool VulkanInstance::checkExtensions() const {
     uint32_t extensionCount = 0;
     vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
 
@@ -64,7 +58,7 @@ bool VulkanInstance::checkExtensions() {
     return true;
 }
 
-void VulkanInstance::createVkInstance() {  
+void VulkanInstance::createVkInstance() {
     if (enableValidationLayers && !checkExtensions()) {
         throw std::runtime_error(
             "validation layers requested, but not available!");

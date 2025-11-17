@@ -49,26 +49,14 @@
 #include "VulkanImageView.h"
 #include "VulkanSampler.h"
 
+#include "ModelLoader.h"
+
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-const std::vector<Vertex> vertices = {
-	{{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-	{{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-	{{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-	{{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
 
-	{{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-	{{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-	{{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-	{{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
-};
-
-const std::vector<uint32_t> indices = {
-	0, 1, 2, 2, 3, 0,
-	4, 5, 6, 6, 7, 4
-};
-
+#define TINYOBJLOADER_IMPLEMENTATION
+#include "tiny_obj_loader.h"
 
 
 
@@ -121,8 +109,10 @@ private:
 	VulkanImageView depthImageView;
 	
 	VulkanSampler textureSampler;
+	ModelLoader modelLoader;
 
-
+	const std::string MODEL_PATH = "models/viking_room.obj";
+	const std::string TEXTURE_PATH = "textures/viking_room.png";
 	
 
 
@@ -158,7 +148,9 @@ private:
 			commandBuffers[i].createCommandBuffer(logicalDevice, commandPool);
 		}
 
-		createTextureImage();
+		modelLoader.loadModel(MODEL_PATH);
+
+		createTextureImage(TEXTURE_PATH);
 
 		textureImageView.createImageView(logicalDevice, textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
 
@@ -179,7 +171,7 @@ private:
 
 
 
-	void copyBuffer(VkBuffer& srcBuffer, VkBuffer& dstBuffer, VkDeviceSize size) {
+	void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, const VkDeviceSize size) {
 		VulkanCommandBuffer commandBuffer;
 		commandBuffer.beginRecordindSingleTimeCommands(logicalDevice, transferCommandPool);
 
@@ -192,8 +184,8 @@ private:
 	}
 
 	void createVertexBuffer() {
-		VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
-		uint32_t vextexCount = static_cast<uint32_t>(vertices.size());
+		VkDeviceSize bufferSize = sizeof(modelLoader.getVertices()[0]) * modelLoader.getVertices().size();
+		uint32_t vextexCount = static_cast<uint32_t>(modelLoader.getVertices().size());
 
 		VulkanBuffer stagingBuffer;
 		stagingBuffer.createBuffer(physicalDevice, logicalDevice, bufferSize, vextexCount, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
@@ -202,7 +194,7 @@ private:
 		void* data;
 
 		vkMapMemory(logicalDevice.getDevice(), stagingBuffer.getBufferMemory(), 0, bufferSize, 0, &data);
-		memcpy(data, vertices.data(), (size_t)bufferSize);
+		memcpy(data, modelLoader.getVertices().data(), (size_t)bufferSize);
 		vkUnmapMemory(logicalDevice.getDevice(), stagingBuffer.getBufferMemory());
 
 		vertexBuffer.createBuffer(physicalDevice, logicalDevice, bufferSize, vextexCount, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
@@ -211,13 +203,13 @@ private:
 	}
 
 	void createIndexBuffer() {
-		VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
-		uint32_t indexCount = static_cast<uint32_t>(indices.size());
+		VkDeviceSize bufferSize = sizeof(modelLoader.getIndices()[0]) * modelLoader.getIndices().size();
+		uint32_t indexCount = static_cast<uint32_t>(modelLoader.getIndices().size());
 		VulkanBuffer stagingBuffer;
 		stagingBuffer.createBuffer(physicalDevice, logicalDevice, bufferSize, indexCount, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 		void* data;
 		vkMapMemory(logicalDevice.getDevice(), stagingBuffer.getBufferMemory(), 0, bufferSize, 0, &data);
-		memcpy(data, indices.data(), (size_t)bufferSize);
+		memcpy(data, modelLoader.getIndices().data(), (size_t)bufferSize);
 		vkUnmapMemory(logicalDevice.getDevice(), stagingBuffer.getBufferMemory());
 		indexBuffer.createBuffer(physicalDevice, logicalDevice, bufferSize, indexCount, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 		copyBuffer(stagingBuffer.getBuffer(), indexBuffer.getBuffer(), bufferSize);
@@ -250,8 +242,11 @@ private:
 		vkDeviceWaitIdle(logicalDevice.getDevice());
 
 		cleanSwapChain();
+		cleanDepthResources();
+
 
 		swapChain.createSwapChain(physicalDevice, logicalDevice, surface, window);
+		createDepthResources();
 		swapChain.createImageViews();
 		frameBuffers.createFramebuffers(logicalDevice, swapChain, renderPass,depthImageView);
 	}
@@ -367,9 +362,9 @@ private:
 	}
 
 
-	void createTextureImage() {
+	void createTextureImage(const std::string& TEXTURE_PATH) {
 		int texWidth, texHeight, texChannels;
-		stbi_uc* pixels = stbi_load("textures/texture.jpg", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+		stbi_uc* pixels = stbi_load(TEXTURE_PATH.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
 		VkDeviceSize imageSize = texWidth * texHeight * 4;
 
 		if (!pixels) {
@@ -540,6 +535,11 @@ private:
 		
 		depthImageView.createImageView(logicalDevice, depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
 
+	}
+
+	void cleanDepthResources() {
+		depthImageView.clean();
+		depthImage.clean();
 	}
 	
 

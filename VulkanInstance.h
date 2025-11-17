@@ -6,35 +6,36 @@
 
 
 class VulkanInstance {
-	private:
-		
-		VkInstance instance = VK_NULL_HANDLE;
-		VulkanDebugHandler debugHandler;
-		
 
 
-  public:
+public:
 
-	 VulkanInstance();
-	 VulkanInstance(const VulkanInstance&) = delete;
-	 ~VulkanInstance();
+	VulkanInstance();
+	VulkanInstance(const VulkanInstance&) = delete;
+	~VulkanInstance();
 
 
-	 void vulkanInstanceCreator();
+	void vulkanInstanceCreator();
 
-	VkInstance& getInstance();
+	VkInstance getInstance() const { return instance; };
 
-	VulkanDebugHandler&   getDebugHandler();
+	const VulkanDebugHandler& getDebugHandler() const { return debugHandler; };
 
-	const std::vector<const char*>& getValidationLayers() {
-		return debugHandler.getValidationLayers();
-	};
+	const std::vector<const char*>& getValidationLayers() const { return debugHandler.getValidationLayers(); };
 
 
 private:
 
-    bool checkExtensions();
+	bool checkExtensions() const;
 
 	void createVkInstance();
 
+
+	VkInstance instance = VK_NULL_HANDLE;
+
+	VulkanDebugHandler debugHandler;
+
+
+
+	
 };

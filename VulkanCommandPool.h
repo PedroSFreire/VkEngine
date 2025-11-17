@@ -14,14 +14,6 @@ class VulkanSurface;
 class VulkanCommandPool
 {
 
-private:
-
-	VkCommandPool commandPool{};
-
-	uint32_t queueFamilyIndex = 0;
-	VkQueue* queue = NULL;
-
-	VulkanLogicalDevice* logicalDevice = NULL;
 
 public:
 	VulkanCommandPool() = default;
@@ -37,11 +29,25 @@ public:
 	}
 
 
-	void createGraphicsCommandPool(VulkanPhysicalDevice& physicalDevice, VulkanLogicalDevice& device, VulkanSurface& surface);
+	void createGraphicsCommandPool(const VulkanPhysicalDevice& physicalDevice, const VulkanLogicalDevice& device, const VulkanSurface& surface);
 
-	void createTransferCommandPool(VulkanPhysicalDevice& physicalDevice, VulkanLogicalDevice& device, VulkanSurface& surface);
+	void createTransferCommandPool(const VulkanPhysicalDevice& physicalDevice, const VulkanLogicalDevice& device, const VulkanSurface& surface);
 
-	inline VkCommandPool getCommandPool() { return commandPool; }
-	VkQueue* getQueue() { return queue; }
+	VkCommandPool getCommandPool() const { return commandPool; }
+
+	const VkQueue& getQueue() const { return *queue; }
+
+
+private:
+
+	VkCommandPool					commandPool{};
+
+	uint32_t						queueFamilyIndex = 0;
+
+	const VkQueue*					queue = NULL;
+
+	const VulkanLogicalDevice*		logicalDevice = NULL;
+
+
 };
 

@@ -55,7 +55,7 @@ void VulkanSwapChain::createImageViews() {
 
 
 
-VkSurfaceFormatKHR VulkanSwapChain::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
+VkSurfaceFormatKHR VulkanSwapChain::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) const {
     for (const auto& availableFormat : availableFormats) {
         if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB &&
             availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
@@ -66,7 +66,7 @@ VkSurfaceFormatKHR VulkanSwapChain::chooseSwapSurfaceFormat(const std::vector<Vk
     return availableFormats[0];
 }
 
-VkExtent2D VulkanSwapChain::chooseSwapExtent(Window& window, const VkSurfaceCapabilitiesKHR& capabilities) {
+VkExtent2D VulkanSwapChain::chooseSwapExtent(Window& window, const VkSurfaceCapabilitiesKHR& capabilities) const {
     if (capabilities.currentExtent.width !=
         (std::numeric_limits<uint32_t>::max)()) {
         return capabilities.currentExtent;
@@ -89,7 +89,7 @@ VkExtent2D VulkanSwapChain::chooseSwapExtent(Window& window, const VkSurfaceCapa
     }
 }
 
-VkPresentModeKHR VulkanSwapChain::chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) {
+VkPresentModeKHR VulkanSwapChain::chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) const {
     for (const auto& availablePresentMode : availablePresentModes) {
         if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
             return availablePresentMode;
@@ -99,7 +99,7 @@ VkPresentModeKHR VulkanSwapChain::chooseSwapPresentMode(const std::vector<VkPres
 }
 
 
-void VulkanSwapChain::createSwapChain(VulkanPhysicalDevice& physicalDevice, VulkanLogicalDevice& device, VulkanSurface& surface,Window& window) {
+void VulkanSwapChain::createSwapChain(const VulkanPhysicalDevice& physicalDevice, const VulkanLogicalDevice& device, const VulkanSurface& surface,Window& window) {
     logicalDevice = &device;
     SwapChainSupportDetails swapChainSupport =
         physicalDevice.querySwapChainSupport(surface);

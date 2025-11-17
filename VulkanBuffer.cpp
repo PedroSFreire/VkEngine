@@ -15,7 +15,7 @@ VulkanBuffer::~VulkanBuffer() {
 
 
 
-void VulkanBuffer::createBuffer(VulkanPhysicalDevice& physicalDevice , VulkanLogicalDevice& device , VkDeviceSize size,uint32_t vertexCount, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties) {
+void VulkanBuffer::createBuffer(const VulkanPhysicalDevice& physicalDevice , const VulkanLogicalDevice& device , const VkDeviceSize size, const uint32_t vertexCount, const VkBufferUsageFlags usage, const VkMemoryPropertyFlags properties) {
     logicalDevice = &device;
 	vertCount = vertexCount;
 

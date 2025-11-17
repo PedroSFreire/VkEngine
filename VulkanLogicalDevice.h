@@ -14,24 +14,32 @@ const std::vector<const char*> deviceExtensions = {
 
 class VulkanLogicalDevice
 {
-private:
-    VkQueue graphicsQueue;
 
-    VkQueue presentQueue;
-
-	VkQueue transferQueue;
-
-	VkDevice device;
 public:
+
 	VulkanLogicalDevice() = default;
 	~VulkanLogicalDevice();
 	VulkanLogicalDevice(const VulkanLogicalDevice& other) = delete;
 
-	VkDevice& getDevice() { return device; }
-	VkQueue& getGraphicsQueue() { return graphicsQueue; }
-	VkQueue& getPresentQueue() { return presentQueue; }
-	VkQueue& getTransferQueue() { return transferQueue; }
-	void createLogicalDevice(VulkanInstance& instance, VulkanPhysicalDevice& physicalDevice, VulkanSurface& surface);
+	const VkDevice& getDevice() const { return device; }
+
+	const VkQueue& getGraphicsQueue() const { return graphicsQueue; }
+
+	const VkQueue& getPresentQueue() const { return presentQueue; }
+
+	const VkQueue& getTransferQueue() const { return transferQueue; }
+
+	void createLogicalDevice(const VulkanInstance& instance, const VulkanPhysicalDevice& physicalDevice, const VulkanSurface& surface);
+
+
+private:
+	VkQueue graphicsQueue;
+
+	VkQueue presentQueue;
+
+	VkQueue transferQueue;
+
+	VkDevice device;
 
 };
 

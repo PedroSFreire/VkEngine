@@ -13,7 +13,7 @@ VulkanRenderPass::~VulkanRenderPass()
 
 
 
-void VulkanRenderPass::createRenderPass(VulkanPhysicalDevice& physicalDevice, VulkanSwapChain& swapChain, VulkanLogicalDevice& device)
+void VulkanRenderPass::createRenderPass(const VulkanPhysicalDevice& physicalDevice, const VulkanSwapChain& swapChain, const VulkanLogicalDevice& device)
 {
 
 	logicalDevice = &device;

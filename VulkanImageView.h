@@ -10,9 +10,7 @@ class VulkanImage;
 
 class VulkanImageView
 {
-	private:
-	VkImageView imageView;
-	VulkanLogicalDevice* logicalDevice = nullptr;
+
 public:
 	VulkanImageView() = default;
 	VulkanImageView(const VulkanImageView&) = delete;
@@ -23,7 +21,18 @@ public:
 		other.imageView = VK_NULL_HANDLE;
 		other.logicalDevice = nullptr;
 	}
-	void createImageView(VulkanLogicalDevice& logicalDevice, VulkanImage& image, VkFormat format, VkImageAspectFlags aspectFlags);
-	VkImageView& getImageView() { return imageView; }
+
+	void createImageView(const VulkanLogicalDevice& logicalDevice, const VulkanImage& image, const VkFormat format, const VkImageAspectFlags aspectFlags);
+
+	VkImageView getImageView() const { return imageView; }
+
+	void clean();
+
+
+private:
+	VkImageView imageView{};
+
+	const VulkanLogicalDevice* logicalDevice = nullptr;
+
 };
 

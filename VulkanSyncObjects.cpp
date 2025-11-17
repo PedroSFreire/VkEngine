@@ -16,7 +16,7 @@ VulkanSyncObjects::~VulkanSyncObjects() {
 
 
 
-void VulkanSyncObjects::createSyncObjects(VulkanLogicalDevice& device, const int MAX_FRAMES_IN_FLIGHT) {
+void VulkanSyncObjects::createSyncObjects(const VulkanLogicalDevice& device, const int MAX_FRAMES_IN_FLIGHT) {
 
 	logicalDevice = &device;
 	framesInFlight = MAX_FRAMES_IN_FLIGHT;

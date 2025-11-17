@@ -26,9 +26,9 @@ struct UniformBufferObject {
 class VulkanDescriptorSet
 {
 private:
-	VkDescriptorSetLayout descriptorSetLayout;
+	VkDescriptorSetLayout descriptorSetLayout{};
 	std::vector<VkDescriptorSet> descriptorSets;
-	VkDescriptorPool descriptorPool;
+	VkDescriptorPool descriptorPool{};
 
 	VulkanLogicalDevice* logicalDevice = NULL;
 
@@ -51,9 +51,9 @@ public:
 
 	}
 
-	VkDescriptorSetLayout& getDescriptorSetLayout() { return descriptorSetLayout; }
-	VkDescriptorSet& getDescriptorSets(int i) { return descriptorSets[i]; }
-	VkDescriptorPool& getDescriptorPool() { return descriptorPool; }
+	VkDescriptorSetLayout getDescriptorSetLayout() const{ return descriptorSetLayout; }
+	VkDescriptorSet getDescriptorSets(int i) const { return descriptorSets[i]; }
+	VkDescriptorPool getDescriptorPool() const { return descriptorPool; }
 
 
 

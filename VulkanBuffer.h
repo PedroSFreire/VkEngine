@@ -28,18 +28,25 @@ class VulkanBuffer
 	}
 
 
-	void createBuffer(VulkanPhysicalDevice& physicalDevice, VulkanLogicalDevice& logicalDevice, VkDeviceSize size,uint32_t vertexCount, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
-	//void createVertexBuffer(VulkanPhysicalDevice& physicalDevice , VulkanLogicalDevice& logicalDevice);
-	VkBuffer& getBuffer() { return buffer; }
-	VkDeviceMemory& getBufferMemory() { return bufferMemory; }
+	void createBuffer(const VulkanPhysicalDevice& physicalDevice, const VulkanLogicalDevice& logicalDevice, const VkDeviceSize size, const uint32_t vertexCount, const VkBufferUsageFlags usage, const VkMemoryPropertyFlags properties);
+
+	VkBuffer getBuffer() const { return buffer; }
+
+	VkDeviceMemory getBufferMemory()const { return bufferMemory; }
+
 	uint32_t getVertCount() const { return vertCount; }
 
 
+
 private:
-	VkBuffer buffer;
-	VkDeviceMemory bufferMemory;
-	VulkanLogicalDevice* logicalDevice;
+	VkBuffer buffer{};
+
+	VkDeviceMemory bufferMemory{};
+
+	const VulkanLogicalDevice* logicalDevice = nullptr;
+
 	uint32_t vertCount = 0;
+
 
 	
 };

@@ -32,11 +32,7 @@ struct QueueFamilyIndices {
 
 class VulkanPhysicalDevice
 {
-	private:
-		VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-
-        const std::vector<const char*> deviceExtensions = {
-     VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+	
 
 
     public:
@@ -44,23 +40,39 @@ class VulkanPhysicalDevice
 		~VulkanPhysicalDevice() = default;
         VulkanPhysicalDevice(const VulkanPhysicalDevice&) = delete;
 
-        void pickPhysicalDevice(VulkanInstance& instance, VulkanSurface& surface);
-        VkPhysicalDevice&  getPhysicalDevice() { return physicalDevice; }
-        QueueFamilyIndices findQueueFamilies( VulkanSurface& surface) { return findQueueFamilies(physicalDevice, surface); };
-        QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device,  VulkanSurface& surface);
-        SwapChainSupportDetails querySwapChainSupport( VulkanSurface& surface) { return querySwapChainSupport(physicalDevice, surface); };
-        SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device,  VulkanSurface& surface);
-        VkFormat findSupportedFormat( const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
-        uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
-        VkFormat findDepthFormat();
 
-        bool hasStencilComponent(VkFormat format) { return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT; }
+        void pickPhysicalDevice(const VulkanInstance& instance, const VulkanSurface& surface);
+
+        VkPhysicalDevice getPhysicalDevice() const  { return physicalDevice; }
+
+        QueueFamilyIndices findQueueFamilies(const VulkanSurface& surface) const { return findQueueFamilies(physicalDevice, surface); };
+
+        QueueFamilyIndices findQueueFamilies(const VkPhysicalDevice device,const VulkanSurface& surface) const ;
+
+        SwapChainSupportDetails querySwapChainSupport(const VulkanSurface& surface) const { return querySwapChainSupport(physicalDevice, surface); };
+
+        SwapChainSupportDetails querySwapChainSupport(const VkPhysicalDevice device, const VulkanSurface& surface) const;
+
+        VkFormat findSupportedFormat( const std::vector<VkFormat>& candidates, const VkImageTiling tiling, const VkFormatFeatureFlags features) const;
+
+        uint32_t findMemoryType(const uint32_t typeFilter, const VkMemoryPropertyFlags properties) const;
+
+        VkFormat findDepthFormat() const;
+
+
+        bool hasStencilComponent(const VkFormat format) const { return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT; }
 
 	private:
 
-        bool checkDeviceExtensionSupport(VkPhysicalDevice device);
+        VkPhysicalDevice                    physicalDevice = VK_NULL_HANDLE;
 
-        bool isDeviceSuitable(VkPhysicalDevice device, VulkanSurface& surface);
+        const std::vector<const char*>      deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+
+
+
+        bool checkDeviceExtensionSupport(const VkPhysicalDevice device) const;
+
+        bool isDeviceSuitable(const VkPhysicalDevice device, const  VulkanSurface& surface) const ;
 
         
 

@@ -12,9 +12,9 @@ VulkanLogicalDevice::~VulkanLogicalDevice(){
 
 
 
-void VulkanLogicalDevice::createLogicalDevice(VulkanInstance& instance, VulkanPhysicalDevice& physicalDevice, VulkanSurface& surface) {
+void VulkanLogicalDevice::createLogicalDevice(const VulkanInstance& instance, const VulkanPhysicalDevice& physicalDevice, const VulkanSurface& surface) {
     // setup structs needed to create logical device
-    QueueFamilyIndices indices = physicalDevice.findQueueFamilies(surface);
+    const QueueFamilyIndices indices = physicalDevice.findQueueFamilies(surface);
 
     // create structs needed for proper queue family handling
 
