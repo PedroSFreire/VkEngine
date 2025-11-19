@@ -1,6 +1,6 @@
-#include "VulkanImage.h"
-#include "VulkanLogicalDevice.h"
-#include "VulkanPhysicalDevice.h"
+#include "..\headers\VulkanImage.h"
+#include "..\headers\VulkanLogicalDevice.h"
+#include "..\headers\VulkanPhysicalDevice.h"
 
 VulkanImage::~VulkanImage() {
 	clean();

@@ -1,6 +1,6 @@
-#include "VulkanSampler.h"
-#include "VulkanLogicalDevice.h"
-#include "VulkanPhysicalDevice.h"
+#include "..\headers\VulkanSampler.h"
+#include "..\headers\VulkanLogicalDevice.h"
+#include "..\headers\VulkanPhysicalDevice.h"
 
 
 VulkanSampler::~VulkanSampler() {

@@ -1,4 +1,4 @@
-#include "Window.h"
+#include "..\headers\Window.h"
 
 
 static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {

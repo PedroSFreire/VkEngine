@@ -1,6 +1,6 @@
-#include "VulkanImageView.h"
-#include "VulkanLogicalDevice.h"
-#include "VulkanImage.h"
+#include "..\headers\VulkanImageView.h"
+#include "..\headers\VulkanLogicalDevice.h"
+#include "..\headers\VulkanImage.h"
 
 
 VulkanImageView::~VulkanImageView() {

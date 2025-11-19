@@ -1,6 +1,6 @@
-#include "VulkanSurface.h"
-#include "Window.h"
-#include "VulkanInstance.h"
+#include "..\headers\VulkanSurface.h"
+#include "..\headers\Window.h"
+#include "..\headers\VulkanInstance.h"
 
 
 

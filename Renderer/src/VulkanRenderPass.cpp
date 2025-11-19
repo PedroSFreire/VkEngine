@@ -1,7 +1,7 @@
-#include "VulkanRenderPass.h"
-#include "VulkanSwapChain.h"
-#include "VulkanPhysicalDevice.h"
-#include "VulkanLogicalDevice.h"
+#include "..\headers\VulkanRenderPass.h"
+#include "..\headers\VulkanSwapChain.h"
+#include "..\headers\VulkanPhysicalDevice.h"
+#include "..\headers\VulkanLogicalDevice.h"
 
 
 

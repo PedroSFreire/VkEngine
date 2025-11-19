@@ -1,5 +1,5 @@
-#include "VulkanSyncObjects.h"
-#include "VulkanLogicalDevice.h"
+#include "..\headers\VulkanSyncObjects.h"
+#include "..\headers\VulkanLogicalDevice.h"
 
 
 

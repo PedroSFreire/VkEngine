@@ -1,8 +1,7 @@
-#include "VulkanCommandPool.h"
-
-#include "VulkanPhysicalDevice.h"
-#include "VulkanLogicalDevice.h"
-#include "VulkanSurface.h"
+#include "..\headers\VulkanCommandPool.h"
+#include "..\headers\VulkanPhysicalDevice.h"
+#include "..\headers\VulkanLogicalDevice.h"
+#include "..\headers\VulkanSurface.h"
 
 
 VulkanCommandPool::~VulkanCommandPool() {

@@ -1,8 +1,8 @@
-#include "VulkanSwapChain.h"
-#include "VulkanPhysicalDevice.h"
-#include "VulkanLogicalDevice.h"
-#include "VulkanSurface.h"
-#include "Window.h"
+#include "..\headers\VulkanSwapChain.h"
+#include "..\headers\VulkanPhysicalDevice.h"
+#include "..\headers\VulkanLogicalDevice.h"
+#include "..\headers\VulkanSurface.h"
+#include "..\headers\Window.h"
 
 
 

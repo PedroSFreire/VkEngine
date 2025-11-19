@@ -1,8 +1,8 @@
-#include "VulkanLogicalDevice.h"
-#include "VulkanPhysicalDevice.h"
-#include "VulkanDebugHandler.h"
-#include "VulkanInstance.h"
-#include "VulkanSurface.h"
+#include "..\headers\VulkanLogicalDevice.h"
+#include "..\headers\VulkanPhysicalDevice.h"
+#include "..\headers\VulkanDebugHandler.h"
+#include "..\headers\VulkanInstance.h"
+#include "..\headers\VulkanSurface.h"
 
 
 VulkanLogicalDevice::~VulkanLogicalDevice(){

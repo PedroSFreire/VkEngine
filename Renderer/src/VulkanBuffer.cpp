@@ -1,7 +1,7 @@
-#include "VulkanBuffer.h"
+#include "..\headers\VulkanBuffer.h"
 
-#include "VulkanPhysicalDevice.h"
-#include "VulkanLogicalDevice.h"
+#include "..\headers\VulkanPhysicalDevice.h"
+#include "..\headers\VulkanLogicalDevice.h"
 
 VulkanBuffer::~VulkanBuffer() {
         vkDestroyBuffer(logicalDevice->getDevice(), buffer, nullptr);

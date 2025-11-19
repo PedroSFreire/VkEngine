@@ -1,8 +1,8 @@
-#include "VulkanFrameBuffers.h"
-#include "VulkanLogicalDevice.h"
-#include "VulkanSwapChain.h"
-#include "VulkanRenderPass.h"
-#include "VulkanImageView.h"
+#include "..\headers\VulkanFrameBuffers.h"
+#include "..\headers\VulkanLogicalDevice.h"
+#include "..\headers\VulkanSwapChain.h"
+#include "..\headers\VulkanRenderPass.h"
+#include "..\headers\VulkanImageView.h"
 
 
 VulkanFrameBuffers::~VulkanFrameBuffers() {

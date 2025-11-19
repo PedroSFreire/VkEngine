@@ -1,8 +1,8 @@
-#include "VulkanGraphicsPipeline.h"
-#include "VulkanLogicalDevice.h"
-#include "VulkanSwapChain.h"
-#include "VulkanRenderPass.h"
-#include "defines.h"
+#include "..\headers\VulkanGraphicsPipeline.h"
+#include "..\headers\VulkanLogicalDevice.h"
+#include "..\headers\VulkanSwapChain.h"
+#include "..\headers\VulkanRenderPass.h"
+#include "..\headers\defines.h"
 
 VulkanGraphicsPipeline::~VulkanGraphicsPipeline() {
     vkDestroyPipeline((*logicalDevice).getDevice(), graphicsPipeline, nullptr);

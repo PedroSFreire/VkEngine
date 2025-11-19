@@ -1,6 +1,6 @@
-#include "VulkanPhysicalDevice.h"
-#include "VulkanInstance.h"
-#include "VulkanSurface.h"
+#include "..\headers\VulkanPhysicalDevice.h"
+#include "..\headers\VulkanInstance.h"
+#include "..\headers\VulkanSurface.h"
 
 
 

@@ -1,12 +1,12 @@
-#include "VulkanCommandBuffer.h"
-#include "VulkanPhysicalDevice.h"
-#include "VulkanLogicalDevice.h"
-#include "VulkanSwapChain.h"
-#include "VulkanRenderPass.h"
-#include "VulkanFrameBuffers.h"
-#include "VulkanGraphicsPipeline.h"
-#include "VulkanBuffer.h"
-#include "VulkanCommandPool.h"
+#include "..\headers\VulkanCommandBuffer.h"
+#include "..\headers\VulkanPhysicalDevice.h"
+#include "..\headers\VulkanLogicalDevice.h"
+#include "..\headers\VulkanSwapChain.h"
+#include "..\headers\VulkanRenderPass.h"
+#include "..\headers\VulkanFrameBuffers.h"
+#include "..\headers\VulkanGraphicsPipeline.h"
+#include "..\headers\VulkanBuffer.h"
+#include "..\headers\VulkanCommandPool.h"
 
 
 void VulkanCommandBuffer::recordCommandBuffer(const uint32_t imageIndex, const VulkanLogicalDevice& logicalDevice, const VulkanSwapChain& swapChain, const VulkanGraphicsPipeline& graphicsPipeline, const VulkanRenderPass& renderPass, const VulkanFrameBuffers& frameBuffers, const VulkanBuffer& vertBuffer, const VulkanBuffer& indexBuffer, const VkDescriptorSet& descriptorSet) {

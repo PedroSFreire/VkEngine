@@ -137,53 +137,55 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="ModelLoader.cpp" />
-    <ClCompile Include="VulkanBuffer.cpp" />
-    <ClCompile Include="VulkanCommandBuffer.cpp" />
-    <ClCompile Include="VulkanCommandPool.cpp" />
-    <ClCompile Include="VulkanDescriptorSet.cpp" />
-    <ClCompile Include="VulkanFrameBuffers.cpp" />
-    <ClCompile Include="VulkanGraphicsPipeline.cpp" />
-    <ClCompile Include="VulkanImage.cpp" />
-    <ClCompile Include="VulkanImageView.cpp" />
-    <ClCompile Include="VulkanLogicalDevice.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="VulkanDebugHandler.cpp" />
-    <ClCompile Include="VulkanPhysicalDevice.cpp" />
-    <ClCompile Include="VulkanInstance.cpp" />
-    <ClCompile Include="VulkanRenderPass.cpp" />
-    <ClCompile Include="VulkanSampler.cpp" />
-    <ClCompile Include="VulkanSurface.cpp" />
-    <ClCompile Include="VulkanSwapChain.cpp" />
-    <ClCompile Include="VulkanSyncObjects.cpp" />
-    <ClCompile Include="Window.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="defines.h" />
-    <ClInclude Include="ModelLoader.h" />
-    <ClInclude Include="VulkanBuffer.h" />
-    <ClInclude Include="VulkanCommandBuffer.h" />
-    <ClInclude Include="VulkanCommandPool.h" />
-    <ClInclude Include="VulkanDescriptorSet.h" />
-    <ClInclude Include="VulkanFrameBuffers.h" />
-    <ClInclude Include="VulkanGraphicsPipeline.h" />
-    <ClInclude Include="VulkanImage.h" />
-    <ClInclude Include="VulkanImageView.h" />
-    <ClInclude Include="VulkanLogicalDevice.h" />
-    <ClInclude Include="VulkanDebugHandler.h" />
-    <ClInclude Include="VulkanPhysicalDevice.h" />
-    <ClInclude Include="VulkanInstance.h" />
-    <ClInclude Include="VulkanRenderPass.h" />
-    <ClInclude Include="VulkanSampler.h" />
-    <ClInclude Include="VulkanSurface.h" />
-    <ClInclude Include="VulkanSwapChain.h" />
-    <ClInclude Include="VulkanSyncObjects.h" />
-    <ClInclude Include="Window.h" />
+    <ClCompile Include="Renderer\src\ModelLoader.cpp" />
+    <ClCompile Include="Renderer\src\VulkanBuffer.cpp" />
+    <ClCompile Include="Renderer\src\VulkanCommandBuffer.cpp" />
+    <ClCompile Include="Renderer\src\VulkanCommandPool.cpp" />
+    <ClCompile Include="Renderer\src\VulkanDebugHandler.cpp" />
+    <ClCompile Include="Renderer\src\VulkanDescriptorSet.cpp" />
+    <ClCompile Include="Renderer\src\VulkanFrameBuffers.cpp" />
+    <ClCompile Include="Renderer\src\VulkanGraphicsPipeline.cpp" />
+    <ClCompile Include="Renderer\src\VulkanImage.cpp" />
+    <ClCompile Include="Renderer\src\VulkanImageView.cpp" />
+    <ClCompile Include="Renderer\src\VulkanInstance.cpp" />
+    <ClCompile Include="Renderer\src\VulkanLogicalDevice.cpp" />
+    <ClCompile Include="Renderer\src\VulkanPhysicalDevice.cpp" />
+    <ClCompile Include="Renderer\src\VulkanRenderer.cpp" />
+    <ClCompile Include="Renderer\src\VulkanRenderPass.cpp" />
+    <ClCompile Include="Renderer\src\VulkanSampler.cpp" />
+    <ClCompile Include="Renderer\src\VulkanSurface.cpp" />
+    <ClCompile Include="Renderer\src\VulkanSwapChain.cpp" />
+    <ClCompile Include="Renderer\src\VulkanSyncObjects.cpp" />
+    <ClCompile Include="Renderer\src\Window.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\compileShaders.bat" />
     <None Include="shaders\fragShader.frag" />
     <None Include="shaders\vertShader.vert" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Renderer\headers\defines.h" />
+    <ClInclude Include="Renderer\headers\ModelLoader.h" />
+    <ClInclude Include="Renderer\headers\VulkanBuffer.h" />
+    <ClInclude Include="Renderer\headers\VulkanCommandBuffer.h" />
+    <ClInclude Include="Renderer\headers\VulkanCommandPool.h" />
+    <ClInclude Include="Renderer\headers\VulkanDebugHandler.h" />
+    <ClInclude Include="Renderer\headers\VulkanDescriptorSet.h" />
+    <ClInclude Include="Renderer\headers\VulkanFrameBuffers.h" />
+    <ClInclude Include="Renderer\headers\VulkanGraphicsPipeline.h" />
+    <ClInclude Include="Renderer\headers\VulkanImage.h" />
+    <ClInclude Include="Renderer\headers\VulkanImageView.h" />
+    <ClInclude Include="Renderer\headers\VulkanInstance.h" />
+    <ClInclude Include="Renderer\headers\VulkanLogicalDevice.h" />
+    <ClInclude Include="Renderer\headers\VulkanPhysicalDevice.h" />
+    <ClInclude Include="Renderer\headers\VulkanRenderer.h" />
+    <ClInclude Include="Renderer\headers\VulkanRenderPass.h" />
+    <ClInclude Include="Renderer\headers\VulkanSampler.h" />
+    <ClInclude Include="Renderer\headers\VulkanSurface.h" />
+    <ClInclude Include="Renderer\headers\VulkanSwapChain.h" />
+    <ClInclude Include="Renderer\headers\VulkanSyncObjects.h" />
+    <ClInclude Include="Renderer\headers\Window.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
