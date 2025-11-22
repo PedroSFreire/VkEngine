@@ -41,6 +41,8 @@
 #include <algorithm>
 #include <cstdint>
 #include <limits>
+
+#include "Camera.h"
 #include "VulkanRenderPass.h"
 #include "VulkanGraphicsPipeline.h"
 #include "VulkanFrameBuffers.h"
@@ -80,6 +82,7 @@ private:
 
 	uint32_t currentFrame = 0;
 
+	Camera												camera;
 
 	Window												window{};
 
@@ -149,12 +152,15 @@ private:
 
 	void drawFrame();
 
+	void processInput(float deltaTime);
 
 	//resource creation and maintenance functions
 
 	void createUniformBuffers();
 
-	void updateUniformBuffer(uint32_t currentImage);
+	void update(uint32_t currentImage);
+
+	void updateUniformBuffer(uint32_t currentImage, float deltaTime);
 
 	void createVertexBuffer();
 

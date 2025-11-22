@@ -20,7 +20,7 @@ public:
 	VulkanSyncObjects(const VulkanSyncObjects& other) = delete;
 
 
-	void createSyncObjects(const VulkanLogicalDevice& device, int MAX_FRAMES_IN_FLIGHT);
+	void createSyncObjects(const VulkanLogicalDevice& device, size_t maxFramesInFlight , size_t nSwapChainImages);
 
 
 private:
@@ -28,6 +28,8 @@ private:
 	const VulkanLogicalDevice* logicalDevice = NULL;
 
 	int framesInFlight = 0;
+
+	int swapChainImagesCount = 0;
 	
 };
 

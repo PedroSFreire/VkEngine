@@ -53,8 +53,8 @@ void VulkanRenderer::initVulkan() {
 	textureImageView.createImageView(logicalDevice, textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
 
 	textureSampler.createTextureSampler(physicalDevice, logicalDevice);
-
-	syncObjects.createSyncObjects(logicalDevice, MAX_FRAMES_IN_FLIGHT);
+	
+	syncObjects.createSyncObjects(logicalDevice, MAX_FRAMES_IN_FLIGHT, swapChain.getSwapChainImages().size());
 
 	createVertexBuffer();
 
@@ -172,7 +172,7 @@ void VulkanRenderer::drawFrame()
 	vkResetCommandBuffer(commandBuffers[currentFrame].getCommandBuffer(), 0);
 	commandBuffers[currentFrame].recordCommandBuffer(imageIndex, logicalDevice, swapChain, graphicsPipeline, renderPass, frameBuffers, vertexBuffer, indexBuffer, descriptorSet.getDescriptorSets(currentFrame));
 
-	updateUniformBuffer(currentFrame);
+	update(currentFrame);
 
 
 	VkSubmitInfo submitInfo{};
@@ -189,7 +189,7 @@ void VulkanRenderer::drawFrame()
 	submitInfo.pCommandBuffers = &commandBuffers[currentFrame].getCommandBuffer();
 
 
-	VkSemaphore signalSemaphores[] = { syncObjects.renderFinishedSemaphores[currentFrame] };
+	VkSemaphore signalSemaphores[] = { syncObjects.renderFinishedSemaphores[imageIndex] };
 	submitInfo.signalSemaphoreCount = 1;
 	submitInfo.pSignalSemaphores = signalSemaphores;
 
@@ -241,16 +241,48 @@ void VulkanRenderer::createUniformBuffers() {
 	}
 }
 
-void VulkanRenderer::updateUniformBuffer(uint32_t currentImage) {
-	static auto startTime = std::chrono::high_resolution_clock::now();
+void VulkanRenderer::processInput(float deltaTime) {
+	// Implement camera movement and input processing here
+	if (glfwGetKey(window.getWindow(), GLFW_KEY_ESCAPE) == GLFW_PRESS)
+		glfwSetWindowShouldClose(window.getWindow(), true);
+	double mouseX, mouseY;
+	glfwGetCursorPos(window.getWindow(), &mouseX, &mouseY);
+
+	camera.updateCam(mouseX,mouseY);
+
+
+	//WASD movement
+	if (glfwGetKey(window.getWindow(), GLFW_KEY_W) == GLFW_PRESS)
+		camera.goForward(2.0f * deltaTime);
+	if (glfwGetKey(window.getWindow(), GLFW_KEY_S) == GLFW_PRESS)
+		camera.goForward(-2.0f * deltaTime);
+	if (glfwGetKey(window.getWindow(), GLFW_KEY_D) == GLFW_PRESS)
+		camera.goRight(2.0f * deltaTime);
+	if (glfwGetKey(window.getWindow(), GLFW_KEY_A) == GLFW_PRESS)
+		camera.goRight(-2.0f * deltaTime);
+	if (glfwGetKey(window.getWindow(), GLFW_KEY_SPACE) == GLFW_PRESS)
+		camera.goUp(1.0f * deltaTime);
+	if (glfwGetKey(window.getWindow(), GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+		camera.goUp(-1.0f * deltaTime);
+
+
+}
+
+void VulkanRenderer::update(uint32_t currentImage) {
+	static auto prevTime = std::chrono::high_resolution_clock::now();
 
 	auto currentTime = std::chrono::high_resolution_clock::now();
-	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+	float deltaTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - prevTime).count();
+	processInput(deltaTime);
+	updateUniformBuffer(currentImage, deltaTime);
+	prevTime = currentTime;
+}
+void VulkanRenderer::updateUniformBuffer(uint32_t currentImage,float  deltaTime) {
 
 	UniformBufferObject ubo{};
-	ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	ubo.model = glm::rotate(glm::mat4(1.0f), /*time **/ glm::radians(0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
-	ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	ubo.view = glm::lookAt(camera.getPos(), camera.getPos() + camera.getDirection(), camera.getUp());
 
 	ubo.proj = glm::perspective(glm::radians(45.0f), swapChain.getSwapChainExtent().width / (float)swapChain.getSwapChainExtent().height, 0.1f, 10.0f);
 
