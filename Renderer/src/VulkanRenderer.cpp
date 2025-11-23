@@ -10,6 +10,9 @@
 #include <GLFW/glfw3native.h>
 #include "tiny_obj_loader.h"
 
+#define VMA_IMPLEMENTATION
+#include <vk_mem_alloc.h>
+
 VulkanRenderer::VulkanRenderer() : commandBuffers(MAX_FRAMES_IN_FLIGHT) {
 }
 
@@ -23,6 +26,8 @@ void VulkanRenderer::initVulkan() {
 	physicalDevice.pickPhysicalDevice(instance, surface);
 
 	logicalDevice.createLogicalDevice(instance, physicalDevice, surface);
+
+	allocator.createVmaAllocator(instance, physicalDevice, logicalDevice);
 
 	swapChain.createSwapChain(physicalDevice, logicalDevice, surface, window);
 
@@ -86,16 +91,35 @@ void VulkanRenderer::createVertexBuffer() {
 	uint32_t vextexCount = static_cast<uint32_t>(modelLoader.getVertices().size());
 
 	VulkanBuffer stagingBuffer;
-	stagingBuffer.createBuffer(physicalDevice, logicalDevice, bufferSize, vextexCount, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+	VulkanBufferCreateInfo stagingBufferInfo{};
+	stagingBufferInfo.elementCount = vextexCount;
+	stagingBufferInfo.size = bufferSize;
+	stagingBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+	stagingBufferInfo.vmaUsage = VMA_MEMORY_USAGE_AUTO;
+	stagingBufferInfo.vmaFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+
+	stagingBuffer.createBuffer(allocator, stagingBufferInfo);
 
 
 	void* data;
-
-	vkMapMemory(logicalDevice.getDevice(), stagingBuffer.getBufferMemory(), 0, bufferSize, 0, &data);
+	vmaMapMemory(allocator.getAllocator(), stagingBuffer.getAllocation(), &data);
 	memcpy(data, modelLoader.getVertices().data(), (size_t)bufferSize);
-	vkUnmapMemory(logicalDevice.getDevice(), stagingBuffer.getBufferMemory());
+	vmaUnmapMemory(allocator.getAllocator(), stagingBuffer.getAllocation());
 
-	vertexBuffer.createBuffer(physicalDevice, logicalDevice, bufferSize, vextexCount, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	//vkMapMemory(logicalDevice.getDevice(), stagingBuffer.getBufferMemory(), 0, bufferSize, 0, &data);
+	//memcpy(data, modelLoader.getVertices().data(), (size_t)bufferSize);
+	//vkUnmapMemory(logicalDevice.getDevice(), stagingBuffer.getBufferMemory());
+
+	VulkanBufferCreateInfo vertexBufferInfo{};
+	vertexBufferInfo.elementCount = vextexCount;
+	vertexBufferInfo.size = bufferSize;
+	vertexBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+	vertexBufferInfo.vmaUsage = VMA_MEMORY_USAGE_GPU_ONLY;
+
+
+
+	vertexBuffer.createBuffer(allocator,vertexBufferInfo);
 
 	copyBuffer(stagingBuffer.getBuffer(), vertexBuffer.getBuffer(), bufferSize);
 }
@@ -104,12 +128,35 @@ void VulkanRenderer::createIndexBuffer() {
 	VkDeviceSize bufferSize = sizeof(modelLoader.getIndices()[0]) * modelLoader.getIndices().size();
 	uint32_t indexCount = static_cast<uint32_t>(modelLoader.getIndices().size());
 	VulkanBuffer stagingBuffer;
-	stagingBuffer.createBuffer(physicalDevice, logicalDevice, bufferSize, indexCount, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+
+	VulkanBufferCreateInfo stagingBufferInfo{};
+	stagingBufferInfo.elementCount = indexCount;
+	stagingBufferInfo.size = bufferSize;
+	stagingBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+	stagingBufferInfo.vmaUsage = VMA_MEMORY_USAGE_AUTO;
+	stagingBufferInfo.vmaFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+
+	stagingBuffer.createBuffer(allocator, stagingBufferInfo);
+
 	void* data;
-	vkMapMemory(logicalDevice.getDevice(), stagingBuffer.getBufferMemory(), 0, bufferSize, 0, &data);
+
+	vmaMapMemory(allocator.getAllocator(), stagingBuffer.getAllocation(), &data);
 	memcpy(data, modelLoader.getIndices().data(), (size_t)bufferSize);
-	vkUnmapMemory(logicalDevice.getDevice(), stagingBuffer.getBufferMemory());
-	indexBuffer.createBuffer(physicalDevice, logicalDevice, bufferSize, indexCount, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	vmaUnmapMemory(allocator.getAllocator(), stagingBuffer.getAllocation());
+
+	//vkMapMemory(logicalDevice.getDevice(), stagingBuffer.getBufferMemory(), 0, bufferSize, 0, &data);
+	//memcpy(data, modelLoader.getIndices().data(), (size_t)bufferSize);
+	//vkUnmapMemory(logicalDevice.getDevice(), stagingBuffer.getBufferMemory());
+
+	VulkanBufferCreateInfo indexBufferInfo{};
+	indexBufferInfo.elementCount = indexCount;
+	indexBufferInfo.size = bufferSize;
+	indexBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+	indexBufferInfo.vmaUsage = VMA_MEMORY_USAGE_GPU_ONLY;
+
+	indexBuffer.createBuffer(allocator, indexBufferInfo);
+
 	copyBuffer(stagingBuffer.getBuffer(), indexBuffer.getBuffer(), bufferSize);
 }
 
@@ -227,20 +274,6 @@ void VulkanRenderer::drawFrame()
 }
 
 
-void VulkanRenderer::createUniformBuffers() {
-	VkDeviceSize bufferSize = sizeof(UniformBufferObject);
-
-	uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-
-	uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
-
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-		uniformBuffers[i].createBuffer(physicalDevice, logicalDevice, bufferSize, 1, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-		vkMapMemory(logicalDevice.getDevice(), uniformBuffers[i].getBufferMemory(), 0, bufferSize, 0, &uniformBuffersMapped[i]);
-	}
-}
-
 void VulkanRenderer::processInput(float deltaTime) {
 	// Implement camera movement and input processing here
 	if (glfwGetKey(window.getWindow(), GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -288,9 +321,27 @@ void VulkanRenderer::updateUniformBuffer(uint32_t currentImage,float  deltaTime)
 
 	ubo.proj[1][1] *= -1;
 
-	memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
+	memcpy(uniformBuffers[currentImage].getAllocationInfo().pMappedData, &ubo, sizeof(ubo));
 }
 
+void VulkanRenderer::createUniformBuffers() {
+	VkDeviceSize bufferSize = sizeof(UniformBufferObject);
+
+	uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+
+	uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
+
+	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+		VulkanBufferCreateInfo bufferInfo{};
+		bufferInfo.size = bufferSize;
+		bufferInfo.elementCount = 1;
+		bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+		bufferInfo.vmaUsage = VMA_MEMORY_USAGE_AUTO;
+		bufferInfo.vmaFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT| VMA_ALLOCATION_CREATE_MAPPED_BIT;
+
+		uniformBuffers[i].createBuffer(allocator, bufferInfo);
+	}
+}
 
 void VulkanRenderer::createTextureImage(const std::string& TEXTURE_PATH) {
 	int texWidth, texHeight, texChannels;
@@ -302,16 +353,35 @@ void VulkanRenderer::createTextureImage(const std::string& TEXTURE_PATH) {
 	}
 
 	VulkanBuffer stagingBuffer;
-	stagingBuffer.createBuffer(physicalDevice, logicalDevice, imageSize, 1, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+	VulkanBufferCreateInfo stagingBufferInfo{};
+	stagingBufferInfo.elementCount = 1;
+	stagingBufferInfo.size = imageSize;
+	stagingBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+	stagingBufferInfo.vmaUsage = VMA_MEMORY_USAGE_AUTO;
+	stagingBufferInfo.vmaFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+
+
+	stagingBuffer.createBuffer(allocator, stagingBufferInfo);
 
 	void* data;
-	vkMapMemory(logicalDevice.getDevice(), stagingBuffer.getBufferMemory(), 0, imageSize, 0, &data);
+
+	vmaMapMemory(allocator.getAllocator(), stagingBuffer.getAllocation(), &data);
 	memcpy(data, pixels, static_cast<size_t>(imageSize));
-	vkUnmapMemory(logicalDevice.getDevice(), stagingBuffer.getBufferMemory());
+	vmaUnmapMemory(allocator.getAllocator(), stagingBuffer.getAllocation());
 
 	stbi_image_free(pixels);
 
-	textureImage.create2DImage(physicalDevice, logicalDevice, texWidth, texHeight, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	VulkanImageCreateInfo textureImageInfo{};
+	textureImageInfo.width = static_cast<uint32_t>(texWidth);
+	textureImageInfo.height = static_cast<uint32_t>(texHeight);	
+	textureImageInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
+	textureImageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+	textureImageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+	textureImageInfo.vmaUsage = VMA_MEMORY_USAGE_GPU_ONLY;
+
+
+	textureImage.create2DImage(allocator,textureImageInfo);
 
 	transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
 
@@ -343,9 +413,7 @@ void VulkanRenderer::transitionImageLayout(VulkanImage& image, VkFormat format, 
 	barrier.oldLayout = oldLayout;
 	barrier.newLayout = newLayout;
 
-	//barrier.srcQueueFamilyIndex = physicalDevice.findQueueFamilies(surface).transferFamily.value();
-	//barrier.dstQueueFamilyIndex = physicalDevice.findQueueFamilies(surface).graphicsFamily.value();
-
+	
 	barrier.srcQueueFamilyIndex = srcQueue;
 	barrier.dstQueueFamilyIndex = destQueue;
 
@@ -458,10 +526,15 @@ void VulkanRenderer::copyBufferToImage(VulkanBuffer& buffer, VulkanImage& image,
 
 void VulkanRenderer::createDepthResources() {
 	VkFormat depthFormat = physicalDevice.findDepthFormat();
+	VulkanImageCreateInfo depthImageInfo{};
+	depthImageInfo.width = swapChain.getSwapChainExtent().width;
+	depthImageInfo.height = swapChain.getSwapChainExtent().height;	
+	depthImageInfo.format = depthFormat;	
+	depthImageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+	depthImageInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+	depthImageInfo.vmaUsage = VMA_MEMORY_USAGE_GPU_ONLY;
 
-	depthImage.create2DImage(physicalDevice, logicalDevice, swapChain.getSwapChainExtent().width,
-		swapChain.getSwapChainExtent().height, depthFormat, VK_IMAGE_TILING_OPTIMAL,
-		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	depthImage.create2DImage(allocator,depthImageInfo);
 
 	depthImageView.createImageView(logicalDevice, depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
 

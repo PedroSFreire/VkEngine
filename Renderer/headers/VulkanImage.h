@@ -1,11 +1,26 @@
 #pragma once
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
+#include <vk_mem_alloc.h>
 
 class VulkanLogicalDevice;
 class VulkanPhysicalDevice;
+class VulkanMemoryAllocator;
 
-
+struct VulkanImageCreateInfo
+{
+	uint32_t width;
+	uint32_t height;
+	VkFormat format;
+	VkImageTiling tiling;
+	VkImageUsageFlags usage;
+	// VMA Memory Usage use VMA_MEMORY_USAGE_AUTO wich is the default one but still specify it for clarity
+	// but for safety should use VMA_MEMORY_USAGE_GPU_ONLY for performance critical buffer vertex and so on
+	VmaMemoryUsage vmaUsage;
+	// VMA Flags for now use VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT for most stuff and VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT for staging buffers
+	// include VMA_ALLOCATION_CREATE_MAPPED_BIT for permanently mapped buffers 
+	VmaAllocationCreateFlags vmaFlags; 
+};
 
 class VulkanImage
 {
@@ -16,21 +31,25 @@ public:
 	~VulkanImage();
 	VulkanImage(VulkanImage&& other) noexcept {
 		image = other.image;
-		imageMemory = other.imageMemory;
-		logicalDevice = other.logicalDevice;
+		allocationInfo = other.allocationInfo;
+		allocationInfo = other.allocationInfo;
+		allocatorHandle = other.allocatorHandle;
+
+
 		other.image = VK_NULL_HANDLE;
-		other.imageMemory = VK_NULL_HANDLE;
-		other.logicalDevice = nullptr;
+		other.allocation = VK_NULL_HANDLE;
+		other.allocatorHandle = nullptr;
 	}
 
-	void create2DImage(const VulkanPhysicalDevice& physicalDevice, const VulkanLogicalDevice& logicalDevice, const int texWidth, const int texHeight,
-						const VkFormat format, const VkImageTiling tiling, const VkImageUsageFlags usage, const VkMemoryPropertyFlags properties);
+	void create2DImage(const VulkanMemoryAllocator& allocator,const VulkanImageCreateInfo& info);
 
 	VkImage getImage() const { return image; }
 
-	VkDeviceMemory getImageMemory() const { return imageMemory; }
-
 	VkImageCreateInfo getImageInfo() const { return imageInfo; }
+
+	VmaAllocation getAllocation() const { return allocation; };
+
+	VmaAllocationInfo getAllocationInfo() const { return allocationInfo; };
 
 	void clean();
 
@@ -39,12 +58,13 @@ private:
 
 	VkImage image{};
 
-	VkDeviceMemory imageMemory{};
-
-	const VulkanLogicalDevice* logicalDevice = nullptr;
+	const VulkanMemoryAllocator* allocatorHandle = nullptr;
 
 	VkImageCreateInfo imageInfo{};
 
+	VmaAllocation allocation{};
+
+	VmaAllocationInfo allocationInfo{};
 
 };
 

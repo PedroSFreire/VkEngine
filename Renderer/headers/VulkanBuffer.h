@@ -2,11 +2,24 @@
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
+#include <vk_mem_alloc.h>
 
 
 class VulkanPhysicalDevice;
 class VulkanLogicalDevice;
+class VulkanMemoryAllocator;
 
+struct VulkanBufferCreateInfo {
+	VkBufferUsageFlags usage;
+	// VMA Memory Usage use VMA_MEMORY_USAGE_AUTO wich is the default one but still specify it for clarity
+	// but for safety should use VMA_MEMORY_USAGE_GPU_ONLY for performance critical buffer vertex and so on
+	VmaMemoryUsage vmaUsage;
+	// VMA Flags for now use VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT for most stuff and VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT for staging buffers
+	// include VMA_ALLOCATION_CREATE_MAPPED_BIT for permanently mapped buffers 
+	VmaAllocationCreateFlags vmaFlags;
+	VkDeviceSize size;
+	uint32_t elementCount;
+};
 
 
 class VulkanBuffer
@@ -17,35 +30,41 @@ class VulkanBuffer
 	~VulkanBuffer();
 	VulkanBuffer(VulkanBuffer&& other) noexcept {
 		buffer = other.buffer;
-		bufferMemory = other.bufferMemory;
-		logicalDevice = other.logicalDevice;
-		vertCount = other.vertCount;
+		allocation = other.allocation;
+		allocationInfo = other.allocationInfo;
+		allocatorHandle = other.allocatorHandle;
+		elementCount = other.elementCount;
 
 		other.buffer = VK_NULL_HANDLE;
-		other.bufferMemory = VK_NULL_HANDLE;
-		other.logicalDevice = nullptr;
+		other.allocation = VK_NULL_HANDLE;
+		other.allocatorHandle = nullptr;
 
 	}
 
+	void createBuffer( const VulkanMemoryAllocator& allocator,const  VulkanBufferCreateInfo& info);
 
-	void createBuffer(const VulkanPhysicalDevice& physicalDevice, const VulkanLogicalDevice& logicalDevice, const VkDeviceSize size, const uint32_t vertexCount, const VkBufferUsageFlags usage, const VkMemoryPropertyFlags properties);
 
-	VkBuffer getBuffer() const { return buffer; }
 
-	VkDeviceMemory getBufferMemory()const { return bufferMemory; }
+	VkBuffer getBuffer() const { return buffer; };
 
-	uint32_t getVertCount() const { return vertCount; }
+	VmaAllocation getAllocation() const { return allocation; };
+
+	VmaAllocationInfo getAllocationInfo() const { return allocationInfo; };
+
+	uint32_t getElementCount() const { return elementCount; }
 
 
 
 private:
 	VkBuffer buffer{};
 
-	VkDeviceMemory bufferMemory{};
+	VmaAllocation allocation{};
 
-	const VulkanLogicalDevice* logicalDevice = nullptr;
+	VmaAllocationInfo allocationInfo{};
 
-	uint32_t vertCount = 0;
+	const VulkanMemoryAllocator* allocatorHandle = nullptr;
+
+	uint32_t elementCount = 0;
 
 
 	

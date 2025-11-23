@@ -1,6 +1,7 @@
 #include "..\headers\VulkanImage.h"
 #include "..\headers\VulkanLogicalDevice.h"
 #include "..\headers\VulkanPhysicalDevice.h"
+#include "..\headers\VulkanMemoryAllocator.h"
 
 VulkanImage::~VulkanImage() {
 	clean();
@@ -8,56 +9,41 @@ VulkanImage::~VulkanImage() {
 
 
 void VulkanImage::clean() {
-	if (image != VK_NULL_HANDLE) {
-		vkDestroyImage(logicalDevice->getDevice(), image, nullptr);
-		image = VK_NULL_HANDLE;
-	}
-	if (imageMemory != VK_NULL_HANDLE) {
-		vkFreeMemory(logicalDevice->getDevice(), imageMemory, nullptr);
-		imageMemory = VK_NULL_HANDLE;
-	}
-	logicalDevice = nullptr;
+	vmaDestroyImage(allocatorHandle->getAllocator(), image, allocation);
 }
 
 
-void VulkanImage::create2DImage(const VulkanPhysicalDevice& physicalDevice, const VulkanLogicalDevice& device, const int texWidth, const int texHeight, const VkFormat format, const VkImageTiling tiling, const VkImageUsageFlags usage, const VkMemoryPropertyFlags properties) {
-	
-	logicalDevice = &device; 
+void VulkanImage::create2DImage(const VulkanMemoryAllocator& allocator, const VulkanImageCreateInfo& info) {
+	allocatorHandle = &allocator;
+;
+
+
 	imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-	imageInfo.imageType = VK_IMAGE_TYPE_2D;
-	imageInfo.extent.width = static_cast<uint32_t>(texWidth);
-	imageInfo.extent.height = static_cast<uint32_t>(texHeight);
+	imageInfo.extent.width = info.width;
+	imageInfo.extent.height = info.height;
+	imageInfo.format = info.format;
+	imageInfo.tiling = info.tiling;
+	imageInfo.usage = info.usage;
+
 	imageInfo.extent.depth = 1;
 	imageInfo.mipLevels = 1;
 	imageInfo.arrayLayers = 1;
 
-	imageInfo.format = format;
-
-	imageInfo.tiling = tiling;
+	imageInfo.imageType = VK_IMAGE_TYPE_2D;
 	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-
-	imageInfo.usage = usage;
 	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 	imageInfo.flags = 0;
 
-	if (vkCreateImage(logicalDevice->getDevice(), &imageInfo, nullptr, &image) != VK_SUCCESS) {
+	VmaAllocationCreateInfo allocInfo = {};
+	allocInfo.usage = info.vmaUsage;
+	allocInfo.flags = info.vmaFlags;
+
+	if (vmaCreateImage(allocator.getAllocator(), &imageInfo, &allocInfo, &image, &allocation, &allocationInfo) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create image!");
 	}
 
-	VkMemoryRequirements memRequirements;
-	vkGetImageMemoryRequirements(logicalDevice->getDevice(), image, &memRequirements);
 
-	VkMemoryAllocateInfo allocInfo{};
-	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-	allocInfo.allocationSize = memRequirements.size;
-	allocInfo.memoryTypeIndex = physicalDevice.findMemoryType(memRequirements.memoryTypeBits, properties);
-
-	if (vkAllocateMemory(logicalDevice->getDevice(), &allocInfo, nullptr, &imageMemory) != VK_SUCCESS) {
-		throw std::runtime_error("failed to allocate image memory!");
-	}
-
-	vkBindImageMemory(logicalDevice->getDevice(), image, imageMemory, 0);
 }
 
 

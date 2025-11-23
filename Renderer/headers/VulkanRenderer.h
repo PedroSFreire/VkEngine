@@ -35,12 +35,13 @@
 
 
 #include "VulkanSwapChain.h"
-
+#include "VulkanMemoryAllocator.h"
 
 
 #include <algorithm>
 #include <cstdint>
 #include <limits>
+#include <vk_mem_alloc.h>
 
 #include "Camera.h"
 #include "VulkanRenderPass.h"
@@ -93,6 +94,8 @@ private:
 	VulkanPhysicalDevice								physicalDevice{};
 
 	VulkanLogicalDevice									logicalDevice{};
+
+	VulkanMemoryAllocator 								allocator;
 
 	VulkanSwapChain										swapChain{};
 

@@ -68,7 +68,7 @@ void VulkanCommandBuffer::recordCommandBuffer(const uint32_t imageIndex, const V
 
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline.getPipelineLayout(), 0, 1, &descriptorSet, 0, nullptr);
 
-    vkCmdDrawIndexed(commandBuffer, indexBuffer.getVertCount(), 1, 0, 0, 0);
+    vkCmdDrawIndexed(commandBuffer, indexBuffer.getElementCount(), 1, 0, 0, 0);
 
 
     vkCmdEndRenderPass(commandBuffer);

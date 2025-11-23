@@ -2,48 +2,38 @@
 
 #include "..\headers\VulkanPhysicalDevice.h"
 #include "..\headers\VulkanLogicalDevice.h"
+#include "..\headers\VulkanMemoryAllocator.h"
+
 
 VulkanBuffer::~VulkanBuffer() {
-        vkDestroyBuffer(logicalDevice->getDevice(), buffer, nullptr);
-        vkFreeMemory(logicalDevice->getDevice(), bufferMemory, nullptr);
-  
+        vmaDestroyBuffer(allocatorHandle->getAllocator(), buffer, allocation);
 }
 
 
 
 
+void VulkanBuffer::createBuffer( const VulkanMemoryAllocator& allocator,const VulkanBufferCreateInfo& info) {
+    allocatorHandle = &allocator;
 
-
-
-void VulkanBuffer::createBuffer(const VulkanPhysicalDevice& physicalDevice , const VulkanLogicalDevice& device , const VkDeviceSize size, const uint32_t vertexCount, const VkBufferUsageFlags usage, const VkMemoryPropertyFlags properties) {
-    logicalDevice = &device;
-	vertCount = vertexCount;
-
-
+    elementCount = info.elementCount;
 
     VkBufferCreateInfo bufferInfo{};
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferInfo.size = size;
-    bufferInfo.usage = usage;
+    bufferInfo.size = info.size;
+    bufferInfo.usage = info.usage;
     bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    if (vkCreateBuffer(device.getDevice(), &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
+    VmaAllocationCreateInfo allocInfo = {};
+    allocInfo.usage = info.vmaUsage;
+	allocInfo.flags = info.vmaFlags;
+
+
+    if (vmaCreateBuffer(allocator.getAllocator(), &bufferInfo, &allocInfo, &buffer, &allocation, &allocationInfo) != VK_SUCCESS) {
         throw std::runtime_error("failed to create buffer!");
     }
 
-    VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements(device.getDevice(), buffer, &memRequirements);
-
-    VkMemoryAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = physicalDevice.findMemoryType(memRequirements.memoryTypeBits, properties);
-
-    if (vkAllocateMemory(device.getDevice(), &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
-        throw std::runtime_error("failed to allocate buffer memory!");
-    }
-
-    vkBindBufferMemory(device.getDevice(), buffer, bufferMemory, 0);
 }
+
+
 
 
