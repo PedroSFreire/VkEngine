@@ -1,6 +1,12 @@
 #include "..\headers\ModelLoader.h"
 #include <iostream>
 
+#define FASTGLTF_IMPLEMENTATION
+#include "fastgltf/core.hpp"
+#include <fastgltf/types.hpp>
+#include "fastgltf/tools.hpp"
+
+#define fname "C:/Users/pedro/source/repos/VkEngine/scenes/BoxTextured/glTF/BoxTextured.gltf"
 
 
 void ModelLoader::loadModel(const std::string filePath) {
@@ -43,3 +49,22 @@ void ModelLoader::loadModel(const std::string filePath) {
 		}
 	}
 };
+
+void ModelLoader::testFunction()
+{
+	std::filesystem::path path = fname;
+	fastgltf::Parser parser;
+	auto data = fastgltf::GltfDataBuffer::FromPath(path);
+	if (!data) {
+		std::filesystem::path cwd = std::filesystem::current_path();
+		std::cout << "Current working directory: " << cwd << std::endl;
+		std::cerr << "Failed to load glTF file: " << static_cast<int>(data.error()) << std::endl;
+		return;
+	}
+	auto asset = parser.loadGltf(data.get(), path.parent_path(), fastgltf::Options::None);
+	if (!asset) {
+		std::cerr << "Failed to parse glTF file: " << static_cast<int>(asset.error()) << std::endl;
+		return;
+	}
+
+}

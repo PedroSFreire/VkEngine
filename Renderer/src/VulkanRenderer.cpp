@@ -11,7 +11,7 @@
 #include "tiny_obj_loader.h"
 
 #define VMA_IMPLEMENTATION
-#include <vk_mem_alloc.h>
+#include <vma/vk_mem_alloc.h>
 
 VulkanRenderer::VulkanRenderer() : commandBuffers(MAX_FRAMES_IN_FLIGHT) {
 }
@@ -52,6 +52,8 @@ void VulkanRenderer::initVulkan() {
 	}
 
 	modelLoader.loadModel(MODEL_PATH);
+
+	//modelLoader.testFunction();
 
 	createTextureImage(TEXTURE_PATH);
 

@@ -22,7 +22,7 @@ public:
 
     const std::vector<Vertex>& getVertices() const { return vertices; }
     const std::vector<uint32_t>& getIndices() const { return indices; }
-
+    void testFunction();
     void loadModel(const std::string filePath);
 
 };

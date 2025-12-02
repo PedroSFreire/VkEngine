@@ -9,6 +9,8 @@ find_package(Vulkan REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
 find_package(tinyobjloader CONFIG REQUIRED)
+find_package(VulkanMemoryAllocator CONFIG REQUIRED)
+find_package(fastGltf CONFIG REQUIRED)
 
 
 # ---- Collect source files ----
@@ -25,9 +27,7 @@ add_executable(Renderer ${RENDERER_SRC})
 target_include_directories(Renderer PRIVATE
     Renderer/header
 )
-target_include_directories(Renderer PRIVATE
-    ${VCPKG_ROOT}/installed/x64-windows/include
-)
+
 
 # ---- Link external libraries ----
 target_link_libraries(Renderer PRIVATE
@@ -35,6 +35,8 @@ target_link_libraries(Renderer PRIVATE
     glfw
     glm::glm
     tinyobjloader::tinyobjloader
+    fastgltf::fastgltf
+     ${VMA_INCLUDE_DIRS}
 )
 
 # ---- Copy shaders next to executable after build ----
