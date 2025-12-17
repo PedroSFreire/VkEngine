@@ -33,7 +33,7 @@ public:
 
     VkShaderModule createShaderModule(const std::vector<char>& code)const;
 
-    void createGraphicsPipeline(const VulkanLogicalDevice& logicalDevice, const VulkanSwapChain& swapChain, const VulkanRenderPass& renderPass, const VkDescriptorSetLayout& descriptorSetLayout);
+    void createGraphicsPipeline(const VulkanLogicalDevice& logicalDevice, const VulkanSwapChain& swapChain, const VulkanRenderPass& renderPass, const VkDescriptorSetLayout* descriptorSetLayout);
 
 
 private:

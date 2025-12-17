@@ -6,6 +6,7 @@
 
 
 VulkanBuffer::~VulkanBuffer() {
+    if (buffer != VK_NULL_HANDLE && allocation != nullptr)
         vmaDestroyBuffer(allocatorHandle->getAllocator(), buffer, allocation);
 }
 

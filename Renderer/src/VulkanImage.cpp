@@ -3,12 +3,23 @@
 #include "..\headers\VulkanPhysicalDevice.h"
 #include "..\headers\VulkanMemoryAllocator.h"
 
+#include <stdexcept>
+#include <iostream>
+
+
+VulkanImage::VulkanImage() {
+
+}
+
 VulkanImage::~VulkanImage() {
 	clean();
 }
 
 
 void VulkanImage::clean() {
+	if( allocatorHandle == nullptr) {
+		return;
+	}
 	vmaDestroyImage(allocatorHandle->getAllocator(), image, allocation);
 }
 

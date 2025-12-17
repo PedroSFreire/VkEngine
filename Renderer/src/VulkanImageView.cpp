@@ -9,6 +9,8 @@ VulkanImageView::~VulkanImageView() {
 
 
 void VulkanImageView::clean() {
+	if(!logicalDevice)
+		return;
 	if (logicalDevice) {
 		vkDestroyImageView(logicalDevice->getDevice(), imageView, nullptr);
 		imageView = VK_NULL_HANDLE;

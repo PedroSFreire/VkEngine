@@ -10,25 +10,22 @@
 #include <vector>
 #include <chrono>
 
+
 class VulkanLogicalDevice;
 class VulkanImageView;
 class VulkanBuffer;
 class VulkanSampler;
+class VulkanDescriptorPool;
 
 
-struct UniformBufferObject {
-	glm::mat4 model;
-	glm::mat4 view;
-	glm::mat4 proj;
-};
 
 
 class VulkanDescriptorSet
 {
 private:
 	VkDescriptorSetLayout descriptorSetLayout{};
-	std::vector<VkDescriptorSet> descriptorSets;
-	VkDescriptorPool descriptorPool{};
+	VkDescriptorSet descriptorSet{};
+	VkDescriptorPool* descriptorPool = nullptr;
 
 	VulkanLogicalDevice* logicalDevice = NULL;
 
@@ -40,7 +37,7 @@ public:
 	VulkanDescriptorSet(VulkanDescriptorSet&& other) noexcept {
 
 		descriptorSetLayout = other.descriptorSetLayout;
-		descriptorSets = std::move(other.descriptorSets);
+		descriptorSet = other.descriptorSet;
 		descriptorPool = other.descriptorPool;
 		logicalDevice = other.logicalDevice;
 
@@ -52,20 +49,24 @@ public:
 	}
 
 	VkDescriptorSetLayout getDescriptorSetLayout() const{ return descriptorSetLayout; }
-	VkDescriptorSet getDescriptorSets(int i) const { return descriptorSets[i]; }
-	VkDescriptorPool getDescriptorPool() const { return descriptorPool; }
+	VkDescriptorSet getDescriptorSet()const  { return descriptorSet; }
 
 
+	const VkDescriptorPool* getDescriptorPool() const { return descriptorPool; }
+	//void createDescriptorSetLayoutNew (VulkanLogicalDevice& device, VulkanDescriptorPool& pool);
+	//void createDescriptorSetLayout(VulkanLogicalDevice& device, VulkanDescriptorPool& pool);
+	//void createDescriptorSetNew(VulkanBuffer& uniformBuffer, const VulkanImageView& textureView, const VulkanSampler& textureSampler);
+	//void updateDescriptorSetNew(VulkanBuffer& uniformBuffer, const VulkanImageView& textureView, const VulkanSampler& textureSampler);
 
+	void createMaterialDescriptorLayout(VulkanLogicalDevice& device, VulkanDescriptorPool& pool);
+	void createUBODescriptorLayout(VulkanLogicalDevice& device, VulkanDescriptorPool& pool);
 
+	void createDescriptor();
 
+	void updateMaterialDescriptor(const VkImageView* textureView, const VkSampler* textureSampler);
+	void updateUBODescriptor(VulkanBuffer& uniformBuffer);
 
-
-	void createDescriptorSetLayout(VulkanLogicalDevice& device);
-
-	void createDescriptorPool(int size);
-
-	void createDescriptorSets(std::vector<VulkanBuffer>& uniformBuffers, int size, VulkanImageView& textureView, VulkanSampler& textureSampler);
+	//void createDescriptorSet(std::vector<VulkanBuffer>& uniformBuffers, int size,const VulkanImageView& textureView,const VulkanSampler& textureSampler);
 
 };
 

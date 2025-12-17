@@ -1,3 +1,4 @@
+#include "..\headers\VulkanRenderer.h"
 #include "..\headers\VulkanCommandBuffer.h"
 #include "..\headers\VulkanPhysicalDevice.h"
 #include "..\headers\VulkanLogicalDevice.h"
@@ -7,9 +8,128 @@
 #include "..\headers\VulkanGraphicsPipeline.h"
 #include "..\headers\VulkanBuffer.h"
 #include "..\headers\VulkanCommandPool.h"
+#include "..\headers\VulkanDescriptorSet.h"
+
+#include "..\headers\GltfLoader.h"
 
 
-void VulkanCommandBuffer::recordCommandBuffer(const uint32_t imageIndex, const VulkanLogicalDevice& logicalDevice, const VulkanSwapChain& swapChain, const VulkanGraphicsPipeline& graphicsPipeline, const VulkanRenderPass& renderPass, const VulkanFrameBuffers& frameBuffers, const VulkanBuffer& vertBuffer, const VulkanBuffer& indexBuffer, const VkDescriptorSet& descriptorSet) {
+void VulkanCommandBuffer::bindMeshBuffers(const VulkanBuffer& vertexBuffer, const VulkanBuffer& indexBuffer) {
+    VkBuffer vertexBuffers[] = { vertexBuffer.getBuffer()};
+    VkDeviceSize offsets[] = { 0 };
+    vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+
+    vkCmdBindIndexBuffer(commandBuffer, indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
+}
+
+void VulkanCommandBuffer::bindDescriptorSet(const VulkanRenderer& renderer, VkPipelineLayout& pipelineLayout, const VkDescriptorSet& descriptorSet, const VulkanBuffer& indexBuffer) {
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, renderer.getGraphicsPipeline().getPipelineLayout(), 0, 1, &descriptorSet, 0, nullptr);
+
+    vkCmdDrawIndexed(commandBuffer, indexBuffer.getElementCount(), 1, 0, 0, 0); 
+}
+
+void VulkanCommandBuffer::recordCommandBufferNew(const uint32_t imageIndex, const VulkanRenderer& renderer, const GltfLoader& scene, VkDescriptorSet descriptorSet) {
+
+    currentUBO = descriptorSet;
+
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = 0;                   // Optional
+    beginInfo.pInheritanceInfo = nullptr;  // Optional
+
+    if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
+        throw std::runtime_error("failed to begin recording command buffer!");
+    }
+
+
+    VkRenderPassBeginInfo renderPassInfo{};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    renderPassInfo.renderPass = renderer.getRenderPass().getRenderPass();
+    renderPassInfo.framebuffer = renderer.getFrameBuffers().getFrameBufferAtIndex(imageIndex);
+    renderPassInfo.renderArea.offset = { 0, 0 };
+    renderPassInfo.renderArea.extent = renderer.getSwapChain().getSwapChainExtent();
+
+    std::array<VkClearValue, 2> clearValues{};
+    clearValues[0].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
+    clearValues[1].depthStencil = { 1.0f, 0 };
+
+    renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+    renderPassInfo.pClearValues = clearValues.data();
+
+
+
+
+    vkCmdBeginRenderPass(commandBuffer, &renderPassInfo,
+        VK_SUBPASS_CONTENTS_INLINE);
+
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+        renderer.getGraphicsPipeline().getGraphicsPipeline());
+
+    VkViewport viewport{};
+    viewport.x = 0.0f;
+    viewport.y = 0.0f;
+    viewport.width = static_cast<float>(renderer.getSwapChain().getSwapChainExtent().width);
+    viewport.height = static_cast<float>(renderer.getSwapChain().getSwapChainExtent().height);
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+    vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+
+    VkRect2D scissor{};
+    scissor.offset = { 0, 0 };
+    scissor.extent = renderer.getSwapChain().getSwapChainExtent();
+    vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, renderer.getGraphicsPipeline().getGraphicsPipeline());
+
+    /*VkBuffer vertexBuffers[] = {vertBuffer.getBuffer()};
+    VkDeviceSize offsets[] = { 0 };
+    vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+
+    vkCmdBindIndexBuffer(commandBuffer, indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
+
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline.getPipelineLayout(), 0, 1, &descriptorSet, 0, nullptr);
+
+    vkCmdDrawIndexed(commandBuffer, indexBuffer.getElementCount(), 1, 0, 0, 0);*/
+    scene.drawScene(renderer,*this);
+
+
+    vkCmdEndRenderPass(commandBuffer);
+
+    if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
+        throw std::runtime_error("failed to record command buffer!");
+    }
+
+}
+
+void VulkanCommandBuffer::bindMesh( const VulkanBuffer& vertBuffer, const VulkanBuffer& indexBuffer) {
+    VkBuffer vertexBuffers[] = { vertBuffer.getBuffer() };
+    VkDeviceSize offsets[] = { 0 };
+    vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+
+    vkCmdBindIndexBuffer(commandBuffer, indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
+
+
+}
+
+void VulkanCommandBuffer::recordDrawCall(const VulkanGraphicsPipeline& graphicsPipeline, const VulkanBuffer& indexBuffer,const VulkanDescriptorSet& descriptorSet,const MaterialResource* mat,const glm::mat4 transform) {
+
+    std::array<VkDescriptorSet, 2> descriptor{ currentUBO,descriptorSet.getDescriptorSet() };
+
+
+<<<<<<< HEAD
+    pushConstants pushData{ transform ,mat->colorFactor,mat->metallicFactor,mat->roughnessFactor,mat->emissiveStrenght,0,mat->emissiveFactor,0 };
+=======
+    pushConstants pushData{ transform ,mat->colorFactor,mat->metallicFactor,mat->roughnessFactor,mat->emissiveStrenght,mat->emissiveFactor };
+>>>>>>> ba1e340 (fast GLTF is implemented material data is already in gpu just missing the lights .)
+    vkCmdPushConstants(commandBuffer, graphicsPipeline.getPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,0,sizeof(pushData), &pushData);
+
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline.getPipelineLayout(), 0, 2, descriptor.data(), 0, nullptr);
+
+    vkCmdDrawIndexed(commandBuffer, indexBuffer.getElementCount(), 1, 0, 0, 0);
+}
+
+void VulkanCommandBuffer::recordCommandBuffer(const uint32_t imageIndex, const VulkanLogicalDevice& logicalDevice, const VulkanSwapChain& swapChain, const VulkanGraphicsPipeline& graphicsPipeline, const VulkanRenderPass& renderPass, const VulkanFrameBuffers& frameBuffers, const VulkanBuffer& vertBuffer, const VulkanBuffer& indexBuffer,  VkDescriptorSet* descriptorSet) {
+
+   
 
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -35,7 +155,7 @@ void VulkanCommandBuffer::recordCommandBuffer(const uint32_t imageIndex, const V
     renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
     renderPassInfo.pClearValues = clearValues.data();
 
-    
+
 
 
     vkCmdBeginRenderPass(commandBuffer, &renderPassInfo,
@@ -64,9 +184,9 @@ void VulkanCommandBuffer::recordCommandBuffer(const uint32_t imageIndex, const V
     VkDeviceSize offsets[] = { 0 };
     vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
-	vkCmdBindIndexBuffer(commandBuffer, indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
+    vkCmdBindIndexBuffer(commandBuffer, indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline.getPipelineLayout(), 0, 1, &descriptorSet, 0, nullptr);
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline.getPipelineLayout(), 0, 2, descriptorSet, 0, nullptr);
 
     vkCmdDrawIndexed(commandBuffer, indexBuffer.getElementCount(), 1, 0, 0, 0);
 
@@ -78,7 +198,6 @@ void VulkanCommandBuffer::recordCommandBuffer(const uint32_t imageIndex, const V
     }
 
 }
-
 
 
 void VulkanCommandBuffer::createCommandBuffer(const VulkanLogicalDevice& device , const VulkanCommandPool& commandPool) {

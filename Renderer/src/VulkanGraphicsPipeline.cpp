@@ -46,7 +46,7 @@ VkShaderModule VulkanGraphicsPipeline::createShaderModule( const std::vector<cha
     return shaderModule;
 }
 
-void VulkanGraphicsPipeline::createGraphicsPipeline(const VulkanLogicalDevice& device, const VulkanSwapChain& swapChain, const VulkanRenderPass& renderPass , const VkDescriptorSetLayout& descriptorSetLayout) {
+void VulkanGraphicsPipeline::createGraphicsPipeline(const VulkanLogicalDevice& device, const VulkanSwapChain& swapChain, const VulkanRenderPass& renderPass , const VkDescriptorSetLayout* descriptorSetLayouts) {
     logicalDevice = &device;
 
     auto vertShaderCode = readFile("shaders/vert.spv");
@@ -193,12 +193,18 @@ void VulkanGraphicsPipeline::createGraphicsPipeline(const VulkanLogicalDevice& d
 
     // create pipeline layout
 
+    VkPushConstantRange pushConstantRange{};
+    pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+    pushConstantRange.offset = 0;
+    pushConstantRange.size = sizeof(pushConstants);
+
+
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = 1;             
-    pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
-    pipelineLayoutInfo.pushConstantRangeCount = 0;     
-    pipelineLayoutInfo.pPushConstantRanges = nullptr;  
+    pipelineLayoutInfo.setLayoutCount = 2;             
+    pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts;
+    pipelineLayoutInfo.pushConstantRangeCount = 1;     
+    pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 
     if (vkCreatePipelineLayout(device.getDevice(), &pipelineLayoutInfo, nullptr,
         &pipelineLayout) != VK_SUCCESS) {

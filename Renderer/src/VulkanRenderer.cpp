@@ -1,25 +1,31 @@
+
 #include "..\headers\VulkanRenderer.h"
+
+
 
 #define GLM_FORCE_RADIANS
 #define VK_USE_PLATFORM_WIN32_KHR
 #define GLFW_EXPOSE_NATIVE_WIN32
 #define STB_IMAGE_IMPLEMENTATION
 
-
+#include <omp.h>
 #include <stb_image.h>
 #include <GLFW/glfw3native.h>
 #include "tiny_obj_loader.h"
+
+
+
 
 #define VMA_IMPLEMENTATION
 #include <vma/vk_mem_alloc.h>
 
 VulkanRenderer::VulkanRenderer() : commandBuffers(MAX_FRAMES_IN_FLIGHT) {
+	initVulkan();
 }
 
 
 
 void VulkanRenderer::initVulkan() {
-	//instance.vulkanInstanceCreator();
 
 	surface.createSurface(instance, window);
 
@@ -33,15 +39,7 @@ void VulkanRenderer::initVulkan() {
 
 	swapChain.createImageViews();
 
-	renderPass.createRenderPass(physicalDevice, swapChain, logicalDevice);
-
-	descriptorSet.createDescriptorSetLayout(logicalDevice);
-
-	graphicsPipeline.createGraphicsPipeline(logicalDevice, swapChain, renderPass, descriptorSet.getDescriptorSetLayout());
-
-	createDepthResources();
-
-	frameBuffers.createFramebuffers(logicalDevice, swapChain, renderPass, depthImageView);
+	createUniformBuffers();
 
 	commandPool.createGraphicsCommandPool(physicalDevice, logicalDevice, surface);
 
@@ -51,27 +49,42 @@ void VulkanRenderer::initVulkan() {
 		commandBuffers[i].createCommandBuffer(logicalDevice, commandPool);
 	}
 
+	//read GLTF
+	//sceneLoader.loadGltf("C:/Users/pedro/source/repos/VkEngine/scenes/ABeautifulGame/glTF/ABeautifulGame.gltf", *this);
+	sceneLoader.loadGltf("C:/Users/pedro/source/repos/VkEngine/scenes/Buggy/newBuggy.glb", *this);
+
+	renderPass.createRenderPass(physicalDevice, swapChain, logicalDevice);
+
+	descriptorPool.createUBODescriptorPool(logicalDevice, MAX_FRAMES_IN_FLIGHT);
+
+	descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
+	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+		descriptorSets[i].createUBODescriptorLayout(logicalDevice, descriptorPool);
+		descriptorSets[i].createDescriptor();
+		descriptorSets[i].updateUBODescriptor(uniformBuffers[i]);
+	}
+
+	std::array<VkDescriptorSetLayout, 2> descriptorLayouts{ descriptorSets[0].getDescriptorSetLayout(), sceneLoader.getLayout()};
+
+	graphicsPipeline.createGraphicsPipeline(logicalDevice, swapChain, renderPass, descriptorLayouts.data());
+
+	createDepthResources();
+
+	frameBuffers.createFramebuffers(logicalDevice, swapChain, renderPass, depthImageView);
+
 	modelLoader.loadModel(MODEL_PATH);
-
-	//modelLoader.testFunction();
-
-	createTextureImage(TEXTURE_PATH);
-
-	textureImageView.createImageView(logicalDevice, textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
-
+	createTexture(TEXTURE_PATH, textureResource);
 	textureSampler.createTextureSampler(physicalDevice, logicalDevice);
 	
 	syncObjects.createSyncObjects(logicalDevice, MAX_FRAMES_IN_FLIGHT, swapChain.getSwapChainImages().size());
 
-	createVertexBuffer();
+	createMeshResources(modelLoader.getVertices(), modelLoader.getIndices(),meshBuffer);
 
-	createIndexBuffer();
+	
 
-	createUniformBuffers();
 
-	descriptorSet.createDescriptorPool(MAX_FRAMES_IN_FLIGHT);
 
-	descriptorSet.createDescriptorSets(uniformBuffers, MAX_FRAMES_IN_FLIGHT, textureImageView, textureSampler);
+	//descriptorSet.createDescriptorSetsNew(uniformBuffers, MAX_FRAMES_IN_FLIGHT, sceneLoader.getImage(2).imageView, sceneLoader.getSampler(0).sampler);
 }
 
 
@@ -88,9 +101,16 @@ void VulkanRenderer::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, const Vk
 
 }
 
-void VulkanRenderer::createVertexBuffer() {
-	VkDeviceSize bufferSize = sizeof(modelLoader.getVertices()[0]) * modelLoader.getVertices().size();
-	uint32_t vextexCount = static_cast<uint32_t>(modelLoader.getVertices().size());
+void VulkanRenderer::createMeshResources(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, MeshBuffers& meshBuffer) {
+
+	createVertexBuffer(vertices,meshBuffer.vertexBuffer);
+	createIndexBuffer(indices, meshBuffer.indexBuffer);
+
+}
+
+void VulkanRenderer::createVertexBuffer(const std::vector<Vertex>& vertices, VulkanBuffer& vertexBuffer) {
+	VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
+	uint32_t vextexCount = static_cast<uint32_t>(vertices.size());
 
 	VulkanBuffer stagingBuffer;
 
@@ -106,11 +126,11 @@ void VulkanRenderer::createVertexBuffer() {
 
 	void* data;
 	vmaMapMemory(allocator.getAllocator(), stagingBuffer.getAllocation(), &data);
-	memcpy(data, modelLoader.getVertices().data(), (size_t)bufferSize);
+	memcpy(data, vertices.data(), (size_t)bufferSize);
 	vmaUnmapMemory(allocator.getAllocator(), stagingBuffer.getAllocation());
 
 	//vkMapMemory(logicalDevice.getDevice(), stagingBuffer.getBufferMemory(), 0, bufferSize, 0, &data);
-	//memcpy(data, modelLoader.getVertices().data(), (size_t)bufferSize);
+	//memcpy(data, vertices.data(), (size_t)bufferSize);
 	//vkUnmapMemory(logicalDevice.getDevice(), stagingBuffer.getBufferMemory());
 
 	VulkanBufferCreateInfo vertexBufferInfo{};
@@ -124,11 +144,13 @@ void VulkanRenderer::createVertexBuffer() {
 	vertexBuffer.createBuffer(allocator,vertexBufferInfo);
 
 	copyBuffer(stagingBuffer.getBuffer(), vertexBuffer.getBuffer(), bufferSize);
+
+
 }
 
-void VulkanRenderer::createIndexBuffer() {
-	VkDeviceSize bufferSize = sizeof(modelLoader.getIndices()[0]) * modelLoader.getIndices().size();
-	uint32_t indexCount = static_cast<uint32_t>(modelLoader.getIndices().size());
+void VulkanRenderer::createIndexBuffer(const std::vector<uint32_t>& indices, VulkanBuffer& indexBuffer) {
+	VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
+	uint32_t indexCount = static_cast<uint32_t>(indices.size());
 	VulkanBuffer stagingBuffer;
 
 
@@ -144,11 +166,11 @@ void VulkanRenderer::createIndexBuffer() {
 	void* data;
 
 	vmaMapMemory(allocator.getAllocator(), stagingBuffer.getAllocation(), &data);
-	memcpy(data, modelLoader.getIndices().data(), (size_t)bufferSize);
+	memcpy(data, indices.data(), (size_t)bufferSize);
 	vmaUnmapMemory(allocator.getAllocator(), stagingBuffer.getAllocation());
 
 	//vkMapMemory(logicalDevice.getDevice(), stagingBuffer.getBufferMemory(), 0, bufferSize, 0, &data);
-	//memcpy(data, modelLoader.getIndices().data(), (size_t)bufferSize);
+	//memcpy(data, indices.data(), (size_t)bufferSize);
 	//vkUnmapMemory(logicalDevice.getDevice(), stagingBuffer.getBufferMemory());
 
 	VulkanBufferCreateInfo indexBufferInfo{};
@@ -160,6 +182,7 @@ void VulkanRenderer::createIndexBuffer() {
 	indexBuffer.createBuffer(allocator, indexBufferInfo);
 
 	copyBuffer(stagingBuffer.getBuffer(), indexBuffer.getBuffer(), bufferSize);
+
 }
 
 
@@ -216,11 +239,14 @@ void VulkanRenderer::drawFrame()
 		throw std::runtime_error("failed to acquire swap chain image!");
 	}
 
-	vkResetFences(logicalDevice.getDevice(), 1, &syncObjects.inFlightFences[currentFrame]);
+	vkResetFences(logicalDevice.getDevice(), 1, &syncObjects.inFlightFences[currentFrame]); 
+		
 
-	vkResetCommandBuffer(commandBuffers[currentFrame].getCommandBuffer(), 0);
-	commandBuffers[currentFrame].recordCommandBuffer(imageIndex, logicalDevice, swapChain, graphicsPipeline, renderPass, frameBuffers, vertexBuffer, indexBuffer, descriptorSet.getDescriptorSets(currentFrame));
+	vkResetCommandBuffer(commandBuffers[currentFrame].getCommandBuffer(), 0);  
 
+	//std::array < VkDescriptorSet, 2> descriptors{ descriptorSets[currentFrame].getDescriptorSet(),sceneLoader.getMatDescriptor(0)};
+	//commandBuffers[currentFrame].recordCommandBuffer(imageIndex, logicalDevice, swapChain, graphicsPipeline, renderPass, frameBuffers, sceneLoader.getMesh(0).meshBuffers.vertexBuffer, sceneLoader.getMesh(0).meshBuffers.indexBuffer, /*descriptorSet.getDescriptorSets(currentFrame)*/descriptors.data());
+	commandBuffers[currentFrame].recordCommandBufferNew(imageIndex,*this,sceneLoader, descriptorSets[currentFrame].getDescriptorSet());
 	update(currentFrame);
 
 
@@ -319,7 +345,7 @@ void VulkanRenderer::updateUniformBuffer(uint32_t currentImage,float  deltaTime)
 
 	ubo.view = glm::lookAt(camera.getPos(), camera.getPos() + camera.getDirection(), camera.getUp());
 
-	ubo.proj = glm::perspective(glm::radians(45.0f), swapChain.getSwapChainExtent().width / (float)swapChain.getSwapChainExtent().height, 0.1f, 10.0f);
+	ubo.proj = glm::perspective(glm::radians(camera.getFov()), swapChain.getSwapChainExtent().width / (float)swapChain.getSwapChainExtent().height, 0.01f, 2000.0f);
 
 	ubo.proj[1][1] *= -1;
 
@@ -345,15 +371,42 @@ void VulkanRenderer::createUniformBuffers() {
 	}
 }
 
-void VulkanRenderer::createTextureImage(const std::string& TEXTURE_PATH) {
+void VulkanRenderer::createTexture(const std::string& TEXTURE_PATH, ImageResource& tex) {
+	createTextureImage(TEXTURE_PATH, tex.image);
+	tex.imageView.createImageView(logicalDevice, tex.image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
+}
+
+void VulkanRenderer::createTexture(const ImageArrayData& data, ImageResource& tex) {
+	createTextureImage(data, tex.image);
+	tex.imageView.createImageView(logicalDevice, tex.image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
+}
+
+void VulkanRenderer::createTextureImage(const std::string& TEXTURE_PATH,VulkanImage& textureImage) {
 	int texWidth, texHeight, texChannels;
+
 	stbi_uc* pixels = stbi_load(TEXTURE_PATH.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
 	VkDeviceSize imageSize = texWidth * texHeight * 4;
 
 	if (!pixels) {
 		throw std::runtime_error("failed to load texture image!");
 	}
+	createTextureImageHelper(pixels, texWidth, texHeight, textureImage);
 
+	stbi_image_free(pixels);
+}
+
+void VulkanRenderer::createTextureImage(const ImageArrayData& data, VulkanImage& textureImage) {
+	
+	VkDeviceSize imageSize = data.width * data.height * 4;
+	createTextureImageHelper(data.pixels, data.width, data.height, textureImage);
+
+	
+}
+
+
+void VulkanRenderer::createTextureImageHelper(const stbi_uc* pixels, int texWidth, int texHeight, VulkanImage& textureImage) {
+
+	VkDeviceSize imageSize = texWidth * texHeight * 4;
 	VulkanBuffer stagingBuffer;
 
 	VulkanBufferCreateInfo stagingBufferInfo{};
@@ -372,18 +425,16 @@ void VulkanRenderer::createTextureImage(const std::string& TEXTURE_PATH) {
 	memcpy(data, pixels, static_cast<size_t>(imageSize));
 	vmaUnmapMemory(allocator.getAllocator(), stagingBuffer.getAllocation());
 
-	stbi_image_free(pixels);
-
 	VulkanImageCreateInfo textureImageInfo{};
 	textureImageInfo.width = static_cast<uint32_t>(texWidth);
-	textureImageInfo.height = static_cast<uint32_t>(texHeight);	
+	textureImageInfo.height = static_cast<uint32_t>(texHeight);
 	textureImageInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
 	textureImageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 	textureImageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 	textureImageInfo.vmaUsage = VMA_MEMORY_USAGE_GPU_ONLY;
 
 
-	textureImage.create2DImage(allocator,textureImageInfo);
+	textureImage.create2DImage(allocator, textureImageInfo);
 
 	transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
 
@@ -394,7 +445,15 @@ void VulkanRenderer::createTextureImage(const std::string& TEXTURE_PATH) {
 		, physicalDevice.findQueueFamilies(surface).graphicsFamily.value());
 
 	transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+
 		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
+}
+
+void VulkanRenderer::createSampler(SamplerResource& samplerResource, VkFilter magFilter, VkFilter minFilter, VkSamplerMipmapMode mipMap, VkSamplerAddressMode addressU, VkSamplerAddressMode adressV) {
+
+
+	samplerResource.sampler.createTextureSampler(physicalDevice, logicalDevice, magFilter, minFilter, mipMap, addressU, adressV);
+
 }
 
 

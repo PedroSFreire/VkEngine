@@ -26,7 +26,7 @@ public:
 
 	const std::vector<VkFramebuffer>& getSwapChainFramebuffers() const { return swapChainFramebuffers; }
 
-	VkFramebuffer getFrameBufferAtIndex(size_t index) const { return swapChainFramebuffers[index]; }
+	const VkFramebuffer getFrameBufferAtIndex(size_t index) const { return swapChainFramebuffers[index]; }
 
 	void createFramebuffers(const VulkanLogicalDevice& device, const VulkanSwapChain& swapChain, const VulkanRenderPass& renderPass , const VulkanImageView& depthImageView);
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#define NOMINMAX
+#define WIN32_LEAN_AND_MEAN
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -27,7 +29,7 @@
 
 #include "VulkanDebugHandler.h"
 #include "VulkanInstance.h"
-
+ 
 #include "VulkanSurface.h"
 
 #include "VulkanPhysicalDevice.h"
@@ -52,12 +54,13 @@
 #include "VulkanSyncObjects.h"
 #include "VulkanBuffer.h"
 #include "VulkanDescriptorSet.h"
+#include "VulkanDescriptorPool.h"
 #include "VulkanImage.h"
 #include "VulkanImageView.h"
 #include "VulkanSampler.h"
 
 #include "ModelLoader.h"
-
+#include "GltfLoader.h"
 
 
 
@@ -71,14 +74,34 @@ public:
 
 
 	void run() {
-		initVulkan();
+
 		mainLoop();
 
 	}
 
 	VulkanRenderer();
+	~VulkanRenderer() = default;
+	VulkanRenderer(const VulkanRenderer&) = default;
+
+
+	void createMeshResources(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, MeshBuffers& meshBuffer);
+
+	void createTexture(const std::string& TEXTURE_PATH, ImageResource& tex);
+
+	void createTexture(const ImageArrayData& data, ImageResource& tex);
+
+	void createSampler(SamplerResource& sampler, VkFilter magFilter, VkFilter minFilter, VkSamplerMipmapMode mipMap, VkSamplerAddressMode addressU, VkSamplerAddressMode adressV);
+
+	const VulkanPhysicalDevice& getPhysicalDevice() const { return physicalDevice; }
+	VulkanLogicalDevice& getLogicalDevice() { return logicalDevice; }
+	const VulkanSwapChain& getSwapChain() const { return swapChain; }
+	const VulkanRenderPass& getRenderPass() const { return renderPass; }
+	const VulkanFrameBuffers& getFrameBuffers() const { return frameBuffers; }
+	const VulkanGraphicsPipeline& getGraphicsPipeline() const { return graphicsPipeline; }
+	const VulkanCommandPool& getCommandPool() const { return commandPool; }
 
 private:
+
 
 
 	uint32_t currentFrame = 0;
@@ -101,7 +124,9 @@ private:
 
 	VulkanRenderPass									renderPass{};
 
-	VulkanDescriptorSet									descriptorSet{};
+	std::vector<VulkanDescriptorSet>					descriptorSets;
+
+	VulkanDescriptorPool								descriptorPool{};
 
 	VulkanGraphicsPipeline								graphicsPipeline{};
 
@@ -117,19 +142,17 @@ private:
 
 	ModelLoader											modelLoader;
 
+
 	//Resources
-
-	VulkanBuffer										vertexBuffer{};
-
-	VulkanBuffer										indexBuffer{};
+	MeshBuffers											meshBuffer{};
 
 	std::vector<VulkanBuffer>							uniformBuffers;
 
 	std::vector<void*>									uniformBuffersMapped;
 
-	VulkanImage											textureImage;
+	ImageResource										textureResource;
 
-	VulkanImageView										textureImageView;
+	GltfLoader											sceneLoader;
 
 	VulkanImage											depthImage;
 
@@ -165,11 +188,15 @@ private:
 
 	void updateUniformBuffer(uint32_t currentImage, float deltaTime);
 
-	void createVertexBuffer();
+	void createVertexBuffer(const std::vector<Vertex>& vertices, VulkanBuffer& buffer);
 
-	void createIndexBuffer();
+	void createIndexBuffer(const std::vector<uint32_t>& indices, VulkanBuffer& buffer);
 
-	void createTextureImage(const std::string& TEXTURE_PATH);
+	void createTextureImage(const std::string& TEXTURE_PATH, VulkanImage& textureImage);
+
+	void createTextureImage(const ImageArrayData& data, VulkanImage& textureImage);
+
+	void createTextureImageHelper(const stbi_uc* pixels, int texWidth, int texHeight, VulkanImage& textureImage);
 
 	void transitionImageLayout(VulkanImage& image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t srcQueue, uint32_t destQueue);
 

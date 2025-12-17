@@ -26,19 +26,19 @@ class VulkanImage
 {
 
 public:
-	VulkanImage() = default;
+	VulkanImage();
 	VulkanImage(const VulkanImage&) = delete;
 	~VulkanImage();
 	VulkanImage(VulkanImage&& other) noexcept {
 		image = other.image;
 		allocationInfo = other.allocationInfo;
-		allocationInfo = other.allocationInfo;
+		allocation = other.allocation;
 		allocatorHandle = other.allocatorHandle;
 
-
+		other.allocatorHandle = nullptr;
 		other.image = VK_NULL_HANDLE;
 		other.allocation = VK_NULL_HANDLE;
-		other.allocatorHandle = nullptr;
+		
 	}
 
 	void create2DImage(const VulkanMemoryAllocator& allocator,const VulkanImageCreateInfo& info);

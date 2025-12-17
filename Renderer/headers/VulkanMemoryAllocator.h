@@ -13,7 +13,7 @@ class VulkanMemoryAllocator
 	VulkanMemoryAllocator() = default;
 	~VulkanMemoryAllocator() { destroyVmaAllocator(); }
 	VulkanMemoryAllocator(const VulkanMemoryAllocator&) = delete;
-	VulkanMemoryAllocator(VulkanMemoryAllocator&& pallocator) { allocator = pallocator.allocator;}
+	VulkanMemoryAllocator(VulkanMemoryAllocator&& pallocator) noexcept{ allocator = pallocator.allocator;}
 
 
 	void createVmaAllocator(VulkanInstance& instance, VulkanPhysicalDevice& physicalDevice, VulkanLogicalDevice& device);

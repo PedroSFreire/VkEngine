@@ -45,11 +45,11 @@ class VulkanBuffer
 
 
 
-	VkBuffer getBuffer() const { return buffer; };
+	const VkBuffer& getBuffer() const { return buffer; };
 
-	VmaAllocation getAllocation() const { return allocation; };
+	const VmaAllocation getAllocation() const { return allocation; };
 
-	VmaAllocationInfo getAllocationInfo() const { return allocationInfo; };
+	const VmaAllocationInfo getAllocationInfo() const { return allocationInfo; };
 
 	uint32_t getElementCount() const { return elementCount; }
 
