@@ -11,6 +11,7 @@ find_package(glfw3 CONFIG REQUIRED)
 find_package(tinyobjloader CONFIG REQUIRED)
 find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 find_package(fastGltf CONFIG REQUIRED)
+find_package(OpenMP REQUIRED)
 
 
 # ---- Collect source files ----
@@ -26,6 +27,7 @@ add_executable(Renderer ${RENDERER_SRC})
 # (your own headers)
 target_include_directories(Renderer PRIVATE
     Renderer/header
+$<TARGET_PROPERTY:fastgltf::fastgltf,INTERFACE_INCLUDE_DIRECTORIES>
 )
 
 
@@ -37,6 +39,7 @@ target_link_libraries(Renderer PRIVATE
     tinyobjloader::tinyobjloader
     fastgltf::fastgltf
      ${VMA_INCLUDE_DIRS}
+	OpenMP::OpenMP_CXX
 )
 
 # ---- Copy shaders next to executable after build ----
