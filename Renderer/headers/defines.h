@@ -14,6 +14,7 @@
 #include <glm/glm.hpp>
 #include <stb_image.h>
 #include "VulkanBuffer.h"
+#include "VulkanDescriptorSet.h"
 #include "VulkanImage.h"
 #include "VulkanImageView.h"
 #include "VulkanSampler.h"
@@ -24,9 +25,43 @@ const std::string MODEL_PATH = "models/viking_room.obj";
 const std::string TEXTURE_PATH = "textures/viking_room.png";
 
 
-struct drawCallData {
-	uint32_t meshIndex;
-	glm::mat4 modelMatrix;
+
+
+
+
+enum class LightType : uint32_t {
+	Directional = 0,
+	Point = 1,
+	Spot = 2
+};
+
+struct LightResource {
+	uint32_t type;
+
+	glm::vec3 color;
+	float intensity;
+
+	float range;
+
+	float spotInnerCos;
+
+	float spotOuterCos;
+};
+
+struct LightGPUData {
+	uint32_t type;
+
+	glm::vec3 color;
+	float intensity;
+
+	glm::vec3 position;
+	float range;
+
+	glm::vec3 direction;
+	float spotInnerCos;
+
+	float spotOuterCos;
+	int padding0;
 };
 
 struct NodeResource {
@@ -59,21 +94,24 @@ struct UniformBufferObject {
 	glm::mat4 model;
 	glm::mat4 view;
 	glm::mat4 proj;
+	glm::uint lightCount;
 };
 
 struct pushConstants {
 	glm::mat4 transform;
 	glm::vec4 colorFactor;
+
 	uint32_t metallicFactor;
 	uint32_t roughnessFactor;
 	uint32_t emissiveStrenght;
-<<<<<<< HEAD
-	uint32_t padding0;         // 4 bytes to align next member to 16 bytes
+	uint32_t padding0;    
+
+
 	glm::vec3 emissiveFactor;
-	uint32_t padding1;         // 4 bytes to align next member to 16 bytes
-=======
-	glm::vec3 emissiveFactor;
->>>>>>> ba1e340 (fast GLTF is implemented material data is already in gpu just missing the lights .)
+	uint32_t padding1;      
+
+
+
 };
 
 
@@ -227,6 +265,19 @@ struct MeshAsset {
 };
 
 
+struct DrawCallData {
+
+	VulkanDescriptorSet* descriptorSet;
+	MaterialResource* mat;
+	glm::mat4 transform;
+};
+
+struct DrawCallBatchData {
+
+	VulkanBuffer* indexBuffer;
+	VulkanBuffer* vertexBuffer;
+	std::vector<DrawCallData> drawCalls;
+};
 
 namespace std {
 	template<> struct hash<Vertex> {
@@ -236,4 +287,6 @@ namespace std {
 				(hash<glm::vec2>()(vertex.texCoord) << 1);
 		}
 	};
-}
+};
+
+

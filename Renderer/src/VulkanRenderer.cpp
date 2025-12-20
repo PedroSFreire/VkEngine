@@ -50,9 +50,8 @@ void VulkanRenderer::initVulkan() {
 	}
 
 	//read GLTF
-	//sceneLoader.loadGltf("C:/Users/pedro/source/repos/VkEngine/scenes/ABeautifulGame/glTF/ABeautifulGame.gltf", *this);
-	sceneLoader.loadGltf("C:/Users/pedro/source/repos/VkEngine/scenes/Buggy/newBuggy.glb", *this);
-
+	sceneLoader.loadGltf("C:/Users/pedro/source/repos/VkEngine/scenes/LightsPunctualLamp/glTF/LightsPunctualLamp.gltf", *this);
+	//sceneLoader.loadGltf("C:/Users/pedro/source/repos/VkEngine/scenes/Buggy/newBuggy.glb", *this);
 	renderPass.createRenderPass(physicalDevice, swapChain, logicalDevice);
 
 	descriptorPool.createUBODescriptorPool(logicalDevice, MAX_FRAMES_IN_FLIGHT);
@@ -64,32 +63,21 @@ void VulkanRenderer::initVulkan() {
 		descriptorSets[i].updateUBODescriptor(uniformBuffers[i]);
 	}
 
-	std::array<VkDescriptorSetLayout, 2> descriptorLayouts{ descriptorSets[0].getDescriptorSetLayout(), sceneLoader.getLayout()};
+	std::array<VkDescriptorSetLayout, 3> descriptorLayouts{ descriptorSets[0].getDescriptorSetLayout(), sceneLoader.getLayout(), sceneLoader.getImageLayout() };
 
 	graphicsPipeline.createGraphicsPipeline(logicalDevice, swapChain, renderPass, descriptorLayouts.data());
 
 	createDepthResources();
 
 	frameBuffers.createFramebuffers(logicalDevice, swapChain, renderPass, depthImageView);
-
-	modelLoader.loadModel(MODEL_PATH);
-	createTexture(TEXTURE_PATH, textureResource);
-	textureSampler.createTextureSampler(physicalDevice, logicalDevice);
 	
 	syncObjects.createSyncObjects(logicalDevice, MAX_FRAMES_IN_FLIGHT, swapChain.getSwapChainImages().size());
 
-	createMeshResources(modelLoader.getVertices(), modelLoader.getIndices(),meshBuffer);
-
-	
-
-
-
-	//descriptorSet.createDescriptorSetsNew(uniformBuffers, MAX_FRAMES_IN_FLIGHT, sceneLoader.getImage(2).imageView, sceneLoader.getSampler(0).sampler);
 }
 
 
 
-void VulkanRenderer::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, const VkDeviceSize size) {
+void VulkanRenderer::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, const VkDeviceSize size) const {
 	VulkanCommandBuffer commandBuffer;
 	commandBuffer.beginRecordindSingleTimeCommands(logicalDevice, transferCommandPool);
 
@@ -109,42 +97,21 @@ void VulkanRenderer::createMeshResources(const std::vector<Vertex>& vertices, co
 }
 
 void VulkanRenderer::createVertexBuffer(const std::vector<Vertex>& vertices, VulkanBuffer& vertexBuffer) {
+
 	VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
 	uint32_t vextexCount = static_cast<uint32_t>(vertices.size());
 
-	VulkanBuffer stagingBuffer;
-
-	VulkanBufferCreateInfo stagingBufferInfo{};
-	stagingBufferInfo.elementCount = vextexCount;
-	stagingBufferInfo.size = bufferSize;
-	stagingBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-	stagingBufferInfo.vmaUsage = VMA_MEMORY_USAGE_AUTO;
-	stagingBufferInfo.vmaFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-
-	stagingBuffer.createBuffer(allocator, stagingBufferInfo);
-
-
-	void* data;
-	vmaMapMemory(allocator.getAllocator(), stagingBuffer.getAllocation(), &data);
-	memcpy(data, vertices.data(), (size_t)bufferSize);
-	vmaUnmapMemory(allocator.getAllocator(), stagingBuffer.getAllocation());
-
-	//vkMapMemory(logicalDevice.getDevice(), stagingBuffer.getBufferMemory(), 0, bufferSize, 0, &data);
-	//memcpy(data, vertices.data(), (size_t)bufferSize);
-	//vkUnmapMemory(logicalDevice.getDevice(), stagingBuffer.getBufferMemory());
-
+	//create buffer
 	VulkanBufferCreateInfo vertexBufferInfo{};
 	vertexBufferInfo.elementCount = vextexCount;
 	vertexBufferInfo.size = bufferSize;
 	vertexBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 	vertexBufferInfo.vmaUsage = VMA_MEMORY_USAGE_GPU_ONLY;
 
-
-
 	vertexBuffer.createBuffer(allocator,vertexBufferInfo);
 
-	copyBuffer(stagingBuffer.getBuffer(), vertexBuffer.getBuffer(), bufferSize);
-
+	//upload data
+	bufferStagedUpload(vertexBuffer, vertices.data(), bufferSize, vextexCount);
 
 }
 
@@ -153,26 +120,7 @@ void VulkanRenderer::createIndexBuffer(const std::vector<uint32_t>& indices, Vul
 	uint32_t indexCount = static_cast<uint32_t>(indices.size());
 	VulkanBuffer stagingBuffer;
 
-
-	VulkanBufferCreateInfo stagingBufferInfo{};
-	stagingBufferInfo.elementCount = indexCount;
-	stagingBufferInfo.size = bufferSize;
-	stagingBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-	stagingBufferInfo.vmaUsage = VMA_MEMORY_USAGE_AUTO;
-	stagingBufferInfo.vmaFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-
-	stagingBuffer.createBuffer(allocator, stagingBufferInfo);
-
-	void* data;
-
-	vmaMapMemory(allocator.getAllocator(), stagingBuffer.getAllocation(), &data);
-	memcpy(data, indices.data(), (size_t)bufferSize);
-	vmaUnmapMemory(allocator.getAllocator(), stagingBuffer.getAllocation());
-
-	//vkMapMemory(logicalDevice.getDevice(), stagingBuffer.getBufferMemory(), 0, bufferSize, 0, &data);
-	//memcpy(data, indices.data(), (size_t)bufferSize);
-	//vkUnmapMemory(logicalDevice.getDevice(), stagingBuffer.getBufferMemory());
-
+	//create buffer
 	VulkanBufferCreateInfo indexBufferInfo{};
 	indexBufferInfo.elementCount = indexCount;
 	indexBufferInfo.size = bufferSize;
@@ -181,11 +129,35 @@ void VulkanRenderer::createIndexBuffer(const std::vector<uint32_t>& indices, Vul
 
 	indexBuffer.createBuffer(allocator, indexBufferInfo);
 
-	copyBuffer(stagingBuffer.getBuffer(), indexBuffer.getBuffer(), bufferSize);
-
+	//upload data
+	bufferStagedUpload(indexBuffer, indices.data(), bufferSize, indexCount);
 }
 
+void VulkanRenderer::bufferStagedUpload(VulkanBuffer& dstBuffer,const void* bufferData, uint32_t size,uint32_t elementCount) const {
 
+	VkDeviceSize bufferSize = size;
+
+
+	VulkanBuffer stagingBuffer;
+
+	VulkanBufferCreateInfo stagingBufferInfo{};
+	stagingBufferInfo.elementCount = elementCount;
+	stagingBufferInfo.size = bufferSize;
+	stagingBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+	stagingBufferInfo.vmaUsage = VMA_MEMORY_USAGE_AUTO;
+	stagingBufferInfo.vmaFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+
+	stagingBuffer.createBuffer(allocator, stagingBufferInfo);
+
+
+	void* data;
+	vmaMapMemory(allocator.getAllocator(), stagingBuffer.getAllocation(), &data);
+	memcpy(data, bufferData, (size_t)bufferSize);
+	vmaUnmapMemory(allocator.getAllocator(), stagingBuffer.getAllocation());
+
+
+	copyBuffer(stagingBuffer.getBuffer(), dstBuffer.getBuffer(), bufferSize);
+}
 
 void VulkanRenderer::mainLoop() {
 	while (!window.shouldClose()) {
@@ -243,11 +215,12 @@ void VulkanRenderer::drawFrame()
 		
 
 	vkResetCommandBuffer(commandBuffers[currentFrame].getCommandBuffer(), 0);  
+	update(currentFrame);
 
 	//std::array < VkDescriptorSet, 2> descriptors{ descriptorSets[currentFrame].getDescriptorSet(),sceneLoader.getMatDescriptor(0)};
 	//commandBuffers[currentFrame].recordCommandBuffer(imageIndex, logicalDevice, swapChain, graphicsPipeline, renderPass, frameBuffers, sceneLoader.getMesh(0).meshBuffers.vertexBuffer, sceneLoader.getMesh(0).meshBuffers.indexBuffer, /*descriptorSet.getDescriptorSets(currentFrame)*/descriptors.data());
 	commandBuffers[currentFrame].recordCommandBufferNew(imageIndex,*this,sceneLoader, descriptorSets[currentFrame].getDescriptorSet());
-	update(currentFrame);
+	
 
 
 	VkSubmitInfo submitInfo{};
@@ -349,6 +322,7 @@ void VulkanRenderer::updateUniformBuffer(uint32_t currentImage,float  deltaTime)
 
 	ubo.proj[1][1] *= -1;
 
+	ubo.lightCount = static_cast<uint32_t>(sceneLoader.getLightCount());
 	memcpy(uniformBuffers[currentImage].getAllocationInfo().pMappedData, &ubo, sizeof(ubo));
 }
 

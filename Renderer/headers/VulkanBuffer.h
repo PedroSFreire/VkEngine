@@ -53,7 +53,7 @@ class VulkanBuffer
 
 	uint32_t getElementCount() const { return elementCount; }
 
-
+	bool isLight = false;
 
 private:
 	VkBuffer buffer{};

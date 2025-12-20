@@ -13,6 +13,10 @@
 #include "..\headers\GltfLoader.h"
 
 
+
+
+
+
 void VulkanCommandBuffer::bindMeshBuffers(const VulkanBuffer& vertexBuffer, const VulkanBuffer& indexBuffer) {
     VkBuffer vertexBuffers[] = { vertexBuffer.getBuffer()};
     VkDeviceSize offsets[] = { 0 };
@@ -27,7 +31,7 @@ void VulkanCommandBuffer::bindDescriptorSet(const VulkanRenderer& renderer, VkPi
     vkCmdDrawIndexed(commandBuffer, indexBuffer.getElementCount(), 1, 0, 0, 0); 
 }
 
-void VulkanCommandBuffer::recordCommandBufferNew(const uint32_t imageIndex, const VulkanRenderer& renderer, const GltfLoader& scene, VkDescriptorSet descriptorSet) {
+void VulkanCommandBuffer::recordCommandBufferNew(const uint32_t imageIndex, const VulkanRenderer& renderer, GltfLoader& scene, VkDescriptorSet descriptorSet) {
 
     currentUBO = descriptorSet;
 
@@ -80,15 +84,7 @@ void VulkanCommandBuffer::recordCommandBufferNew(const uint32_t imageIndex, cons
 
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, renderer.getGraphicsPipeline().getGraphicsPipeline());
 
-    /*VkBuffer vertexBuffers[] = {vertBuffer.getBuffer()};
-    VkDeviceSize offsets[] = { 0 };
-    vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-
-    vkCmdBindIndexBuffer(commandBuffer, indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
-
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline.getPipelineLayout(), 0, 1, &descriptorSet, 0, nullptr);
-
-    vkCmdDrawIndexed(commandBuffer, indexBuffer.getElementCount(), 1, 0, 0, 0);*/
+    scene.recordScene(renderer);
     scene.drawScene(renderer,*this);
 
 
@@ -110,21 +106,20 @@ void VulkanCommandBuffer::bindMesh( const VulkanBuffer& vertBuffer, const Vulkan
 
 }
 
-void VulkanCommandBuffer::recordDrawCall(const VulkanGraphicsPipeline& graphicsPipeline, const VulkanBuffer& indexBuffer,const VulkanDescriptorSet& descriptorSet,const MaterialResource* mat,const glm::mat4 transform) {
+void VulkanCommandBuffer::recordDrawCall(const VulkanGraphicsPipeline& graphicsPipeline,const DrawCallBatchData data, uint32_t primitive,const VulkanDescriptorSet& lightDescriptor) {
 
-    std::array<VkDescriptorSet, 2> descriptor{ currentUBO,descriptorSet.getDescriptorSet() };
+	const DrawCallData& drawData = data.drawCalls[primitive];
+    std::array<VkDescriptorSet, 3> descriptor{ currentUBO, drawData.descriptorSet->getDescriptorSet(),lightDescriptor.getDescriptorSet()};
 
 
-<<<<<<< HEAD
-    pushConstants pushData{ transform ,mat->colorFactor,mat->metallicFactor,mat->roughnessFactor,mat->emissiveStrenght,0,mat->emissiveFactor,0 };
-=======
-    pushConstants pushData{ transform ,mat->colorFactor,mat->metallicFactor,mat->roughnessFactor,mat->emissiveStrenght,mat->emissiveFactor };
->>>>>>> ba1e340 (fast GLTF is implemented material data is already in gpu just missing the lights .)
+
+    const pushConstants pushData{ drawData.transform ,drawData.mat->colorFactor,drawData.mat->metallicFactor,drawData.mat->roughnessFactor,drawData.mat->emissiveStrenght,0,drawData.mat->emissiveFactor,0 };
+
     vkCmdPushConstants(commandBuffer, graphicsPipeline.getPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,0,sizeof(pushData), &pushData);
 
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline.getPipelineLayout(), 0, 2, descriptor.data(), 0, nullptr);
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline.getPipelineLayout(), 0, 3, descriptor.data(), 0, nullptr);
 
-    vkCmdDrawIndexed(commandBuffer, indexBuffer.getElementCount(), 1, 0, 0, 0);
+    vkCmdDrawIndexed(commandBuffer, data.indexBuffer->getElementCount(), 1, 0, 0, 0);
 }
 
 void VulkanCommandBuffer::recordCommandBuffer(const uint32_t imageIndex, const VulkanLogicalDevice& logicalDevice, const VulkanSwapChain& swapChain, const VulkanGraphicsPipeline& graphicsPipeline, const VulkanRenderPass& renderPass, const VulkanFrameBuffers& frameBuffers, const VulkanBuffer& vertBuffer, const VulkanBuffer& indexBuffer,  VkDescriptorSet* descriptorSet) {

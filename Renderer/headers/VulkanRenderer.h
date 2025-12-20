@@ -99,7 +99,9 @@ public:
 	const VulkanFrameBuffers& getFrameBuffers() const { return frameBuffers; }
 	const VulkanGraphicsPipeline& getGraphicsPipeline() const { return graphicsPipeline; }
 	const VulkanCommandPool& getCommandPool() const { return commandPool; }
+	const VulkanMemoryAllocator & getAllocator() const { return allocator; }
 
+	void bufferStagedUpload(VulkanBuffer& dstBuffer,const void* bufferData, uint32_t size, uint32_t elementCount) const;
 private:
 
 
@@ -206,7 +208,7 @@ private:
 
 	void cleanDepthResources();
 
-	void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, const VkDeviceSize size);
+	void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, const VkDeviceSize size) const;
 
 };
 

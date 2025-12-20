@@ -38,16 +38,17 @@ public:
 
 	const VkCommandBuffer& getCommandBuffer() const { return commandBuffer; }
 
+	void bindLights(const LightGPUData* lightData);
+
 	void bindMesh(const VulkanBuffer& vertBuffer, const VulkanBuffer& indexBuffer);
 
-	void recordDrawCall(const VulkanGraphicsPipeline& graphicsPipeline, const VulkanBuffer& indexBuffer,
-		 const VulkanDescriptorSet& descriptorSet,const MaterialResource* mat ,const glm::mat4 transform);
+	void recordDrawCall(const VulkanGraphicsPipeline& graphicsPipeline, const DrawCallBatchData data, uint32_t primitive,const VulkanDescriptorSet& lightDescriptor);
 
 	void recordCommandBuffer(uint32_t imageIndex, const VulkanLogicalDevice& logicalDevice, const VulkanSwapChain& swapChain,
 		const VulkanGraphicsPipeline& graphicsPipeline, const VulkanRenderPass& renderPass, const VulkanFrameBuffers& frameBuffers,
 		const VulkanBuffer& vertBuffer, const VulkanBuffer& indexBuffer,  VkDescriptorSet* descriptorSet);
 
-	void recordCommandBufferNew(const uint32_t imageIndex, const VulkanRenderer& renderer, const GltfLoader& scene, VkDescriptorSet descriptorSet);
+	void recordCommandBufferNew(const uint32_t imageIndex, const VulkanRenderer& renderer, GltfLoader& scene, VkDescriptorSet descriptorSet);
 
 	void createCommandBuffer(const VulkanLogicalDevice& device, const VulkanCommandPool& commandPool);
 	

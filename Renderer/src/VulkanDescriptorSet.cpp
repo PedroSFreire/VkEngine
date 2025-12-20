@@ -262,6 +262,51 @@ void VulkanDescriptorSet::createDescriptorSetLayout(VulkanLogicalDevice& device,
 	}
 }
 */
+void VulkanDescriptorSet::createLightDescriptorLayout(VulkanLogicalDevice& device, VulkanDescriptorPool& pool) {
+	logicalDevice = &device;
+	descriptorPool = &pool.getDescriptorPool();
+
+
+
+	std::array<VkDescriptorSetLayoutBinding, 1> bindings{};
+
+	bindings[0].binding = 0;
+	bindings[0].descriptorCount = 1;
+	bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	bindings[0].pImmutableSamplers = nullptr;
+	bindings[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+
+	VkDescriptorSetLayoutCreateInfo layoutInfo{};
+	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+	layoutInfo.pBindings = bindings.data();
+
+	if (vkCreateDescriptorSetLayout(logicalDevice->getDevice(), &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create descriptor set layout!");
+	}
+}
+
+void VulkanDescriptorSet::updateLightDescriptor(VulkanBuffer& lightBuffer, size_t numLights) {
+	VkDescriptorBufferInfo bufferInfo{};
+	bufferInfo.buffer = lightBuffer.getBuffer();
+	bufferInfo.offset = 0;
+	bufferInfo.range = VK_WHOLE_SIZE;
+
+
+	std::array<VkWriteDescriptorSet, 1> descriptorWrites{};
+
+	descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	descriptorWrites[0].dstSet = descriptorSet;
+	descriptorWrites[0].dstBinding = 0;
+	descriptorWrites[0].dstArrayElement = 0;
+	descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	descriptorWrites[0].descriptorCount = 1;
+	descriptorWrites[0].pBufferInfo = &bufferInfo;
+
+	vkUpdateDescriptorSets(logicalDevice->getDevice(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+}
+
 void VulkanDescriptorSet::createMaterialDescriptorLayout(VulkanLogicalDevice& device, VulkanDescriptorPool& pool) {
 	logicalDevice = &device;
 	descriptorPool = &pool.getDescriptorPool();
@@ -324,7 +369,7 @@ void VulkanDescriptorSet::createUBODescriptorLayout(VulkanLogicalDevice& device,
 	uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	uboLayoutBinding.descriptorCount = 1;
 
-	uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
 	uboLayoutBinding.pImmutableSamplers = nullptr;
 
@@ -444,6 +489,11 @@ void VulkanDescriptorSet::updateUBODescriptor(VulkanBuffer& uniformBuffer) {
 
 	vkUpdateDescriptorSets(logicalDevice->getDevice(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 }
+
+
+
+
+
 
 void VulkanDescriptorSet::createDescriptor() {
 	VkDescriptorSetAllocateInfo allocInfo{};

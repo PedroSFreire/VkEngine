@@ -3,9 +3,13 @@
 #include "..\headers\VulkanPhysicalDevice.h"
 #include "..\headers\VulkanLogicalDevice.h"
 #include "..\headers\VulkanMemoryAllocator.h"
+#include <iostream>
 
 
 VulkanBuffer::~VulkanBuffer() {
+    if(isLight)
+		std::cout << "Destroying light buffer" << std::endl;
+
     if (buffer != VK_NULL_HANDLE && allocation != nullptr)
         vmaDestroyBuffer(allocatorHandle->getAllocator(), buffer, allocation);
 }

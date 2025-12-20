@@ -60,9 +60,12 @@ public:
 
 	void createMaterialDescriptorLayout(VulkanLogicalDevice& device, VulkanDescriptorPool& pool);
 	void createUBODescriptorLayout(VulkanLogicalDevice& device, VulkanDescriptorPool& pool);
+	void createLightDescriptorLayout(VulkanLogicalDevice& device, VulkanDescriptorPool& pool);
+
 
 	void createDescriptor();
 
+	void updateLightDescriptor(VulkanBuffer& lightBuffer, size_t numLights);
 	void updateMaterialDescriptor(const VkImageView* textureView, const VkSampler* textureSampler);
 	void updateUBODescriptor(VulkanBuffer& uniformBuffer);
 

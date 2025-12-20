@@ -71,6 +71,33 @@ void VulkanDescriptorPool::createMaterialDescriptorPool( VulkanLogicalDevice& de
 
 }
 
+void VulkanDescriptorPool::createLightDescriptorPool(VulkanLogicalDevice& device, size_t size) {
+
+	logicalDevice = &device;
+	maxSets = size;
+	if (maxSets <= 0) {
+		throw std::runtime_error("Descriptor Pool size must be greater than 0!");
+	}
+
+	std::array<VkDescriptorPoolSize, 1> poolSizes{};
+
+	poolSizes[0].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	poolSizes[0].descriptorCount = 1;
+
+
+
+	VkDescriptorPoolCreateInfo poolInfo{};
+	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+	poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+	poolInfo.pPoolSizes = poolSizes.data();
+	poolInfo.maxSets = size;
+
+	if (vkCreateDescriptorPool(logicalDevice->getDevice(), &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create descriptor pool!");
+	}
+
+}
+
 
 
 

@@ -268,7 +268,9 @@ void GltfLoader::createDescriptorSets(VulkanRenderer& renderer) {
 
 		
 	}
-
+	lightdescriptorPool.createLightDescriptorPool(renderer.getLogicalDevice(), 1);
+	lightDescriptorSet.createLightDescriptorLayout(renderer.getLogicalDevice(), lightdescriptorPool);
+	lightDescriptorSet.createDescriptor();
 
 }
 
@@ -314,6 +316,30 @@ void GltfLoader::createDefaultImages(VulkanRenderer& renderer) {
 void GltfLoader::loadNodes() {
 	loadNodesData();
 	loadNodesRelatrions();
+}
+
+void GltfLoader::loadLights() {
+	lights.reserve(asset.lights.size());
+	for (auto& light : asset.lights) {
+		LightResource newLight;
+		newLight.type = static_cast<uint32_t>(light.type);
+		newLight.color.x = light.color[0];
+		newLight.color.y = light.color[1];
+		newLight.color.z = light.color[2];
+		newLight.intensity = light.intensity;
+		//point and spot lights
+
+		if(light.range.has_value())
+			newLight.range = light.range.value();
+		else
+			newLight.range = 100.0f;
+
+		if (light.innerConeAngle.has_value())
+			newLight.spotInnerCos = light.innerConeAngle.value();
+		if (light.outerConeAngle.has_value())
+			newLight.spotOuterCos = light.outerConeAngle.value();
+		lights.emplace_back(std::make_shared<LightResource>(std::move(newLight)));
+	}
 }
 
 void GltfLoader::loadMaterials() {
@@ -498,7 +524,9 @@ void GltfLoader::loadMeshes(VulkanRenderer& renderer)
 	std::vector<uint32_t> indices;
 	std::vector<Vertex> vertices;
 
+	drawCalls.resize(asset.meshes.size());
 	meshes.reserve(asset.meshes.size());
+
 	for (const auto& mesh : asset.meshes) {
 
 		MeshAsset newMesh;
@@ -507,6 +535,9 @@ void GltfLoader::loadMeshes(VulkanRenderer& renderer)
 
 		indices.clear();
 		vertices.clear();
+		
+		//allocation for drawCall struct
+		
 
 		for (const auto& primitive : mesh.primitives) {
 			GeoSurface newSurface;
@@ -590,7 +621,7 @@ void GltfLoader::loadGltf(const char* fname, VulkanRenderer& renderer)
 	constexpr auto gltfOptions = fastgltf::Options::LoadGLBBuffers
 		| fastgltf::Options::LoadExternalBuffers | fastgltf::Options::LoadExternalImages;
 
-	constexpr auto gltfExtensions = fastgltf::Extensions::KHR_lights_punctual;
+	constexpr fastgltf::Extensions gltfExtensions = fastgltf::Extensions::KHR_lights_punctual| fastgltf::Extensions::KHR_texture_basisu| fastgltf::Extensions::KHR_materials_ior | fastgltf::Extensions::KHR_materials_specular| fastgltf::Extensions::KHR_materials_transmission| fastgltf::Extensions::KHR_materials_emissive_strength;
 
 	fastgltf::Parser parser(gltfExtensions);
 	auto data = fastgltf::GltfDataBuffer::FromPath(path);
@@ -616,8 +647,11 @@ void GltfLoader::loadGltf(const char* fname, VulkanRenderer& renderer)
 	loadMeshes(renderer);
 	loadMaterials();
 	loadNodes();
+	loadLights();
+	//findLightParamaters();
 
 	createDescriptorSets(renderer);
+
 
 
 }
@@ -626,54 +660,110 @@ void GltfLoader::loadGltf(const char* fname, VulkanRenderer& renderer)
 
 //Draw functions
 
-void GltfLoader::drawScene(const VulkanRenderer& renderer, VulkanCommandBuffer& cmdBuff) const {
+void GltfLoader::recordScene(const VulkanRenderer& renderer)  {
 	//glm::mat4 indentMatrix(1.0);
+
+	for (auto& drawCall : drawCalls) 
+		drawCall.drawCalls.clear();
+
+	lightData.clear();
+
 	glm::mat4 correction = glm::rotate(
 		glm::mat4(1.0f),
 		glm::radians(90.0f),
 		glm::vec3(1.0f, 0.0f, 0.0f)
 	);
 	for(auto rootId : rootNodesIds) {
-		drawNode(renderer,cmdBuff, rootId, correction);
+		recordNode(renderer, rootId, correction);
 	}
+
+	if (!lightsCreated) {
+		VulkanBufferCreateInfo info;
+		info.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+		info.vmaUsage = VMA_MEMORY_USAGE_GPU_ONLY;
+		info.size = sizeof(LightGPUData) * lightData.size();
+		info.elementCount = static_cast<uint32_t>(lightData.size());
+		info.vmaFlags = VMA_MEMORY_USAGE_GPU_ONLY;
+
+
+		lightBuffer.createBuffer( renderer.getAllocator(), info);
+		lightsCreated = true;
+		renderer.bufferStagedUpload(lightBuffer, lightData.data(), static_cast<uint32_t>(sizeof(LightGPUData) * lightData.size()), 1);
+		lightDescriptorSet.updateLightDescriptor(lightBuffer, lightData.size());
+	}
+	
+	
 }
 
-void  GltfLoader::drawNode(const VulkanRenderer& renderer, VulkanCommandBuffer& cmdBuff,const int nodeId, glm::mat4& transforMat) const {
+void  GltfLoader::recordNode(const VulkanRenderer& renderer,const int nodeId, glm::mat4& transforMat)  {
 	
 	glm::mat4 currentTransform = transforMat * nodes[nodeId]->transform;
 
 	//draw mesh if exists
 	if (nodes[nodeId]->meshIndex.has_value()) {
-			drawMesh(renderer, cmdBuff,nodes[nodeId]->meshIndex.value(), currentTransform);
+			recordMesh(renderer,nodes[nodeId]->meshIndex.value(), currentTransform);
+	}
+
+	//draw mesh if exists
+	if (nodes[nodeId]->lightIndex.has_value()) {
+		LightGPUData lightDataEntry;
+		lightDataEntry.type = lights[nodes[nodeId]->lightIndex.value()]->type;
+		lightDataEntry.color = lights[nodes[nodeId]->lightIndex.value()]->color;
+		lightDataEntry.intensity = lights[nodes[nodeId]->lightIndex.value()]->intensity;
+		lightDataEntry.range = lights[nodes[nodeId]->lightIndex.value()]->range;
+		lightDataEntry.spotInnerCos = lights[nodes[nodeId]->lightIndex.value()]->spotInnerCos;
+		lightDataEntry.spotOuterCos = lights[nodes[nodeId]->lightIndex.value()]->spotOuterCos;
+		lightDataEntry.position = currentTransform * glm::vec4(0, 0, 0, 0);
+		lightDataEntry.direction =  currentTransform * glm::vec4(0, -1, 0, 0);
+
+		lightData.emplace_back(std::move(lightDataEntry));
 	}
 
 	//call on children
 	for (auto childId : nodes[nodeId]->children) {
-		drawNode(renderer, cmdBuff, childId, currentTransform);
+		recordNode(renderer, childId, currentTransform);
 	}
 
 }
 
-void GltfLoader::drawMesh(const VulkanRenderer& renderer, VulkanCommandBuffer& cmdBuff, const int meshId, glm::mat4& transforMat) const{
+void GltfLoader::recordMesh(const VulkanRenderer& renderer, const int meshId, glm::mat4& transform) {
 	auto & mesh = meshes[meshId];
 	std::array<VulkanImageView*,1> viewsArray;
 	std::array<VulkanSampler*, 1> samplerArray;
-	cmdBuff.bindMesh(mesh.get()->meshBuffers.vertexBuffer, mesh.get()->meshBuffers.indexBuffer);
-
+	//cmdBuff.bindMesh(mesh.get()->meshBuffers.vertexBuffer, mesh.get()->meshBuffers.indexBuffer);
+	drawCalls[meshId].indexBuffer = &(mesh->meshBuffers.indexBuffer);
+	drawCalls[meshId].vertexBuffer =  &(mesh->meshBuffers.vertexBuffer);
+	int prevSize = drawCalls[meshId].drawCalls.size();
+	drawCalls[meshId].drawCalls.reserve(prevSize + mesh.get()->surfaces.size());
 	//for (auto& surface : mesh.get()->surfaces) {
-	for(int i = mesh.get()->surfaces.size()-1; i>=0;i--){
+	for(int i = mesh.get()->surfaces.size() -1; i>= 0;i--){
 
-		const VulkanDescriptorSet& auxDescriptor = descriptorSets[mesh.get()->surfaces[i].materialIndex];
-		cmdBuff.recordDrawCall(renderer.getGraphicsPipeline(), mesh.get()->meshBuffers.indexBuffer, auxDescriptor, (materials[mesh.get()->surfaces[i].materialIndex]).get(), transforMat);
+		VulkanDescriptorSet& auxDescriptor = descriptorSets[mesh.get()->surfaces[i].materialIndex];
+		DrawCallData newDrawCall;
+		newDrawCall.descriptorSet = &auxDescriptor;
+		newDrawCall.mat = (materials[mesh.get()->surfaces[i].materialIndex]).get();
+		newDrawCall.transform = transform;
 
-		
+		drawCalls[meshId].drawCalls.emplace_back(std::move(newDrawCall));
 		
 	}
 	
 }
 
 
+void GltfLoader::drawScene(const VulkanRenderer& renderer, VulkanCommandBuffer& cmdBuff) const {
 
+
+
+	for (auto& drawCall : drawCalls) {
+
+		
+		cmdBuff.bindMesh(*drawCall.vertexBuffer, *drawCall.indexBuffer);
+		for (int i = 0; i < drawCall.drawCalls.size();i++) {
+			cmdBuff.recordDrawCall(renderer.getGraphicsPipeline(), drawCall,i,lightDescriptorSet);
+		}
+	}
+}
 
 
 

@@ -51,6 +51,6 @@ public:
 
 	void createMaterialDescriptorPool( VulkanLogicalDevice& device, int size);
 	void createUBODescriptorPool( VulkanLogicalDevice& device, int size);
-
+	void createLightDescriptorPool(VulkanLogicalDevice& device, size_t size);
 };
 
