@@ -45,6 +45,24 @@ VkSamplerAddressMode GltfLoader::getWrap(fastgltf::Wrap wrap) {
 	return wrapMode;
 }
 
+AddressMode GltfLoader::getWrapNew(fastgltf::Wrap wrap) {
+	AddressMode wrapMode = AddressMode::MirroredRepeat;
+	switch (wrap) {
+	case fastgltf::Wrap::ClampToEdge:
+		wrapMode = AddressMode::ClampToEdge;
+		break;
+	case fastgltf::Wrap::MirroredRepeat:
+		wrapMode = AddressMode::MirroredRepeat;
+		break;
+	case fastgltf::Wrap::Repeat:
+		wrapMode = AddressMode::Repeat;
+		break;
+	default:
+		break;
+	}
+	return wrapMode;
+}
+
 VkFilter GltfLoader::getFilter(fastgltf::Filter gltfFilter) {
 	VkFilter filter = VK_FILTER_LINEAR;
 	switch (gltfFilter) {
@@ -84,7 +102,47 @@ VkSamplerMipmapMode GltfLoader::getFilterMode(fastgltf::Filter gltfFilter) {
 	return mipMap;
 }
 
-bool GltfLoader::loadImageData(VulkanRenderer& renderer, stbi_uc* bytes, uint32_t size, ImageResource& tempImage) {
+
+Filter GltfLoader::getFilterNew(fastgltf::Filter gltfFilter) {
+	Filter filter = Filter::Linear;
+	switch (gltfFilter) {
+	case fastgltf::Filter::Nearest:
+	case fastgltf::Filter::NearestMipMapNearest:
+	case fastgltf::Filter::NearestMipMapLinear:
+		filter = Filter::Nearest;
+		break;
+	case fastgltf::Filter::LinearMipMapNearest:
+	case fastgltf::Filter::LinearMipMapLinear:
+	case fastgltf::Filter::Linear:
+		filter = Filter::Linear;
+		break;
+	default:
+		break;
+	}
+	return filter;
+
+}
+
+MipmapMode GltfLoader::getFilterModeNew(fastgltf::Filter gltfFilter) {
+	MipmapMode mipMap = MipmapMode::Linear;
+	switch (gltfFilter) {
+	case fastgltf::Filter::NearestMipMapNearest:
+	case fastgltf::Filter::LinearMipMapNearest:
+		mipMap = MipmapMode::Nearest;
+		break;
+
+	case fastgltf::Filter::NearestMipMapLinear:
+	case fastgltf::Filter::LinearMipMapLinear:
+		mipMap = MipmapMode::Linear;
+		break;
+	default:
+		break;
+
+	}
+	return mipMap;
+}
+
+bool GltfLoader::loadImageData(VulkanRenderer& renderer, stbi_uc* bytes, uint32_t size, ImageResource& tempImage,int id) {
 	int width, height, channels;
 
 	stbi_uc* pixels = stbi_load_from_memory(bytes, size, &width, &height, &channels, STBI_rgb_alpha);
@@ -95,13 +153,17 @@ bool GltfLoader::loadImageData(VulkanRenderer& renderer, stbi_uc* bytes, uint32_
 		return false;
 	}
 
-	ImageArrayData imgArray(width, height, channels, pixels);
+	ImageAsset imgArray(width, height, channels, pixels);
 #pragma omp critical
-	renderer.createTexture(imgArray, tempImage);
+	{
+		renderer.createTexture(imgArray, tempImage);
+		imageAssets[id] = (std::make_shared<ImageAsset>(std::move(imgArray)));
+	}
+
 	return true;
 }
 
-bool GltfLoader::loadImageData(VulkanRenderer& renderer, const std::string& TEXTURE_PATH, ImageResource& tempImage) {
+bool GltfLoader::loadImageData(VulkanRenderer& renderer, const std::string& TEXTURE_PATH, ImageResource& tempImage,int id) {
 	int width, height, channels;
 
 	stbi_uc* pixels = stbi_load(TEXTURE_PATH.c_str(), &width, &height, &channels, STBI_rgb_alpha);
@@ -113,9 +175,12 @@ bool GltfLoader::loadImageData(VulkanRenderer& renderer, const std::string& TEXT
 		return false;
 	}
 
-	ImageArrayData imgArray(width, height, channels, pixels);
+	ImageAsset imgArray(width, height, channels, pixels);
 #pragma omp critical
-	renderer.createTexture(imgArray, tempImage);
+	{
+		renderer.createTexture(imgArray, tempImage);
+		imageAssets.emplace_back(std::make_shared<ImageAsset>(std::move(imgArray)));
+	}
 	return true;
 }
 
@@ -123,7 +188,7 @@ void GltfLoader::loadNodesData() {
 
 	nodes.reserve(asset.nodes.size());
 	for (auto& node : asset.nodes) {
-		NodeResource newNode;
+		NodeAsset newNode;
 
 		newNode.name = node.name;
 
@@ -147,18 +212,18 @@ void GltfLoader::loadNodesData() {
 				for (int col = 0; col < 4; ++col)
 					newNode.transform[col][row] = transform->data()[row];
 		}
-		nodes.emplace_back(std::make_shared<NodeResource>(std::move(newNode)));	
+		nodes.emplace_back(std::make_shared<NodeAsset>(std::move(newNode)));	
 	}
 }
 
 void GltfLoader::loadNodesRelatrions(){
 	for (int nodeId = 0; nodeId < asset.nodes.size();nodeId++) {
 		auto& node = asset.nodes[nodeId];
-		auto& nodeResource = nodes[nodeId];
+		auto& NodeAsset = nodes[nodeId];
 		if (node.children.size() > 0) {
-			nodeResource->children.reserve(node.children.size());
+			NodeAsset->children.reserve(node.children.size());
 			for (auto& childId : node.children) {
-				nodeResource->children.emplace_back(childId);
+				NodeAsset->children.emplace_back(childId);
 				nodes[childId].get()->parentIndex = nodeId;
 
 			}
@@ -280,31 +345,31 @@ void GltfLoader::createDefaultImages(VulkanRenderer& renderer) {
 	//create color default tex
 	std::array<uint8_t, 4> colorPixel{ 255, 255, 255, 255 };
 	defaultColorImage.name = "color";
-	ImageArrayData imgData{ 1,1,4,colorPixel.data() };
+	ImageAsset imgData{ 1,1,4,colorPixel.data() };
 	renderer.createTexture(imgData, defaultColorImage);
 
 	//create normal default tex
 	std::array<uint8_t, 4> normalPixel{ 255, 255, 255, 255 };
 	defaultNormalImage.name = "normal";
-	ImageArrayData normalData{ 1,1,4,normalPixel.data() };
+	ImageAsset normalData{ 1,1,4,normalPixel.data() };
 	renderer.createTexture(normalData, defaultNormalImage);
 
 	//create normal metal rough tex
 	std::array<uint8_t, 4> metalRoughPixel{ 255, 255, 255, 255 };
 	defaultMetalRoughImage.name = "metalRough";
-	ImageArrayData metalRoughData{ 1,1,4,metalRoughPixel.data() };
+	ImageAsset metalRoughData{ 1,1,4,metalRoughPixel.data() };
 	renderer.createTexture(metalRoughData, defaultMetalRoughImage);
 
 	//create occlusion default tex
 	std::array<uint8_t, 4> occlusionPixel{ 255, 255, 255, 255 };
 	defaultOcclusionImage.name = "occlusion";
-	ImageArrayData occlusionData{ 1,1,4,occlusionPixel.data() };
+	ImageAsset occlusionData{ 1,1,4,occlusionPixel.data() };
 	renderer.createTexture(occlusionData, defaultOcclusionImage);
 
 	//create emissive default tex
 	std::array<uint8_t, 4> emissivePixel{ 255, 255, 255, 255 };
 	defaultEmissiveImage.name = "emissive";
-	ImageArrayData emissiveData{ 1,1,4,emissivePixel.data() };
+	ImageAsset emissiveData{ 1,1,4,emissivePixel.data() };
 	renderer.createTexture(emissiveData, defaultEmissiveImage);
 
 }
@@ -321,7 +386,7 @@ void GltfLoader::loadNodes() {
 void GltfLoader::loadLights() {
 	lights.reserve(asset.lights.size());
 	for (auto& light : asset.lights) {
-		LightResource newLight;
+		LightAsset newLight;
 		newLight.type = static_cast<uint32_t>(light.type);
 		newLight.color.x = light.color[0];
 		newLight.color.y = light.color[1];
@@ -338,12 +403,12 @@ void GltfLoader::loadLights() {
 			newLight.spotInnerCos = light.innerConeAngle.value();
 		if (light.outerConeAngle.has_value())
 			newLight.spotOuterCos = light.outerConeAngle.value();
-		lights.emplace_back(std::make_shared<LightResource>(std::move(newLight)));
+		lights.emplace_back(std::make_shared<LightAsset>(std::move(newLight)));
 	}
 }
 
 void GltfLoader::loadMaterials() {
-	/*struct MaterialResource {
+	/*struct MaterialAsset {
 
 		//optional textures
 		std::optional<uint32_t> colorTexId;
@@ -370,7 +435,7 @@ void GltfLoader::loadMaterials() {
 	int i = 0;
 	for (auto& material : asset.materials) {
 
-		MaterialResource newMaterial;
+		MaterialAsset newMaterial;
 		newMaterial.name = material.name;
 		//non optional properties
 		newMaterial.colorFactor.x = material.pbrData.baseColorFactor[0];
@@ -411,15 +476,18 @@ void GltfLoader::loadMaterials() {
 		if (material.emissiveTexture.has_value()){
 			newMaterial.emissiveTexId = material.emissiveTexture.value().textureIndex;
 		}
-		materials.emplace_back(std::make_shared<MaterialResource>(std::move(newMaterial)));
+		materials.emplace_back(std::make_shared<MaterialAsset>(std::move(newMaterial)));
 		i++;
 	}
 }
 
 void GltfLoader::loadSamplers(VulkanRenderer& renderer) {
 	samplers.reserve(asset.samplers.size());
+	samplerAssets.reserve(asset.samplers.size());
 	for(auto& sampler : asset.samplers) {
 		SamplerResource newSampler;
+		SamplerAsset newSamplerAsset;
+
 		newSampler.name = sampler.name;
 		VkFilter magFilter = VK_FILTER_LINEAR;
 		VkFilter minFilter = VK_FILTER_LINEAR;
@@ -430,24 +498,31 @@ void GltfLoader::loadSamplers(VulkanRenderer& renderer) {
 		addressU = getWrap(sampler.wrapS);
 		addressV = getWrap(sampler.wrapT);
 
+		newSamplerAsset.addressU = getWrapNew(sampler.wrapS);
+		newSamplerAsset.addressV = getWrapNew(sampler.wrapT);
+
 
 		//interpret mipMap
 		if (sampler.magFilter.has_value()) {
 			mipMap = getFilterMode(sampler.magFilter.value());
+			newSamplerAsset.mipMap = getFilterModeNew(sampler.magFilter.value());
 		}
 		
 		//interpret magFilter
 		if (sampler.magFilter.has_value()) {
 			magFilter = getFilter(sampler.magFilter.value());
+			newSamplerAsset.magFilter = getFilterNew(sampler.magFilter.value());
 		}
 		//interpret minFilter
 		if (sampler.minFilter.has_value()) {
 			minFilter = getFilter(sampler.minFilter.value());
+			newSamplerAsset.magFilter = getFilterNew(sampler.minFilter.value());
 		}
 
 
 		renderer.createSampler(newSampler,magFilter,minFilter,mipMap,addressU,addressV);
 		samplers.emplace_back(std::make_shared<SamplerResource>(std::move(newSampler)));
+		samplerAssets.emplace_back(std::make_shared<SamplerAsset>(std::move(newSamplerAsset)));
 	}
 
 	renderer.createSampler(defaultSampler,VK_FILTER_LINEAR,VK_FILTER_LINEAR,VK_SAMPLER_MIPMAP_MODE_LINEAR,VK_SAMPLER_ADDRESS_MODE_REPEAT,VK_SAMPLER_ADDRESS_MODE_REPEAT);
@@ -468,6 +543,7 @@ void GltfLoader::loadTextures() {
 void GltfLoader::loadImages(VulkanRenderer& renderer, const std::filesystem::path& path)
 {
 	images.resize(asset.images.size());
+	imageAssets.resize(asset.images.size());
 	createDefaultImages(renderer);
 #pragma omp parallel for	
 	for (int imgId = 0; imgId < asset.images.size();imgId++) {
@@ -483,7 +559,7 @@ void GltfLoader::loadImages(VulkanRenderer& renderer, const std::filesystem::pat
 			//type URI just a file path
 			imagePath = path.parent_path().string() + "/" + filename->uri.c_str();
 
-			if (!loadImageData(renderer, imagePath, tempImage)) {
+			if (!loadImageData(renderer, imagePath, tempImage,imgId)) {
 				continue;
 			}
 
@@ -492,7 +568,7 @@ void GltfLoader::loadImages(VulkanRenderer& renderer, const std::filesystem::pat
 			//type array an arry of bytes of data
 			stbi_uc* bytes = reinterpret_cast<stbi_uc*>(imageArray->bytes.data());
 
-			if (!loadImageData(renderer, bytes, imageArray->bytes.size(), tempImage)) {
+			if (!loadImageData(renderer, bytes, imageArray->bytes.size(), tempImage, imgId)) {
 				continue;
 			}
 
@@ -506,7 +582,7 @@ void GltfLoader::loadImages(VulkanRenderer& renderer, const std::filesystem::pat
 			auto data = reinterpret_cast<stbi_uc*>(bufferAdress + bufferView->byteOffset);
 			auto size = bufferView->byteLength;
 
-			if (!loadImageData(renderer, data, size, tempImage)) {
+			if (!loadImageData(renderer, data, size, tempImage, imgId)) {
 				continue;
 			}
 
@@ -526,11 +602,14 @@ void GltfLoader::loadMeshes(VulkanRenderer& renderer)
 
 	drawCalls.resize(asset.meshes.size());
 	meshes.reserve(asset.meshes.size());
+	meshAssets.reserve(asset.meshes.size());
 
 	for (const auto& mesh : asset.meshes) {
 
-		MeshAsset newMesh;
+		MeshResource newMesh;
+		MeshAsset newMeshAsset;
 
+		newMeshAsset.name = mesh.name;
 		newMesh.name = mesh.name;
 
 		indices.clear();
@@ -605,11 +684,15 @@ void GltfLoader::loadMeshes(VulkanRenderer& renderer)
 					});
 			}
 			newMesh.surfaces.push_back(newSurface);
+			newMeshAsset.surfaces.push_back(newSurface);
 
 
 		}
 		renderer.createMeshResources(vertices, indices, newMesh.meshBuffers);
-		meshes.emplace_back(std::make_shared<MeshAsset>(std::move(newMesh)));
+		newMeshAsset.vertices = std::move(vertices);
+		newMeshAsset.indices = std::move(indices);
+		meshAssets.emplace_back(std::make_shared<MeshAsset>(std::move(newMeshAsset)));
+		meshes.emplace_back(std::make_shared<MeshResource>(std::move(newMesh)));
 
 	}
 }

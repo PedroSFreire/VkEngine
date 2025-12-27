@@ -26,6 +26,23 @@ const std::string TEXTURE_PATH = "textures/viking_room.png";
 
 
 
+enum class Filter {
+	Nearest,
+	Linear
+};
+
+enum class MipmapMode {
+	Nearest,
+	Linear
+};
+
+enum class AddressMode {
+	Repeat,
+	MirroredRepeat,
+	ClampToEdge,
+	ClampToBorder
+};
+
 
 
 
@@ -35,7 +52,7 @@ enum class LightType : uint32_t {
 	Spot = 2
 };
 
-struct LightResource {
+struct LightAsset {
 	uint32_t type;
 
 	glm::vec3 color;
@@ -64,7 +81,7 @@ struct LightGPUData {
 	int padding0;
 };
 
-struct NodeResource {
+struct NodeAsset {
 	std::string name;
 	std::optional<uint32_t> meshIndex;
 	std::optional<uint32_t> lightIndex;
@@ -76,9 +93,9 @@ struct NodeResource {
 	glm::mat4 transform;
 
 
-	NodeResource() = default;
-	NodeResource(const NodeResource& other) = delete;
-	NodeResource(NodeResource&& other) noexcept : name(std::move(other.name)),
+	NodeAsset() = default;
+	NodeAsset(const NodeAsset& other) = delete;
+	NodeAsset(NodeAsset&& other) noexcept : name(std::move(other.name)),
 		meshIndex(std::move(other.meshIndex)),
 		lightIndex(std::move(other.lightIndex)),
 		cameraIndex(std::move(other.cameraIndex)),
@@ -115,7 +132,7 @@ struct pushConstants {
 };
 
 
-struct MaterialResource {
+struct MaterialAsset {
 
 	std::string name;
 	//optional textures
@@ -144,21 +161,34 @@ struct TextureResource {
 	int samplerId;
 	std::string name;
 };
+
+
+struct SamplerAsset {
+	Filter magFilter = Filter::Linear;
+	Filter minFilter = Filter::Linear;
+	MipmapMode mipMap = MipmapMode::Linear;
+	AddressMode addressU = AddressMode::MirroredRepeat;
+	AddressMode addressV = AddressMode::MirroredRepeat;
+
+	std::string name;
+};
+
+
 struct SamplerResource {
 	VulkanSampler sampler;
 	std::string name;
 };
-struct ImageArrayData {
+struct ImageAsset {
 	uint32_t width;
 	uint32_t height;
 	uint32_t channels;
 	stbi_uc* pixels;
-	ImageArrayData(int width_, int height_, int channels_, stbi_uc* pixels_)
+	ImageAsset(int width_, int height_, int channels_, stbi_uc* pixels_)
 		: width(width_), height(height_), channels(channels_), pixels(pixels_) {
 	}
-		
-	ImageArrayData(const ImageArrayData&) = delete;
-	ImageArrayData(ImageArrayData&& other) {
+
+	ImageAsset(const ImageAsset&) = delete;
+	ImageAsset(ImageAsset&& other) {
 		width = other.width;
 		height = other.height;
 		channels = other.channels;
@@ -252,11 +282,30 @@ struct MeshAsset {
 	std::string name;
 
 	std::vector<GeoSurface> surfaces;
-	MeshBuffers meshBuffers;
+	
+	std::vector<uint32_t> indices;
+	std::vector<Vertex> vertices;
 
 	MeshAsset() = default;
 	MeshAsset(const MeshAsset&) = delete;
 	MeshAsset(MeshAsset&& other) noexcept
+		: name(std::move(other.name)),
+		surfaces(std::move(other.surfaces)),
+		indices(std::move(other.indices)),
+		vertices(std::move(other.vertices))
+	{
+	}
+};
+
+struct MeshResource {
+	std::string name;
+
+	std::vector<GeoSurface> surfaces;
+	MeshBuffers meshBuffers;
+
+	MeshResource() = default;
+	MeshResource(const MeshResource&) = delete;
+	MeshResource(MeshResource&& other) noexcept
 		: name(std::move(other.name)),
 		surfaces(std::move(other.surfaces)),
 		meshBuffers(std::move(other.meshBuffers))
@@ -268,7 +317,7 @@ struct MeshAsset {
 struct DrawCallData {
 
 	VulkanDescriptorSet* descriptorSet;
-	MaterialResource* mat;
+	MaterialAsset* mat;
 	glm::mat4 transform;
 };
 

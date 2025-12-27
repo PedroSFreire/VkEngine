@@ -350,7 +350,7 @@ void VulkanRenderer::createTexture(const std::string& TEXTURE_PATH, ImageResourc
 	tex.imageView.createImageView(logicalDevice, tex.image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
-void VulkanRenderer::createTexture(const ImageArrayData& data, ImageResource& tex) {
+void VulkanRenderer::createTexture(const ImageAsset& data, ImageResource& tex) {
 	createTextureImage(data, tex.image);
 	tex.imageView.createImageView(logicalDevice, tex.image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
 }
@@ -369,7 +369,7 @@ void VulkanRenderer::createTextureImage(const std::string& TEXTURE_PATH,VulkanIm
 	stbi_image_free(pixels);
 }
 
-void VulkanRenderer::createTextureImage(const ImageArrayData& data, VulkanImage& textureImage) {
+void VulkanRenderer::createTextureImage(const ImageAsset& data, VulkanImage& textureImage) {
 	
 	VkDeviceSize imageSize = data.width * data.height * 4;
 	createTextureImageHelper(data.pixels, data.width, data.height, textureImage);

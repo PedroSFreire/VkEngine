@@ -88,7 +88,7 @@ public:
 
 	void createTexture(const std::string& TEXTURE_PATH, ImageResource& tex);
 
-	void createTexture(const ImageArrayData& data, ImageResource& tex);
+	void createTexture(const ImageAsset& data, ImageResource& tex);
 
 	void createSampler(SamplerResource& sampler, VkFilter magFilter, VkFilter minFilter, VkSamplerMipmapMode mipMap, VkSamplerAddressMode addressU, VkSamplerAddressMode adressV);
 
@@ -196,7 +196,7 @@ private:
 
 	void createTextureImage(const std::string& TEXTURE_PATH, VulkanImage& textureImage);
 
-	void createTextureImage(const ImageArrayData& data, VulkanImage& textureImage);
+	void createTextureImage(const ImageAsset& data, VulkanImage& textureImage);
 
 	void createTextureImageHelper(const stbi_uc* pixels, int texWidth, int texHeight, VulkanImage& textureImage);
 

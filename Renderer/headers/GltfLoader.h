@@ -29,13 +29,16 @@ class GltfLoader
 private:
 
     fastgltf::Asset asset;
-    std::vector<std::shared_ptr<MeshAsset>> meshes;
+    std::vector<std::shared_ptr<MeshResource>> meshes;
+    std::vector<std::shared_ptr<MeshAsset>> meshAssets;
 	std::vector<std::shared_ptr<ImageResource>> images;
-	std::vector<std::shared_ptr<SamplerResource>> samplers;
+    std::vector<std::shared_ptr<ImageAsset>> imageAssets;
+    std::vector<std::shared_ptr<SamplerResource>> samplers;
+    std::vector<std::shared_ptr<SamplerAsset>> samplerAssets;
     std::vector<std::shared_ptr<TextureResource>> textures;
-    std::vector<std::shared_ptr<MaterialResource>> materials;
-    std::vector<std::shared_ptr<NodeResource>> nodes;
-    std::vector<std::shared_ptr<LightResource>> lights;
+    std::vector<std::shared_ptr<MaterialAsset>> materials;
+    std::vector<std::shared_ptr<NodeAsset>> nodes;
+    std::vector<std::shared_ptr<LightAsset>> lights;
 	std::vector< DrawCallBatchData> drawCalls;
     std::vector<uint32_t> rootNodesIds;
 
@@ -66,7 +69,7 @@ public:
     ~GltfLoader() = default;
     GltfLoader(const GltfLoader&) = delete;
 
-	const MeshAsset& getMesh(size_t index) const { return *meshes[index]; }
+	const MeshResource& getMesh(size_t index) const { return *meshes[index]; }
 	const ImageResource& getImage(size_t index) const { return *images[index]; }
 	const SamplerResource& getSampler(size_t index) const { return *samplers[index]; }
     const VkDescriptorSetLayout& getLayout() const { return descriptorSets[0].getDescriptorSetLayout(); }
@@ -91,11 +94,17 @@ private:
 	//Load helpers
     void loadNodesData();
     void loadNodesRelatrions();
-    bool loadImageData(VulkanRenderer& renderer, stbi_uc* bytes, uint32_t size, ImageResource& tempTexture);
-    bool loadImageData(VulkanRenderer& renderer, const std::string& TEXTURE_PATH, ImageResource& tempImage);
+    bool loadImageData(VulkanRenderer& renderer, stbi_uc* bytes, uint32_t size, ImageResource& tempTexture,int id);
+    bool loadImageData(VulkanRenderer& renderer, const std::string& TEXTURE_PATH, ImageResource& tempImage,int id);
+
     VkFilter getFilter(fastgltf::Filter gltfFilter);
     VkSamplerMipmapMode getFilterMode(fastgltf::Filter gltfFilter);
     VkSamplerAddressMode getWrap(fastgltf::Wrap wrap);
+
+    Filter getFilterNew(fastgltf::Filter gltfFilter);
+    MipmapMode getFilterModeNew(fastgltf::Filter gltfFilter);
+    AddressMode getWrapNew(fastgltf::Wrap wrap);
+   
 	void createDescriptorSets( VulkanRenderer& renderer);
     void createDefaultImages(VulkanRenderer& renderer);
     //void createDefaultDescriptors(VulkanRenderer& renderer);
