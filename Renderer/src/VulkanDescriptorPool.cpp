@@ -17,7 +17,7 @@ VulkanDescriptorPool::~VulkanDescriptorPool() {
 
 
 
-void VulkanDescriptorPool::createUBODescriptorPool( VulkanLogicalDevice& device, int size) {
+void VulkanDescriptorPool::createUBODescriptorPool( const VulkanLogicalDevice& device, int size) {
 
 	logicalDevice = &device;
 	maxSets = size;
@@ -44,7 +44,7 @@ void VulkanDescriptorPool::createUBODescriptorPool( VulkanLogicalDevice& device,
 }
 
 
-void VulkanDescriptorPool::createMaterialDescriptorPool( VulkanLogicalDevice& device, int size) {
+void VulkanDescriptorPool::createMaterialDescriptorPool( const VulkanLogicalDevice& device, int size) {
 
 	logicalDevice = &device;
 	maxSets = size;
@@ -71,7 +71,7 @@ void VulkanDescriptorPool::createMaterialDescriptorPool( VulkanLogicalDevice& de
 
 }
 
-void VulkanDescriptorPool::createLightDescriptorPool(VulkanLogicalDevice& device, size_t size) {
+void VulkanDescriptorPool::createLightDescriptorPool(const VulkanLogicalDevice& device, size_t size) {
 
 	logicalDevice = &device;
 	maxSets = size;

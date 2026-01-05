@@ -24,10 +24,10 @@ class VulkanDescriptorSet
 {
 private:
 	VkDescriptorSetLayout descriptorSetLayout{};
-	VkDescriptorSet descriptorSet{};
+	VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
 	VkDescriptorPool* descriptorPool = nullptr;
 
-	VulkanLogicalDevice* logicalDevice = NULL;
+	const VulkanLogicalDevice* logicalDevice = NULL;
 
 public:
 
@@ -58,10 +58,12 @@ public:
 	//void createDescriptorSetNew(VulkanBuffer& uniformBuffer, const VulkanImageView& textureView, const VulkanSampler& textureSampler);
 	//void updateDescriptorSetNew(VulkanBuffer& uniformBuffer, const VulkanImageView& textureView, const VulkanSampler& textureSampler);
 
-	void createMaterialDescriptorLayout(VulkanLogicalDevice& device, VulkanDescriptorPool& pool);
-	void createUBODescriptorLayout(VulkanLogicalDevice& device, VulkanDescriptorPool& pool);
-	void createLightDescriptorLayout(VulkanLogicalDevice& device, VulkanDescriptorPool& pool);
+	void createMaterialDescriptorLayout(const VulkanLogicalDevice& device, VulkanDescriptorPool& pool);
+	void createUBODescriptorLayout(const VulkanLogicalDevice& device, VulkanDescriptorPool& pool);
+	void createLightDescriptorLayout(const VulkanLogicalDevice& device, VulkanDescriptorPool& pool);
 
+	VkDescriptorSetLayout createMaterialDescriptorLayout(const VulkanLogicalDevice& device);
+	VkDescriptorSetLayout createLightDescriptorLayout(const VulkanLogicalDevice& device);
 
 	void createDescriptor();
 

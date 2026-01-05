@@ -1,6 +1,6 @@
 
 #include "..\headers\VulkanRenderer.h"
-
+#include "..\headers\Scene.h"
 
 
 #define GLM_FORCE_RADIANS
@@ -49,9 +49,6 @@ void VulkanRenderer::initVulkan() {
 		commandBuffers[i].createCommandBuffer(logicalDevice, commandPool);
 	}
 
-	//read GLTF
-	sceneLoader.loadGltf("C:/Users/pedro/source/repos/VkEngine/scenes/LightsPunctualLamp/glTF/LightsPunctualLamp.gltf", *this);
-	//sceneLoader.loadGltf("C:/Users/pedro/source/repos/VkEngine/scenes/Buggy/newBuggy.glb", *this);
 	renderPass.createRenderPass(physicalDevice, swapChain, logicalDevice);
 
 	descriptorPool.createUBODescriptorPool(logicalDevice, MAX_FRAMES_IN_FLIGHT);
@@ -63,7 +60,10 @@ void VulkanRenderer::initVulkan() {
 		descriptorSets[i].updateUBODescriptor(uniformBuffers[i]);
 	}
 
-	std::array<VkDescriptorSetLayout, 3> descriptorLayouts{ descriptorSets[0].getDescriptorSetLayout(), sceneLoader.getLayout(), sceneLoader.getImageLayout() };
+	VulkanDescriptorSet matDescriptorSet,lightDescriptor;
+	std::array<VkDescriptorSetLayout, 3> descriptorLayouts{ descriptorSets[0].getDescriptorSetLayout(), matDescriptorSet.createMaterialDescriptorLayout(logicalDevice), lightDescriptor.createLightDescriptorLayout(logicalDevice) };
+
+
 
 	graphicsPipeline.createGraphicsPipeline(logicalDevice, swapChain, renderPass, descriptorLayouts.data());
 
@@ -89,14 +89,14 @@ void VulkanRenderer::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, const Vk
 
 }
 
-void VulkanRenderer::createMeshResources(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, MeshBuffers& meshBuffer) {
+void VulkanRenderer::createMeshResources(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, MeshBuffers& meshBuffer) const {
 
 	createVertexBuffer(vertices,meshBuffer.vertexBuffer);
 	createIndexBuffer(indices, meshBuffer.indexBuffer);
 
 }
 
-void VulkanRenderer::createVertexBuffer(const std::vector<Vertex>& vertices, VulkanBuffer& vertexBuffer) {
+void VulkanRenderer::createVertexBuffer(const std::vector<Vertex>& vertices, VulkanBuffer& vertexBuffer) const {
 
 	VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
 	uint32_t vextexCount = static_cast<uint32_t>(vertices.size());
@@ -115,7 +115,7 @@ void VulkanRenderer::createVertexBuffer(const std::vector<Vertex>& vertices, Vul
 
 }
 
-void VulkanRenderer::createIndexBuffer(const std::vector<uint32_t>& indices, VulkanBuffer& indexBuffer) {
+void VulkanRenderer::createIndexBuffer(const std::vector<uint32_t>& indices, VulkanBuffer& indexBuffer) const {
 	VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
 	uint32_t indexCount = static_cast<uint32_t>(indices.size());
 	VulkanBuffer stagingBuffer;
@@ -159,13 +159,7 @@ void VulkanRenderer::bufferStagedUpload(VulkanBuffer& dstBuffer,const void* buff
 	copyBuffer(stagingBuffer.getBuffer(), dstBuffer.getBuffer(), bufferSize);
 }
 
-void VulkanRenderer::mainLoop() {
-	while (!window.shouldClose()) {
-		glfwPollEvents();
-		drawFrame();
-	}
-	vkDeviceWaitIdle(logicalDevice.getDevice());
-}
+
 
 
 void VulkanRenderer::cleanSwapChain() {
@@ -194,8 +188,7 @@ void VulkanRenderer::recreateSwapChain() {
 }
 
 
-
-void VulkanRenderer::drawFrame()
+void VulkanRenderer::drawFrame(Scene& scene, ResourceManager& resourceManager)
 {
 	uint32_t imageIndex;
 	vkWaitForFences(logicalDevice.getDevice(), 1, &syncObjects.inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
@@ -211,16 +204,15 @@ void VulkanRenderer::drawFrame()
 		throw std::runtime_error("failed to acquire swap chain image!");
 	}
 
-	vkResetFences(logicalDevice.getDevice(), 1, &syncObjects.inFlightFences[currentFrame]); 
-		
+	vkResetFences(logicalDevice.getDevice(), 1, &syncObjects.inFlightFences[currentFrame]);
 
-	vkResetCommandBuffer(commandBuffers[currentFrame].getCommandBuffer(), 0);  
-	update(currentFrame);
 
-	//std::array < VkDescriptorSet, 2> descriptors{ descriptorSets[currentFrame].getDescriptorSet(),sceneLoader.getMatDescriptor(0)};
-	//commandBuffers[currentFrame].recordCommandBuffer(imageIndex, logicalDevice, swapChain, graphicsPipeline, renderPass, frameBuffers, sceneLoader.getMesh(0).meshBuffers.vertexBuffer, sceneLoader.getMesh(0).meshBuffers.indexBuffer, /*descriptorSet.getDescriptorSets(currentFrame)*/descriptors.data());
-	commandBuffers[currentFrame].recordCommandBufferNew(imageIndex,*this,sceneLoader, descriptorSets[currentFrame].getDescriptorSet());
-	
+	vkResetCommandBuffer(commandBuffers[currentFrame].getCommandBuffer(), 0);
+	update(currentFrame,scene.getScene());
+
+
+	//commandBuffers[currentFrame].recordCommandBufferNew(imageIndex, *this, sceneLoader, descriptorSets[currentFrame].getDescriptorSet());
+	commandBuffers[currentFrame].recordCommandBufferScene(imageIndex, *this, scene, descriptorSets[currentFrame].getDescriptorSet(),resourceManager);
 
 
 	VkSubmitInfo submitInfo{};
@@ -274,7 +266,6 @@ void VulkanRenderer::drawFrame()
 
 }
 
-
 void VulkanRenderer::processInput(float deltaTime) {
 	// Implement camera movement and input processing here
 	if (glfwGetKey(window.getWindow(), GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -302,16 +293,16 @@ void VulkanRenderer::processInput(float deltaTime) {
 
 }
 
-void VulkanRenderer::update(uint32_t currentImage) {
+void VulkanRenderer::update(uint32_t currentImage, SceneData& sceneData) {
 	static auto prevTime = std::chrono::high_resolution_clock::now();
 
 	auto currentTime = std::chrono::high_resolution_clock::now();
 	float deltaTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - prevTime).count();
 	processInput(deltaTime);
-	updateUniformBuffer(currentImage, deltaTime);
+	updateUniformBuffer(currentImage, deltaTime, sceneData);
 	prevTime = currentTime;
 }
-void VulkanRenderer::updateUniformBuffer(uint32_t currentImage,float  deltaTime) {
+void VulkanRenderer::updateUniformBuffer(uint32_t currentImage,float  deltaTime, SceneData& sceneData) {
 
 	UniformBufferObject ubo{};
 	ubo.model = glm::rotate(glm::mat4(1.0f), /*time **/ glm::radians(0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
@@ -322,7 +313,7 @@ void VulkanRenderer::updateUniformBuffer(uint32_t currentImage,float  deltaTime)
 
 	ubo.proj[1][1] *= -1;
 
-	ubo.lightCount = static_cast<uint32_t>(sceneLoader.getLightCount());
+	ubo.lightCount = sceneData.lights.size();
 	memcpy(uniformBuffers[currentImage].getAllocationInfo().pMappedData, &ubo, sizeof(ubo));
 }
 
@@ -345,20 +336,20 @@ void VulkanRenderer::createUniformBuffers() {
 	}
 }
 
-void VulkanRenderer::createTexture(const std::string& TEXTURE_PATH, ImageResource& tex) {
+void VulkanRenderer::createTexture(const std::string& TEXTURE_PATH, ImageResource& tex) const {
 	createTextureImage(TEXTURE_PATH, tex.image);
 	tex.imageView.createImageView(logicalDevice, tex.image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
-void VulkanRenderer::createTexture(const ImageAsset& data, ImageResource& tex) {
+void VulkanRenderer::createTexture(const ImageAsset& data, ImageResource& tex) const {
 	createTextureImage(data, tex.image);
 	tex.imageView.createImageView(logicalDevice, tex.image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
-void VulkanRenderer::createTextureImage(const std::string& TEXTURE_PATH,VulkanImage& textureImage) {
+void VulkanRenderer::createTextureImage(const std::string& TEXTURE_PATH,VulkanImage& textureImage) const {
 	int texWidth, texHeight, texChannels;
 
-	stbi_uc* pixels = stbi_load(TEXTURE_PATH.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+	stbi_uc* pixels =stbi_load(TEXTURE_PATH.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
 	VkDeviceSize imageSize = texWidth * texHeight * 4;
 
 	if (!pixels) {
@@ -369,7 +360,7 @@ void VulkanRenderer::createTextureImage(const std::string& TEXTURE_PATH,VulkanIm
 	stbi_image_free(pixels);
 }
 
-void VulkanRenderer::createTextureImage(const ImageAsset& data, VulkanImage& textureImage) {
+void VulkanRenderer::createTextureImage(const ImageAsset& data, VulkanImage& textureImage)const {
 	
 	VkDeviceSize imageSize = data.width * data.height * 4;
 	createTextureImageHelper(data.pixels, data.width, data.height, textureImage);
@@ -378,7 +369,7 @@ void VulkanRenderer::createTextureImage(const ImageAsset& data, VulkanImage& tex
 }
 
 
-void VulkanRenderer::createTextureImageHelper(const stbi_uc* pixels, int texWidth, int texHeight, VulkanImage& textureImage) {
+void VulkanRenderer::createTextureImageHelper( stbi_uc* pixels, int texWidth, int texHeight, VulkanImage& textureImage) const {
 
 	VkDeviceSize imageSize = texWidth * texHeight * 4;
 	VulkanBuffer stagingBuffer;
@@ -423,7 +414,7 @@ void VulkanRenderer::createTextureImageHelper(const stbi_uc* pixels, int texWidt
 		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
 }
 
-void VulkanRenderer::createSampler(SamplerResource& samplerResource, VkFilter magFilter, VkFilter minFilter, VkSamplerMipmapMode mipMap, VkSamplerAddressMode addressU, VkSamplerAddressMode adressV) {
+void VulkanRenderer::createSampler(SamplerResource& samplerResource, VkFilter magFilter, VkFilter minFilter, VkSamplerMipmapMode mipMap, VkSamplerAddressMode addressU, VkSamplerAddressMode adressV) const{
 
 
 	samplerResource.sampler.createTextureSampler(physicalDevice, logicalDevice, magFilter, minFilter, mipMap, addressU, adressV);
@@ -431,8 +422,7 @@ void VulkanRenderer::createSampler(SamplerResource& samplerResource, VkFilter ma
 }
 
 
-
-void VulkanRenderer::transitionImageLayout(VulkanImage& image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t srcQueue, uint32_t destQueue) {
+void VulkanRenderer::transitionImageLayout(VulkanImage& image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t srcQueue, uint32_t destQueue)const {
 
 	VulkanCommandBuffer commandBuffer;
 	if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
@@ -526,7 +516,7 @@ void VulkanRenderer::transitionImageLayout(VulkanImage& image, VkFormat format, 
 
 }
 
-void VulkanRenderer::copyBufferToImage(VulkanBuffer& buffer, VulkanImage& image, uint32_t width, uint32_t height) {
+void VulkanRenderer::copyBufferToImage(VulkanBuffer& buffer, VulkanImage& image, uint32_t width, uint32_t height)const {
 	VulkanCommandBuffer commandBuffer;
 	commandBuffer.beginRecordindSingleTimeCommands(logicalDevice, transferCommandPool);
 

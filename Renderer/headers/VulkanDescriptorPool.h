@@ -25,7 +25,7 @@ private:
 
 	VkDescriptorPool descriptorPool{};
 
-	 VulkanLogicalDevice* logicalDevice = NULL;
+	const VulkanLogicalDevice* logicalDevice = NULL;
 
 	int maxSets = 0;
 
@@ -49,8 +49,8 @@ public:
 	VkDescriptorPool& getDescriptorPool() { return descriptorPool; }
 
 
-	void createMaterialDescriptorPool( VulkanLogicalDevice& device, int size);
-	void createUBODescriptorPool( VulkanLogicalDevice& device, int size);
-	void createLightDescriptorPool(VulkanLogicalDevice& device, size_t size);
+	void createMaterialDescriptorPool( const VulkanLogicalDevice& device, int size);
+	void createUBODescriptorPool( const VulkanLogicalDevice& device, int size);
+	void createLightDescriptorPool(const VulkanLogicalDevice& device, size_t size);
 };
 

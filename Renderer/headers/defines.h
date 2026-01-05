@@ -27,20 +27,20 @@ const std::string TEXTURE_PATH = "textures/viking_room.png";
 
 
 enum class Filter {
-	Nearest,
-	Linear
+	Nearest = 0,
+	Linear = 1
 };
 
 enum class MipmapMode {
-	Nearest,
-	Linear
+	Nearest = 0,
+	Linear = 1
 };
 
 enum class AddressMode {
-	Repeat,
-	MirroredRepeat,
-	ClampToEdge,
-	ClampToBorder
+	Repeat = 0,
+	MirroredRepeat = 1,
+	ClampToEdge = 2,
+	ClampToBorder = 3
 };
 
 
@@ -53,7 +53,7 @@ enum class LightType : uint32_t {
 };
 
 struct LightAsset {
-	uint32_t type;
+	LightType type;
 
 	glm::vec3 color;
 	float intensity;
@@ -135,6 +135,7 @@ struct pushConstants {
 struct MaterialAsset {
 
 	std::string name;
+	uint32_t resourceId;
 	//optional textures
 	std::optional<uint32_t> colorTexId;
 	std::optional<uint32_t> metalRoughTexId;
@@ -156,7 +157,7 @@ struct MaterialAsset {
 };
 
 
-struct TextureResource {
+struct TextureAsset {
 	int imageId;
 	int samplerId;
 	std::string name;
@@ -164,39 +165,48 @@ struct TextureResource {
 
 
 struct SamplerAsset {
+
+	std::string name;
+	uint32_t resourceId;
+
 	Filter magFilter = Filter::Linear;
 	Filter minFilter = Filter::Linear;
 	MipmapMode mipMap = MipmapMode::Linear;
 	AddressMode addressU = AddressMode::MirroredRepeat;
 	AddressMode addressV = AddressMode::MirroredRepeat;
-
-	std::string name;
 };
 
 
 struct SamplerResource {
+
+
 	VulkanSampler sampler;
 	std::string name;
 };
+
+
+
+
 struct ImageAsset {
+	std::string name;
+	uint32_t resourceId = -1;
+
 	uint32_t width;
 	uint32_t height;
 	uint32_t channels;
 	stbi_uc* pixels;
-	ImageAsset(int width_, int height_, int channels_, stbi_uc* pixels_)
-		: width(width_), height(height_), channels(channels_), pixels(pixels_) {
-	}
+	ImageAsset() = default;
+
 
 	ImageAsset(const ImageAsset&) = delete;
-	ImageAsset(ImageAsset&& other) {
-		width = other.width;
-		height = other.height;
-		channels = other.channels;
-		pixels = other.pixels;
+	ImageAsset(ImageAsset&& other) noexcept 
+		:width(other.width),
+		height(other.height),
+		channels(other.channels),
+		pixels(std::move(other.pixels)){ }
 		
-		pixels = nullptr;
 
-	}
+	
 };
 
 struct ImageResource {
@@ -279,7 +289,9 @@ struct GeoSurface {
 };
 
 struct MeshAsset {
+
 	std::string name;
+	uint32_t resourceId;
 
 	std::vector<GeoSurface> surfaces;
 	
@@ -300,18 +312,32 @@ struct MeshAsset {
 struct MeshResource {
 	std::string name;
 
-	std::vector<GeoSurface> surfaces;
 	MeshBuffers meshBuffers;
 
 	MeshResource() = default;
 	MeshResource(const MeshResource&) = delete;
 	MeshResource(MeshResource&& other) noexcept
 		: name(std::move(other.name)),
-		surfaces(std::move(other.surfaces)),
 		meshBuffers(std::move(other.meshBuffers))
 	{
 	}
 };
+
+
+struct CPUDrawCallData {
+	uint32_t materialDescriptorId = -1;
+	glm::mat4 transform;
+	MaterialAsset* mat;
+};
+
+
+struct CPUDrawCallInstanceData {
+	uint32_t meshResourceId = -1;
+	uint32_t meshId = -1;
+	std::vector<CPUDrawCallData> cpuDrawCalls;
+};
+
+
 
 
 struct DrawCallData {
@@ -328,6 +354,30 @@ struct DrawCallBatchData {
 	std::vector<DrawCallData> drawCalls;
 };
 
+
+
+struct SceneData {
+
+	std::vector<std::shared_ptr<MeshAsset>> meshAssets;
+	std::vector<std::shared_ptr<ImageAsset>> imageAssets;
+	std::vector<std::shared_ptr<SamplerAsset>> samplerAssets;
+	std::vector<std::shared_ptr<TextureAsset>> textures;
+	std::vector<std::shared_ptr<MaterialAsset>> materials;
+	std::vector<std::shared_ptr<NodeAsset>> nodes;
+	std::vector<std::shared_ptr<LightAsset>> lights;
+	std::vector<uint32_t> rootNodesIds;
+};
+
+
+struct SceneFramesData {
+	std::vector<CPUDrawCallInstanceData> drawInstances;
+	std::vector<LightGPUData> frameLightData;
+	SceneFramesData(std::vector<CPUDrawCallInstanceData>& instances, std::vector<LightGPUData>& lights)
+		: drawInstances(instances), frameLightData(lights) {
+	}
+	SceneFramesData() = default;
+};
+
 namespace std {
 	template<> struct hash<Vertex> {
 		size_t operator()(Vertex const& vertex) const {
@@ -337,5 +387,6 @@ namespace std {
 		}
 	};
 };
+
 
 
