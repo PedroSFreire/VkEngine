@@ -1,7 +1,6 @@
 #pragma once
 
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
+
 #include "defines.h"
 
 #include "glm/glm.hpp"
@@ -17,10 +16,15 @@ class VulkanCommandPool;
 class VulkanRenderer;
 class GltfLoader;
 class VulkanDescriptorSet;
+class Scene;
+class ResourceManager;
 
 class VulkanCommandBuffer
 {
+private:
 
+	VkCommandBuffer commandBuffer;
+	VkDescriptorSet currentUBO = VK_NULL_HANDLE;
 
 public:
 	VulkanCommandBuffer() = default;
@@ -42,13 +46,9 @@ public:
 
 	void bindMesh(const VulkanBuffer& vertBuffer, const VulkanBuffer& indexBuffer);
 
-	void recordDrawCall(const VulkanGraphicsPipeline& graphicsPipeline, const DrawCallBatchData data, uint32_t primitive,const VulkanDescriptorSet& lightDescriptor);
+	void recordDrawCall(const VulkanGraphicsPipeline& graphicsPipeline, const CPUDrawCallData data, uint32_t indexCount, ResourceManager& resourceManager);
 
-	void recordCommandBuffer(uint32_t imageIndex, const VulkanLogicalDevice& logicalDevice, const VulkanSwapChain& swapChain,
-		const VulkanGraphicsPipeline& graphicsPipeline, const VulkanRenderPass& renderPass, const VulkanFrameBuffers& frameBuffers,
-		const VulkanBuffer& vertBuffer, const VulkanBuffer& indexBuffer,  VkDescriptorSet* descriptorSet);
-
-	void recordCommandBufferNew(const uint32_t imageIndex, const VulkanRenderer& renderer, GltfLoader& scene, VkDescriptorSet descriptorSet);
+	void recordCommandBufferScene(const uint32_t imageIndex, const VulkanRenderer& renderer, Scene& scene, VkDescriptorSet descriptorSet, ResourceManager& resourceManager);
 
 	void createCommandBuffer(const VulkanLogicalDevice& device, const VulkanCommandPool& commandPool);
 	
@@ -58,13 +58,8 @@ public:
 
 	void endRecordingSingleTimeCommands(const VulkanLogicalDevice& device, const VulkanCommandPool& commandPool);
 
-	void bindMeshBuffers(const VulkanBuffer& vertexBuffer, const VulkanBuffer& indexBuffer);
-
 	void bindDescriptorSet(const VulkanRenderer& renderer, VkPipelineLayout& pipelineLayout, const VkDescriptorSet& descriptorSet, const VulkanBuffer& indexBuffer);
-private:
 
-	VkCommandBuffer commandBuffer;
-	VkDescriptorSet currentUBO;
 	
 };
 

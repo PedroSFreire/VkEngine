@@ -73,10 +73,12 @@ class VulkanRenderer
 public:
 
 
-	void run() {
+	void run(Scene& scene, ResourceManager& resourceManager) {
 
-		mainLoop();
-
+		
+		glfwPollEvents();
+		drawFrame(scene,	resourceManager);
+		vkDeviceWaitIdle(logicalDevice.getDevice());
 	}
 
 	VulkanRenderer();
@@ -84,16 +86,18 @@ public:
 	VulkanRenderer(const VulkanRenderer&) = default;
 
 
-	void createMeshResources(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, MeshBuffers& meshBuffer);
+	void createMeshResources(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, MeshBuffers& meshBuffer) const;
 
-	void createTexture(const std::string& TEXTURE_PATH, ImageResource& tex);
+	void createTexture(const std::string& TEXTURE_PATH, ImageResource& tex) const;
 
-	void createTexture(const ImageArrayData& data, ImageResource& tex);
+	void createTexture(const ImageAsset& data, ImageResource& tex) const;
 
-	void createSampler(SamplerResource& sampler, VkFilter magFilter, VkFilter minFilter, VkSamplerMipmapMode mipMap, VkSamplerAddressMode addressU, VkSamplerAddressMode adressV);
+	void createSampler(SamplerResource& sampler, VkFilter magFilter, VkFilter minFilter, VkSamplerMipmapMode mipMap, VkSamplerAddressMode addressU, VkSamplerAddressMode adressV) const;
 
+	bool running() { return !window.shouldClose(); }
 	const VulkanPhysicalDevice& getPhysicalDevice() const { return physicalDevice; }
 	VulkanLogicalDevice& getLogicalDevice() { return logicalDevice; }
+	const VulkanLogicalDevice& getLogicalDevice() const { return logicalDevice; }
 	const VulkanSwapChain& getSwapChain() const { return swapChain; }
 	const VulkanRenderPass& getRenderPass() const { return renderPass; }
 	const VulkanFrameBuffers& getFrameBuffers() const { return frameBuffers; }
@@ -142,43 +146,32 @@ private:
 
 	VulkanSyncObjects									syncObjects{};
 
-	ModelLoader											modelLoader;
 
 
 	//Resources
-	MeshBuffers											meshBuffer{};
+
 
 	std::vector<VulkanBuffer>							uniformBuffers;
 
 	std::vector<void*>									uniformBuffersMapped;
 
-	ImageResource										textureResource;
-
-	GltfLoader											sceneLoader;
-
 	VulkanImage											depthImage;
 
 	VulkanImageView										depthImageView;
 
-	VulkanSampler										textureSampler;
-
-
-
-	const std::string MODEL_PATH = "models/viking_room.obj";
-	const std::string TEXTURE_PATH = "textures/viking_room.png";
 
 
 
 
 	void initVulkan();
 
-	void mainLoop();
+	//void mainLoop();
 
 	void cleanSwapChain();
 
 	void recreateSwapChain();
 
-	void drawFrame();
+	void drawFrame(Scene& scene, ResourceManager& resourceManager);
 
 	void processInput(float deltaTime);
 
@@ -186,23 +179,23 @@ private:
 
 	void createUniformBuffers();
 
-	void update(uint32_t currentImage);
+	void update(uint32_t currentImage, SceneData& sceneData);
 
-	void updateUniformBuffer(uint32_t currentImage, float deltaTime);
+	void updateUniformBuffer(uint32_t currentImage, float deltaTime, SceneData& sceneData);
 
-	void createVertexBuffer(const std::vector<Vertex>& vertices, VulkanBuffer& buffer);
+	void createVertexBuffer(const std::vector<Vertex>& vertices, VulkanBuffer& buffer) const;
 
-	void createIndexBuffer(const std::vector<uint32_t>& indices, VulkanBuffer& buffer);
+	void createIndexBuffer(const std::vector<uint32_t>& indices, VulkanBuffer& buffer) const;
 
-	void createTextureImage(const std::string& TEXTURE_PATH, VulkanImage& textureImage);
+	void createTextureImage(const std::string& TEXTURE_PATH, VulkanImage& textureImage) const;
 
-	void createTextureImage(const ImageArrayData& data, VulkanImage& textureImage);
+	void createTextureImage(const ImageAsset& data, VulkanImage& textureImage) const;
 
-	void createTextureImageHelper(const stbi_uc* pixels, int texWidth, int texHeight, VulkanImage& textureImage);
+	void createTextureImageHelper(stbi_uc* pixels, int texWidth, int texHeight, VulkanImage& textureImage) const;
 
-	void transitionImageLayout(VulkanImage& image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t srcQueue, uint32_t destQueue);
+	void transitionImageLayout(VulkanImage& image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t srcQueue, uint32_t destQueue) const;
 
-	void copyBufferToImage(VulkanBuffer& buffer, VulkanImage& image, uint32_t width, uint32_t height);
+	void copyBufferToImage(VulkanBuffer& buffer, VulkanImage& image, uint32_t width, uint32_t height) const;
 
 	void createDepthResources();
 

@@ -70,8 +70,7 @@ void main() {
 		diffuse += diff * lights[i].color;
 	}
 
-    //outColor = vec4(diffuse,1.0) * pc.colorFactor*texture(ColorTexture,fragTexCoord);
-	outColor = vec4(lightColor,1.0);
-	outColor.rgb += pc.emissiveFactor * pc.emissiveStrenght * texture(emissiveTexture, fragTexCoord).r;
+    outColor = pc.colorFactor*texture(ColorTexture,fragTexCoord);
+
 
 }

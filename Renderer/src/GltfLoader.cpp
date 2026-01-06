@@ -1,19 +1,9 @@
-#include "..\headers\GltfLoader.h"
 #include <iostream>
 #include <string.h>
 #include <omp.h>
 
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-
-
-
-#include "..\headers\VulkanRenderer.h"
-#include "..\headers\VulkanSampler.h"
-#include "..\headers\VulkanCommandBuffer.h"
-
 #include <stb_image.h>
-
+#include "..\headers\GltfLoader.h"
 
 #include <chrono>
 //std::chrono::high_resolution_clock timer;
@@ -27,55 +17,56 @@
 
 
 //Loading helper functions
-VkSamplerAddressMode GltfLoader::getWrap(fastgltf::Wrap wrap) {
-	VkSamplerAddressMode wrapMode = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+
+AddressMode GltfLoader::getWrap(fastgltf::Wrap wrap) {
+	AddressMode wrapMode = AddressMode::MirroredRepeat;
 	switch (wrap) {
-		case fastgltf::Wrap::ClampToEdge:
-			wrapMode = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-			break;
-		case fastgltf::Wrap::MirroredRepeat:
-			wrapMode = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
-			break;
-		case fastgltf::Wrap::Repeat:
-			wrapMode = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-			break;
-		default:
-			break;
+	case fastgltf::Wrap::ClampToEdge:
+		wrapMode = AddressMode::ClampToEdge;
+		break;
+	case fastgltf::Wrap::MirroredRepeat:
+		wrapMode = AddressMode::MirroredRepeat;
+		break;
+	case fastgltf::Wrap::Repeat:
+		wrapMode = AddressMode::Repeat;
+		break;
+	default:
+		break;
 	}
 	return wrapMode;
 }
 
-VkFilter GltfLoader::getFilter(fastgltf::Filter gltfFilter) {
-	VkFilter filter = VK_FILTER_LINEAR;
+Filter GltfLoader::getFilter(fastgltf::Filter gltfFilter) {
+	Filter filter = Filter::Linear;
 	switch (gltfFilter) {
-		case fastgltf::Filter::Nearest:
-		case fastgltf::Filter::NearestMipMapNearest:
-		case fastgltf::Filter::NearestMipMapLinear:
-			filter = VK_FILTER_NEAREST;
-			break;
-		case fastgltf::Filter::LinearMipMapNearest:
-		case fastgltf::Filter::LinearMipMapLinear:
-		case fastgltf::Filter::Linear:
-			filter = VK_FILTER_LINEAR;
-			break;
-		default:
-			break;
+	case fastgltf::Filter::Nearest:
+	case fastgltf::Filter::NearestMipMapNearest:
+	case fastgltf::Filter::NearestMipMapLinear:
+		filter = Filter::Nearest;
+		break;
+	case fastgltf::Filter::LinearMipMapNearest:
+	case fastgltf::Filter::LinearMipMapLinear:
+	case fastgltf::Filter::Linear:
+		filter = Filter::Linear;
+		break;
+	default:
+		break;
 	}
 	return filter;
-	
+
 }
 
-VkSamplerMipmapMode GltfLoader::getFilterMode(fastgltf::Filter gltfFilter) {
-	VkSamplerMipmapMode mipMap = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+MipmapMode GltfLoader::getFilterMode(fastgltf::Filter gltfFilter) {
+	MipmapMode mipMap = MipmapMode::Linear;
 	switch (gltfFilter) {
 	case fastgltf::Filter::NearestMipMapNearest:
 	case fastgltf::Filter::LinearMipMapNearest:
-		mipMap = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+		mipMap = MipmapMode::Nearest;
 		break;
 
 	case fastgltf::Filter::NearestMipMapLinear:
 	case fastgltf::Filter::LinearMipMapLinear:
-		mipMap = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+		mipMap = MipmapMode::Linear;
 		break;
 	default:
 		break;
@@ -84,7 +75,90 @@ VkSamplerMipmapMode GltfLoader::getFilterMode(fastgltf::Filter gltfFilter) {
 	return mipMap;
 }
 
-bool GltfLoader::loadImageData(VulkanRenderer& renderer, stbi_uc* bytes, uint32_t size, ImageResource& tempImage) {
+LightType GltfLoader::getLightType(fastgltf::LightType gltfType){
+	LightType lType = LightType::Point;
+	switch (gltfType) {
+
+	case fastgltf::LightType::Directional:
+		lType = LightType::Directional;
+		break;
+
+	case fastgltf::LightType::Point:
+		lType = LightType::Point;
+		break;
+
+	case fastgltf::LightType::Spot:
+		lType = LightType::Spot;
+		break;
+	default:
+		break;
+
+	}
+	return lType;
+}
+
+
+//new scene loading helpers
+
+void GltfLoader::loadNodesData(SceneData& scene) {
+
+	
+	scene.nodes.reserve(asset.nodes.size());
+	for (auto& node : asset.nodes) {
+		NodeAsset newNode;
+
+		newNode.name = node.name;
+
+		if (node.meshIndex.has_value())
+			newNode.meshIndex = node.meshIndex.value();
+		if (node.cameraIndex.has_value())
+			newNode.cameraIndex = node.cameraIndex.value();
+		if (node.lightIndex.has_value())
+			newNode.lightIndex = node.lightIndex.value();
+
+
+
+		if (auto transform = std::get_if<fastgltf::TRS>(&node.transform)) {
+			newNode.transform = glm::translate(glm::mat4(1.0f), glm::vec3(transform->translation[0], transform->translation[1], transform->translation[2]));
+			glm::quat glmQuat(transform->rotation.w(), transform->rotation.x(), transform->rotation.y(), transform->rotation.z());
+			newNode.transform *= glm::mat4_cast(glmQuat);
+			newNode.transform = glm::scale(newNode.transform, glm::vec3(transform->scale[0], transform->scale[1], transform->scale[2]));
+		}
+		else if (auto transform = std::get_if<fastgltf::math::fmat4x4>(&node.transform)) {
+			for (int row = 0; row < 4; ++row)
+				for (int col = 0; col < 4; ++col)
+					newNode.transform[col][row] = transform->data()[row];
+		}
+		scene.nodes.emplace_back(std::make_shared<NodeAsset>(std::move(newNode)));
+	}
+}
+
+void GltfLoader::loadNodesRelatrions(SceneData& scene) {
+	for (int nodeId = 0; nodeId < asset.nodes.size(); nodeId++) {
+		auto& node = asset.nodes[nodeId];
+		auto& NodeAsset = scene.nodes[nodeId];
+		if (node.children.size() > 0) {
+			NodeAsset->children.reserve(node.children.size());
+			for (auto& childId : node.children) {
+				NodeAsset->children.emplace_back(childId);
+				scene.nodes[childId].get()->parentIndex = nodeId;
+
+			}
+		}
+
+	}
+
+	for (int nodeId = 0; nodeId < asset.nodes.size(); nodeId++) {
+		if (scene.nodes[nodeId]->parentIndex == -1) {
+			scene.rootNodesIds.emplace_back(nodeId);
+		}
+
+	}
+
+
+}
+
+bool GltfLoader::loadImageData(SceneData& scene, stbi_uc* bytes, uint32_t size, ImageAsset& tempImage, int id) {
 	int width, height, channels;
 
 	stbi_uc* pixels = stbi_load_from_memory(bytes, size, &width, &height, &channels, STBI_rgb_alpha);
@@ -95,17 +169,22 @@ bool GltfLoader::loadImageData(VulkanRenderer& renderer, stbi_uc* bytes, uint32_
 		return false;
 	}
 
-	ImageArrayData imgArray(width, height, channels, pixels);
+	ImageAsset imgArray;
+	imgArray.height = height;
+	imgArray.width = width;
+	imgArray.channels = channels;
+	imgArray.pixels = pixels;
 #pragma omp critical
-	renderer.createTexture(imgArray, tempImage);
+		scene.imageAssets[id] = (std::make_shared<ImageAsset>(std::move(imgArray)));
+
 	return true;
 }
 
-bool GltfLoader::loadImageData(VulkanRenderer& renderer, const std::string& TEXTURE_PATH, ImageResource& tempImage) {
+bool GltfLoader::loadImageData(SceneData& scene, const std::string& TEXTURE_PATH, ImageAsset& tempImage, int id) {
 	int width, height, channels;
 
 	stbi_uc* pixels = stbi_load(TEXTURE_PATH.c_str(), &width, &height, &channels, STBI_rgb_alpha);
-	
+
 
 
 
@@ -113,223 +192,37 @@ bool GltfLoader::loadImageData(VulkanRenderer& renderer, const std::string& TEXT
 		return false;
 	}
 
-	ImageArrayData imgArray(width, height, channels, pixels);
+	ImageAsset imgArray;
+	imgArray.height = height;
+	imgArray.width = width;
+	imgArray.channels = channels;
+	imgArray.pixels = pixels;
 #pragma omp critical
-	renderer.createTexture(imgArray, tempImage);
+		scene.imageAssets[id] = (std::make_shared<ImageAsset>(std::move(imgArray)));
 	return true;
 }
 
-void GltfLoader::loadNodesData() {
 
-	nodes.reserve(asset.nodes.size());
-	for (auto& node : asset.nodes) {
-		NodeResource newNode;
 
-		newNode.name = node.name;
+//load scene functions
 
-		if(node.meshIndex.has_value())
-			newNode.meshIndex = node.meshIndex.value();
-		if (node.cameraIndex.has_value())
-			newNode.cameraIndex = node.cameraIndex.value();
-		if (node.lightIndex.has_value())
-			newNode.lightIndex = node.lightIndex.value();
-
-	
-
-		if (auto transform = std::get_if<fastgltf::TRS>(&node.transform)) {
-			newNode.transform = glm::translate(glm::mat4(1.0f), glm::vec3(transform->translation[0], transform->translation[1], transform->translation[2]));
-			glm::quat glmQuat(transform->rotation.w(), transform->rotation.x(), transform->rotation.y(), transform->rotation.z());
-			newNode.transform *= glm::mat4_cast(glmQuat);
-			newNode.transform = glm::scale(newNode.transform, glm::vec3(transform->scale[0], transform->scale[1], transform->scale[2]));
-		}
-		else if(auto transform = std::get_if<fastgltf::math::fmat4x4>(&node.transform)){
-			for (int row = 0; row < 4; ++row)
-				for (int col = 0; col < 4; ++col)
-					newNode.transform[col][row] = transform->data()[row];
-		}
-		nodes.emplace_back(std::make_shared<NodeResource>(std::move(newNode)));	
-	}
+void GltfLoader::loadNodes(SceneData& scene) {
+	loadNodesData(scene);
+	loadNodesRelatrions(scene);
 }
 
-void GltfLoader::loadNodesRelatrions(){
-	for (int nodeId = 0; nodeId < asset.nodes.size();nodeId++) {
-		auto& node = asset.nodes[nodeId];
-		auto& nodeResource = nodes[nodeId];
-		if (node.children.size() > 0) {
-			nodeResource->children.reserve(node.children.size());
-			for (auto& childId : node.children) {
-				nodeResource->children.emplace_back(childId);
-				nodes[childId].get()->parentIndex = nodeId;
-
-			}
-		}
-
-	}
-
-	for (int nodeId = 0; nodeId < asset.nodes.size(); nodeId++) {
-		if (nodes[nodeId]->parentIndex == -1) {
-			rootNodesIds.emplace_back(nodeId);
-		}
-
-	}
-
-
-}
-
-void GltfLoader::createDescriptorSets(VulkanRenderer& renderer) {
-	//TO DO
-	descriptorPool.createMaterialDescriptorPool(renderer.getLogicalDevice(), materials.size());
-	descriptorSets.reserve(materials.size());
-
-	for (auto& materialP : materials) {
-		VulkanDescriptorSet newSet;
-		newSet.createMaterialDescriptorLayout(renderer.getLogicalDevice(), descriptorPool);
-		newSet.createDescriptor();
-		//TODO:load default textures
-		ImageResource* colorImage;
-		SamplerResource* colorSampler;
-
-		ImageResource* normalImage;
-		SamplerResource* normalSampler;
-
-		ImageResource* metalRoughImage;
-		SamplerResource* metalRoughSampler;
-
-		ImageResource* occlusionImage;
-		SamplerResource* occlusionSampler;
-
-		ImageResource* emissiveImage;
-		SamplerResource* emissiveSampler;
-
-		//load color texture
-		if (materialP->colorTexId.has_value()) {
-			auto& colorTexture = textures[materialP->colorTexId.value()];
-			colorImage = images[colorTexture->imageId].get();
-			colorSampler = samplers[colorTexture->samplerId].get();
-
-		}
-		else {
-			colorImage = &defaultColorImage;
-			colorSampler = &defaultSampler;
-		}
-
-		//load nomral texture
-		if (materialP->normalTexId.has_value()) {
-			auto& normalTexture = textures[materialP->normalTexId.value()];
-			normalImage = images[normalTexture->imageId].get();
-			normalSampler = samplers[normalTexture->samplerId].get();
-
-		}
-		else {
-			normalImage = &defaultNormalImage;
-			normalSampler = &defaultSampler;
-		}
-
-		//load metalRough texture
-		if (materialP->metalRoughTexId.has_value()) {
-			auto& metalRoughTexture = textures[materialP->metalRoughTexId.value()];
-			metalRoughImage = images[metalRoughTexture->imageId].get();
-			metalRoughSampler = samplers[metalRoughTexture->samplerId].get();
-
-		}
-		else {
-			metalRoughImage = &defaultMetalRoughImage;
-			metalRoughSampler = &defaultSampler;
-		}
-
-		//load occlusion texture
-		if (materialP->occlusionTexId.has_value()) {
-			auto& occlusionTexture = textures[materialP->occlusionTexId.value()];
-			occlusionImage = images[occlusionTexture->imageId].get();
-			occlusionSampler = samplers[occlusionTexture->samplerId].get();
-
-		}
-		else {
-			occlusionImage = &defaultOcclusionImage;
-			occlusionSampler = &defaultSampler;
-		}
-
-		//load emissive texture
-		if (materialP->emissiveTexId.has_value()) {
-			auto& emissiveTexture = textures[materialP->emissiveTexId.value()];
-			emissiveImage = images[emissiveTexture->imageId].get();
-			emissiveSampler = samplers[emissiveTexture->samplerId].get();
-
-		}
-		else {
-			emissiveImage = &defaultEmissiveImage;
-			emissiveSampler = &defaultSampler;
-		}
-
-		std::array<VkImageView,5> imageViews{colorImage->imageView.getImageView(),normalImage->imageView.getImageView(),metalRoughImage->imageView.getImageView(),occlusionImage->imageView.getImageView(),emissiveImage->imageView.getImageView() };
-		std::array<VkSampler, 5> imageSamplers{colorSampler->sampler.getSampler(),normalSampler->sampler.getSampler(),metalRoughSampler->sampler.getSampler(),occlusionSampler->sampler.getSampler(),emissiveSampler->sampler.getSampler()};
-		newSet.updateMaterialDescriptor(imageViews.data(), imageSamplers.data());
-		descriptorSets.emplace_back(std::move(newSet));
-
-		
-	}
-	lightdescriptorPool.createLightDescriptorPool(renderer.getLogicalDevice(), 1);
-	lightDescriptorSet.createLightDescriptorLayout(renderer.getLogicalDevice(), lightdescriptorPool);
-	lightDescriptorSet.createDescriptor();
-
-}
-
-void GltfLoader::createDefaultImages(VulkanRenderer& renderer) {
-
-
-	//create color default tex
-	std::array<uint8_t, 4> colorPixel{ 255, 255, 255, 255 };
-	defaultColorImage.name = "color";
-	ImageArrayData imgData{ 1,1,4,colorPixel.data() };
-	renderer.createTexture(imgData, defaultColorImage);
-
-	//create normal default tex
-	std::array<uint8_t, 4> normalPixel{ 255, 255, 255, 255 };
-	defaultNormalImage.name = "normal";
-	ImageArrayData normalData{ 1,1,4,normalPixel.data() };
-	renderer.createTexture(normalData, defaultNormalImage);
-
-	//create normal metal rough tex
-	std::array<uint8_t, 4> metalRoughPixel{ 255, 255, 255, 255 };
-	defaultMetalRoughImage.name = "metalRough";
-	ImageArrayData metalRoughData{ 1,1,4,metalRoughPixel.data() };
-	renderer.createTexture(metalRoughData, defaultMetalRoughImage);
-
-	//create occlusion default tex
-	std::array<uint8_t, 4> occlusionPixel{ 255, 255, 255, 255 };
-	defaultOcclusionImage.name = "occlusion";
-	ImageArrayData occlusionData{ 1,1,4,occlusionPixel.data() };
-	renderer.createTexture(occlusionData, defaultOcclusionImage);
-
-	//create emissive default tex
-	std::array<uint8_t, 4> emissivePixel{ 255, 255, 255, 255 };
-	defaultEmissiveImage.name = "emissive";
-	ImageArrayData emissiveData{ 1,1,4,emissivePixel.data() };
-	renderer.createTexture(emissiveData, defaultEmissiveImage);
-
-}
-
-
-
-
-//Loading functions
-void GltfLoader::loadNodes() {
-	loadNodesData();
-	loadNodesRelatrions();
-}
-
-void GltfLoader::loadLights() {
-	lights.reserve(asset.lights.size());
+void GltfLoader::loadLights(SceneData& scene) {
+	scene.lights.reserve(asset.lights.size());
 	for (auto& light : asset.lights) {
-		LightResource newLight;
-		newLight.type = static_cast<uint32_t>(light.type);
+		LightAsset newLight;
+		newLight.type = getLightType(light.type);
 		newLight.color.x = light.color[0];
 		newLight.color.y = light.color[1];
 		newLight.color.z = light.color[2];
 		newLight.intensity = light.intensity;
 		//point and spot lights
 
-		if(light.range.has_value())
+		if (light.range.has_value())
 			newLight.range = light.range.value();
 		else
 			newLight.range = 100.0f;
@@ -338,12 +231,35 @@ void GltfLoader::loadLights() {
 			newLight.spotInnerCos = light.innerConeAngle.value();
 		if (light.outerConeAngle.has_value())
 			newLight.spotOuterCos = light.outerConeAngle.value();
-		lights.emplace_back(std::make_shared<LightResource>(std::move(newLight)));
+		scene.lights.emplace_back(std::make_shared<LightAsset>(std::move(newLight)));
 	}
+	if (asset.lights.size() == 0) {
+		LightAsset newLight;
+		newLight.type = LightType::Point;
+		newLight.color.x = 1.0;
+		newLight.color.y = 1.0;
+		newLight.color.z = 1.0;
+		newLight.intensity = 10;
+		newLight.range = 100.0f;
+		scene.lights.emplace_back(std::make_shared<LightAsset>(std::move(newLight)));
+		
+
+		NodeAsset newNode;
+
+		newNode.name = "defaultLight";
+
+		newNode.lightIndex = 0;
+
+		newNode.transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 15.0f, 0.0f));
+
+		scene.nodes.emplace_back(std::make_shared<NodeAsset>(std::move(newNode)));
+		scene.rootNodesIds.emplace_back(scene.nodes.size() - 1);
+	}
+
 }
 
-void GltfLoader::loadMaterials() {
-	/*struct MaterialResource {
+void GltfLoader::loadMaterials(SceneData& scene) {
+	/*struct MaterialAsset {
 
 		//optional textures
 		std::optional<uint32_t> colorTexId;
@@ -358,7 +274,7 @@ void GltfLoader::loadMaterials() {
 		uint32_t roughnessFactor;
 		uint32_t emissiveStrenght;
 		glm::vec3 emissiveFactor;
-		
+
 
 		//properties optional
 		std::optional<uint32_t> normalScale;
@@ -366,21 +282,18 @@ void GltfLoader::loadMaterials() {
 
 
 	};*/
-	materials.reserve(asset.materials.size());
-	int i = 0;
+	scene.materials.reserve(asset.materials.size());
+
 	for (auto& material : asset.materials) {
 
-		MaterialResource newMaterial;
+		MaterialAsset newMaterial;
 		newMaterial.name = material.name;
 		//non optional properties
 		newMaterial.colorFactor.x = material.pbrData.baseColorFactor[0];
 		newMaterial.colorFactor.y = material.pbrData.baseColorFactor[1];
 		newMaterial.colorFactor.z = material.pbrData.baseColorFactor[2];
 		newMaterial.colorFactor.w = material.pbrData.baseColorFactor[3];
-		if( i == 19 || i== 20)
-			std::cout << "red " << std::endl;
-		if (newMaterial.colorFactor == glm::vec4(1, 0, 0,1))
-			std::cout << "red " << std::endl;
+
 		newMaterial.metallicFactor = material.pbrData.metallicFactor;
 		newMaterial.roughnessFactor = material.pbrData.roughnessFactor;
 		newMaterial.emissiveStrenght = material.emissiveStrength;
@@ -394,86 +307,83 @@ void GltfLoader::loadMaterials() {
 			newMaterial.colorTexId = material.pbrData.baseColorTexture.value().textureIndex;
 		}
 
-		if (material.pbrData.metallicRoughnessTexture.has_value()){
+		if (material.pbrData.metallicRoughnessTexture.has_value()) {
 			newMaterial.metalRoughTexId = material.pbrData.metallicRoughnessTexture.value().textureIndex;
 		}
 
-		if (material.normalTexture.has_value()){
+		if (material.normalTexture.has_value()) {
 			newMaterial.normalTexId = material.normalTexture.value().textureIndex;
 			newMaterial.normalScale = material.normalTexture.value().scale;
 		}
 
-		if (material.occlusionTexture.has_value()){
+		if (material.occlusionTexture.has_value()) {
 			newMaterial.occlusionTexId = material.occlusionTexture.value().textureIndex;
 			newMaterial.occlusionTexId = material.occlusionTexture.value().strength;
 		}
 
-		if (material.emissiveTexture.has_value()){
+		if (material.emissiveTexture.has_value()) {
 			newMaterial.emissiveTexId = material.emissiveTexture.value().textureIndex;
 		}
-		materials.emplace_back(std::make_shared<MaterialResource>(std::move(newMaterial)));
-		i++;
+		scene.materials.emplace_back(std::make_shared<MaterialAsset>(std::move(newMaterial)));
 	}
 }
 
-void GltfLoader::loadSamplers(VulkanRenderer& renderer) {
-	samplers.reserve(asset.samplers.size());
-	for(auto& sampler : asset.samplers) {
-		SamplerResource newSampler;
-		newSampler.name = sampler.name;
-		VkFilter magFilter = VK_FILTER_LINEAR;
-		VkFilter minFilter = VK_FILTER_LINEAR;
-		VkSamplerMipmapMode mipMap = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-		VkSamplerAddressMode addressU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		VkSamplerAddressMode addressV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+void GltfLoader::loadSamplers(SceneData& scene) {
 
-		addressU = getWrap(sampler.wrapS);
-		addressV = getWrap(sampler.wrapT);
+	scene.samplerAssets.reserve(asset.samplers.size());
+	for (auto& sampler : asset.samplers) {
+		SamplerResource newSampler;
+		SamplerAsset newSamplerAsset;
+
+
+
+		newSamplerAsset.addressU = getWrap(sampler.wrapS);
+		newSamplerAsset.addressV = getWrap(sampler.wrapT);
 
 
 		//interpret mipMap
 		if (sampler.magFilter.has_value()) {
-			mipMap = getFilterMode(sampler.magFilter.value());
+			newSamplerAsset.mipMap = getFilterMode(sampler.magFilter.value());
 		}
-		
+
 		//interpret magFilter
 		if (sampler.magFilter.has_value()) {
-			magFilter = getFilter(sampler.magFilter.value());
+			newSamplerAsset.magFilter = getFilter(sampler.magFilter.value());
 		}
 		//interpret minFilter
 		if (sampler.minFilter.has_value()) {
-			minFilter = getFilter(sampler.minFilter.value());
+			newSamplerAsset.magFilter = getFilter(sampler.minFilter.value());
 		}
 
-
-		renderer.createSampler(newSampler,magFilter,minFilter,mipMap,addressU,addressV);
-		samplers.emplace_back(std::make_shared<SamplerResource>(std::move(newSampler)));
+		scene.samplerAssets.emplace_back(std::make_shared<SamplerAsset>(std::move(newSamplerAsset)));
 	}
 
-	renderer.createSampler(defaultSampler,VK_FILTER_LINEAR,VK_FILTER_LINEAR,VK_SAMPLER_MIPMAP_MODE_LINEAR,VK_SAMPLER_ADDRESS_MODE_REPEAT,VK_SAMPLER_ADDRESS_MODE_REPEAT);
+	//renderer.createSampler(defaultSampler, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT);
 }
 
-void GltfLoader::loadTextures() {
+void GltfLoader::loadTextures(SceneData& scene) {
+	scene.textures.reserve(asset.textures.size());
 	for (auto& texture : asset.textures) {
-		TextureResource newTexture;
+		TextureAsset newTexture;
 		newTexture.name = texture.name;
 		if (!texture.imageIndex.has_value() || !texture.samplerIndex.has_value())
 			std::cout << "Texture missing image or sampler index\n";
 		newTexture.imageId = texture.imageIndex.value();
 		newTexture.samplerId = texture.samplerIndex.value();
-		textures.emplace_back(std::make_shared<TextureResource>(std::move(newTexture)));
+		scene.textures.emplace_back(std::make_shared<TextureAsset>(std::move(newTexture)));
 	}
 }
 
-void GltfLoader::loadImages(VulkanRenderer& renderer, const std::filesystem::path& path)
+void GltfLoader::loadImages(SceneData& scene, const std::filesystem::path& path)
 {
-	images.resize(asset.images.size());
-	createDefaultImages(renderer);
+	
+	scene.imageAssets.resize(asset.images.size());
+
 #pragma omp parallel for	
-	for (int imgId = 0; imgId < asset.images.size();imgId++) {
+	for (int imgId = 0; imgId < asset.images.size(); imgId++) {
 
 		auto& image = asset.images[imgId];
-		ImageResource tempImage;
+		ImageAsset tempImage;
 		tempImage.name = image.name;
 
 		std::string imagePath;
@@ -483,7 +393,7 @@ void GltfLoader::loadImages(VulkanRenderer& renderer, const std::filesystem::pat
 			//type URI just a file path
 			imagePath = path.parent_path().string() + "/" + filename->uri.c_str();
 
-			if (!loadImageData(renderer, imagePath, tempImage)) {
+			if (!loadImageData(scene, imagePath, tempImage, imgId)) {
 				continue;
 			}
 
@@ -491,8 +401,9 @@ void GltfLoader::loadImages(VulkanRenderer& renderer, const std::filesystem::pat
 		else if (fastgltf::sources::Array* imageArray = std::get_if<fastgltf::sources::Array>(&image.data)) {
 			//type array an arry of bytes of data
 			stbi_uc* bytes = reinterpret_cast<stbi_uc*>(imageArray->bytes.data());
+			int width, height, channels;
 
-			if (!loadImageData(renderer, bytes, imageArray->bytes.size(), tempImage)) {
+			if (!loadImageData(scene, bytes, imageArray->bytes.size(),tempImage, imgId)) {
 				continue;
 			}
 
@@ -506,42 +417,43 @@ void GltfLoader::loadImages(VulkanRenderer& renderer, const std::filesystem::pat
 			auto data = reinterpret_cast<stbi_uc*>(bufferAdress + bufferView->byteOffset);
 			auto size = bufferView->byteLength;
 
-			if (!loadImageData(renderer, data, size, tempImage)) {
+			if (!loadImageData(scene, data, size, tempImage, imgId)) {
 				continue;
 			}
 
 		}
-		images[imgId] = std::make_shared<ImageResource>(std::move(tempImage));
+		
 
-	
+
 	}
-	
+
 }
 
-void GltfLoader::loadMeshes(VulkanRenderer& renderer)
+void GltfLoader::loadMeshes(SceneData& scene)
 {
 
 	std::vector<uint32_t> indices;
 	std::vector<Vertex> vertices;
 
-	drawCalls.resize(asset.meshes.size());
-	meshes.reserve(asset.meshes.size());
+	scene.meshAssets.reserve(asset.meshes.size());
 
 	for (const auto& mesh : asset.meshes) {
 
-		MeshAsset newMesh;
 
-		newMesh.name = mesh.name;
+		MeshAsset newMeshAsset;
+
+		newMeshAsset.name = mesh.name;
+
 
 		indices.clear();
 		vertices.clear();
-		
+
 		//allocation for drawCall struct
-		
+
 
 		for (const auto& primitive : mesh.primitives) {
 			GeoSurface newSurface;
-			if(primitive.materialIndex.has_value())
+			if (primitive.materialIndex.has_value())
 				newSurface.materialIndex = primitive.materialIndex.value();
 			newSurface.startIndex = (uint32_t)indices.size();
 			newSurface.count = (uint32_t)asset.accessors[primitive.indicesAccessor.value()].count;
@@ -604,24 +516,24 @@ void GltfLoader::loadMeshes(VulkanRenderer& renderer)
 						vertices[initial_vtx + index].color = v;
 					});
 			}
-			newMesh.surfaces.push_back(newSurface);
+			newMeshAsset.surfaces.push_back(newSurface);
 
 
 		}
-		renderer.createMeshResources(vertices, indices, newMesh.meshBuffers);
-		meshes.emplace_back(std::make_shared<MeshAsset>(std::move(newMesh)));
-
+		newMeshAsset.vertices = std::move(vertices);
+		newMeshAsset.indices = std::move(indices);
+		scene.meshAssets.emplace_back(std::make_shared<MeshAsset>(std::move(newMeshAsset)));
 	}
 }
 
-void GltfLoader::loadGltf(const char* fname, VulkanRenderer& renderer)
+void GltfLoader::loadGltf(SceneData& scene,const char* fname)
 {
 	std::filesystem::path path = fname;
 
 	constexpr auto gltfOptions = fastgltf::Options::LoadGLBBuffers
 		| fastgltf::Options::LoadExternalBuffers | fastgltf::Options::LoadExternalImages;
 
-	constexpr fastgltf::Extensions gltfExtensions = fastgltf::Extensions::KHR_lights_punctual| fastgltf::Extensions::KHR_texture_basisu| fastgltf::Extensions::KHR_materials_ior | fastgltf::Extensions::KHR_materials_specular| fastgltf::Extensions::KHR_materials_transmission| fastgltf::Extensions::KHR_materials_emissive_strength;
+	constexpr fastgltf::Extensions gltfExtensions = fastgltf::Extensions::KHR_lights_punctual | fastgltf::Extensions::KHR_texture_basisu | fastgltf::Extensions::KHR_materials_ior | fastgltf::Extensions::KHR_materials_specular | fastgltf::Extensions::KHR_materials_transmission | fastgltf::Extensions::KHR_materials_emissive_strength;
 
 	fastgltf::Parser parser(gltfExtensions);
 	auto data = fastgltf::GltfDataBuffer::FromPath(path);
@@ -631,7 +543,7 @@ void GltfLoader::loadGltf(const char* fname, VulkanRenderer& renderer)
 		std::cerr << "Failed to load glTF file: " << static_cast<int>(data.error()) << std::endl;
 		return;
 	}
-	auto assetOptional = parser.loadGltf(data.get(), path.parent_path(), gltfOptions );
+	auto assetOptional = parser.loadGltf(data.get(), path.parent_path(), gltfOptions);
 	if (!assetOptional) {
 		std::cerr << "Failed to parse glTF file: " << static_cast<int>(assetOptional.error()) << std::endl;
 		return;
@@ -641,129 +553,19 @@ void GltfLoader::loadGltf(const char* fname, VulkanRenderer& renderer)
 
 
 
-	loadImages(renderer, path);
-	loadSamplers(renderer);
-	loadTextures();
-	loadMeshes(renderer);
-	loadMaterials();
-	loadNodes();
-	loadLights();
-	//findLightParamaters();
-
-	createDescriptorSets(renderer);
+	loadImages(scene, path);
+	loadSamplers(scene);
+	loadTextures(scene);
+	loadMeshes(scene);
+	loadMaterials(scene);
+	loadNodes(scene);
+	loadLights(scene);
 
 
 
 }
 
 
-
-//Draw functions
-
-void GltfLoader::recordScene(const VulkanRenderer& renderer)  {
-	//glm::mat4 indentMatrix(1.0);
-
-	for (auto& drawCall : drawCalls) 
-		drawCall.drawCalls.clear();
-
-	lightData.clear();
-
-	glm::mat4 correction = glm::rotate(
-		glm::mat4(1.0f),
-		glm::radians(90.0f),
-		glm::vec3(1.0f, 0.0f, 0.0f)
-	);
-	for(auto rootId : rootNodesIds) {
-		recordNode(renderer, rootId, correction);
-	}
-
-	if (!lightsCreated) {
-		VulkanBufferCreateInfo info;
-		info.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-		info.vmaUsage = VMA_MEMORY_USAGE_GPU_ONLY;
-		info.size = sizeof(LightGPUData) * lightData.size();
-		info.elementCount = static_cast<uint32_t>(lightData.size());
-		info.vmaFlags = VMA_MEMORY_USAGE_GPU_ONLY;
-
-
-		lightBuffer.createBuffer( renderer.getAllocator(), info);
-		lightsCreated = true;
-		renderer.bufferStagedUpload(lightBuffer, lightData.data(), static_cast<uint32_t>(sizeof(LightGPUData) * lightData.size()), 1);
-		lightDescriptorSet.updateLightDescriptor(lightBuffer, lightData.size());
-	}
-	
-	
-}
-
-void  GltfLoader::recordNode(const VulkanRenderer& renderer,const int nodeId, glm::mat4& transforMat)  {
-	
-	glm::mat4 currentTransform = transforMat * nodes[nodeId]->transform;
-
-	//draw mesh if exists
-	if (nodes[nodeId]->meshIndex.has_value()) {
-			recordMesh(renderer,nodes[nodeId]->meshIndex.value(), currentTransform);
-	}
-
-	//draw mesh if exists
-	if (nodes[nodeId]->lightIndex.has_value()) {
-		LightGPUData lightDataEntry;
-		lightDataEntry.type = lights[nodes[nodeId]->lightIndex.value()]->type;
-		lightDataEntry.color = lights[nodes[nodeId]->lightIndex.value()]->color;
-		lightDataEntry.intensity = lights[nodes[nodeId]->lightIndex.value()]->intensity;
-		lightDataEntry.range = lights[nodes[nodeId]->lightIndex.value()]->range;
-		lightDataEntry.spotInnerCos = lights[nodes[nodeId]->lightIndex.value()]->spotInnerCos;
-		lightDataEntry.spotOuterCos = lights[nodes[nodeId]->lightIndex.value()]->spotOuterCos;
-		lightDataEntry.position = currentTransform * glm::vec4(0, 0, 0, 0);
-		lightDataEntry.direction =  currentTransform * glm::vec4(0, -1, 0, 0);
-
-		lightData.emplace_back(std::move(lightDataEntry));
-	}
-
-	//call on children
-	for (auto childId : nodes[nodeId]->children) {
-		recordNode(renderer, childId, currentTransform);
-	}
-
-}
-
-void GltfLoader::recordMesh(const VulkanRenderer& renderer, const int meshId, glm::mat4& transform) {
-	auto & mesh = meshes[meshId];
-	std::array<VulkanImageView*,1> viewsArray;
-	std::array<VulkanSampler*, 1> samplerArray;
-	//cmdBuff.bindMesh(mesh.get()->meshBuffers.vertexBuffer, mesh.get()->meshBuffers.indexBuffer);
-	drawCalls[meshId].indexBuffer = &(mesh->meshBuffers.indexBuffer);
-	drawCalls[meshId].vertexBuffer =  &(mesh->meshBuffers.vertexBuffer);
-	int prevSize = drawCalls[meshId].drawCalls.size();
-	drawCalls[meshId].drawCalls.reserve(prevSize + mesh.get()->surfaces.size());
-	//for (auto& surface : mesh.get()->surfaces) {
-	for(int i = mesh.get()->surfaces.size() -1; i>= 0;i--){
-
-		VulkanDescriptorSet& auxDescriptor = descriptorSets[mesh.get()->surfaces[i].materialIndex];
-		DrawCallData newDrawCall;
-		newDrawCall.descriptorSet = &auxDescriptor;
-		newDrawCall.mat = (materials[mesh.get()->surfaces[i].materialIndex]).get();
-		newDrawCall.transform = transform;
-
-		drawCalls[meshId].drawCalls.emplace_back(std::move(newDrawCall));
-		
-	}
-	
-}
-
-
-void GltfLoader::drawScene(const VulkanRenderer& renderer, VulkanCommandBuffer& cmdBuff) const {
-
-
-
-	for (auto& drawCall : drawCalls) {
-
-		
-		cmdBuff.bindMesh(*drawCall.vertexBuffer, *drawCall.indexBuffer);
-		for (int i = 0; i < drawCall.drawCalls.size();i++) {
-			cmdBuff.recordDrawCall(renderer.getGraphicsPipeline(), drawCall,i,lightDescriptorSet);
-		}
-	}
-}
 
 
 
