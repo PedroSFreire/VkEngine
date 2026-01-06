@@ -2,17 +2,8 @@
 #include <string.h>
 #include <omp.h>
 
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-
-
-
-#include "..\headers\VulkanRenderer.h"
-#include "..\headers\VulkanSampler.h"
-#include "..\headers\VulkanCommandBuffer.h"
-
 #include <stb_image.h>
-
+#include "..\headers\GltfLoader.h"
 
 #include <chrono>
 //std::chrono::high_resolution_clock timer;

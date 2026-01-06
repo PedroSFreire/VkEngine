@@ -1,7 +1,6 @@
 #include "../headers/ResourceManager.h"
 #include "../headers/VulkanRenderer.h"
-#include "../headers/defines.h"
-#include "../headers/Scene.h"
+
 
 
 static constexpr VkFilter toVkFilter(Filter f) {

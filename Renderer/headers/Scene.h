@@ -1,13 +1,12 @@
 #pragma once
-
-#include "GltfLoader.h"
+#include "../headers/defines.h"
 
 class VulkanRenderer;
 
 class Scene
 {
 private:
-	GltfLoader gltfLoader;
+
 	SceneFramesData frameData;
 
 	SceneData scene;

@@ -1,11 +1,12 @@
 #include "../headers/Scene.h"
 #include <iostream>
-
+#include "../headers/GltfLoader.h"
 #include <filesystem>
 
 
 void Scene::loadFile(const std::string& filePath)
 {
+	GltfLoader gltfLoader;
 	auto ext = std::filesystem::path(filePath).extension();
 	if(ext == ".glm" || ext == ".gltf")
 	{

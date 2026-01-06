@@ -45,9 +45,8 @@ public:
     ~GltfLoader() = default;
     GltfLoader(const GltfLoader&) = delete;
 
+	//load file in fname into Scene
     void loadGltf(SceneData& Scene, const char* fname);
-
-    //iterate through scene graphs and call draw functions
 
 private:
 
