@@ -53,10 +53,6 @@ public:
 
 
 	const VkDescriptorPool* getDescriptorPool() const { return descriptorPool; }
-	//void createDescriptorSetLayoutNew (VulkanLogicalDevice& device, VulkanDescriptorPool& pool);
-	//void createDescriptorSetLayout(VulkanLogicalDevice& device, VulkanDescriptorPool& pool);
-	//void createDescriptorSetNew(VulkanBuffer& uniformBuffer, const VulkanImageView& textureView, const VulkanSampler& textureSampler);
-	//void updateDescriptorSetNew(VulkanBuffer& uniformBuffer, const VulkanImageView& textureView, const VulkanSampler& textureSampler);
 
 	void createMaterialDescriptorLayout(const VulkanLogicalDevice& device, VulkanDescriptorPool& pool);
 	void createUBODescriptorLayout(const VulkanLogicalDevice& device, VulkanDescriptorPool& pool);
@@ -71,7 +67,6 @@ public:
 	void updateMaterialDescriptor(const VkImageView* textureView, const VkSampler* textureSampler);
 	void updateUBODescriptor(VulkanBuffer& uniformBuffer);
 
-	//void createDescriptorSet(std::vector<VulkanBuffer>& uniformBuffers, int size,const VulkanImageView& textureView,const VulkanSampler& textureSampler);
-
+	
 };
 
