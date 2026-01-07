@@ -21,13 +21,7 @@
 
 
 
-void VulkanCommandBuffer::bindDescriptorSet(const VulkanRenderer& renderer, VkPipelineLayout& pipelineLayout, const VkDescriptorSet& descriptorSet, const VulkanBuffer& indexBuffer) {
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, renderer.getGraphicsPipeline().getPipelineLayout(), 0, 1, &descriptorSet, 0, nullptr);
-
-    vkCmdDrawIndexed(commandBuffer, indexBuffer.getElementCount(), 1, 0, 0, 0); 
-}
-
-
+/*
 void VulkanCommandBuffer::bindMesh( const VulkanBuffer& vertBuffer, const VulkanBuffer& indexBuffer) {
     VkBuffer vertexBuffers[] = { vertBuffer.getBuffer() };
     VkDeviceSize offsets[] = { 0 };
@@ -36,6 +30,23 @@ void VulkanCommandBuffer::bindMesh( const VulkanBuffer& vertBuffer, const Vulkan
     vkCmdBindIndexBuffer(commandBuffer, indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
 
+}
+
+
+
+void VulkanCommandBuffer::recordCommandBufferCopyBuffer(const VulkanPhysicalDevice& physicalDevice, const VulkanLogicalDevice& device, const VkBuffer& srcBuffer, const VkBuffer& dstBuffer, const VkDeviceSize size) {
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+    vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
+    VkBufferCopy copyRegion{};
+    copyRegion.srcOffset = 0; // Optional
+    copyRegion.dstOffset = 0; // Optional
+    copyRegion.size = size;
+    vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+    vkEndCommandBuffer(commandBuffer);
 }
 
 
@@ -52,67 +63,6 @@ void VulkanCommandBuffer::recordDrawCall(const VulkanGraphicsPipeline& graphicsP
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline.getPipelineLayout(), 0, 3, descriptor.data(), 0, nullptr);
 
     vkCmdDrawIndexed(commandBuffer, indexCount, 1, 0, 0, 0);
-}
-
-
-
-void VulkanCommandBuffer::createCommandBuffer(const VulkanLogicalDevice& device , const VulkanCommandPool& commandPool) {
-
-
-    VkCommandBufferAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.commandPool = commandPool.getCommandPool();
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandBufferCount = 1;
-
-    if (vkAllocateCommandBuffers(device.getDevice(), &allocInfo, &commandBuffer) !=
-        VK_SUCCESS) {
-        throw std::runtime_error("failed to allocate command buffers!");
-    }
-
-}
-
-
-void VulkanCommandBuffer::recordCommandBufferCopyBuffer(const VulkanPhysicalDevice& physicalDevice, const VulkanLogicalDevice& device, const VkBuffer&  srcBuffer, const VkBuffer&   dstBuffer, const VkDeviceSize size) {
-    VkCommandBufferBeginInfo beginInfo{};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-    vkBeginCommandBuffer(commandBuffer, &beginInfo);
-
-    VkBufferCopy copyRegion{};
-    copyRegion.srcOffset = 0; // Optional
-    copyRegion.dstOffset = 0; // Optional
-    copyRegion.size = size;
-    vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
-	vkEndCommandBuffer(commandBuffer);
-}
-
-
-void VulkanCommandBuffer::beginRecordindSingleTimeCommands(const VulkanLogicalDevice& logicalDevice, const VulkanCommandPool& commandPool) {
-
-
-    createCommandBuffer(logicalDevice, commandPool);
-
-    VkCommandBufferBeginInfo beginInfo{};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-    vkBeginCommandBuffer(commandBuffer, &beginInfo);
-
-
-}
-
-void VulkanCommandBuffer::endRecordingSingleTimeCommands(const VulkanLogicalDevice& logicalDevice, const VulkanCommandPool& commandPool) {
-    vkEndCommandBuffer(commandBuffer);
-
-    VkSubmitInfo submitInfo{};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &commandBuffer;
-
-    vkQueueSubmit(commandPool.getQueue(), 1, &submitInfo, VK_NULL_HANDLE);
-    vkQueueWaitIdle(commandPool.getQueue());
 }
 
 void VulkanCommandBuffer::recordCommandBufferScene(const uint32_t imageIndex, const VulkanRenderer& renderer, Scene& scene, VkDescriptorSet descriptorSet, ResourceManager& resourceManager) {
@@ -169,14 +119,14 @@ void VulkanCommandBuffer::recordCommandBufferScene(const uint32_t imageIndex, co
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, renderer.getGraphicsPipeline().getGraphicsPipeline());
 
     SceneFramesData& data = scene.recordScene();
-	resourceManager.loadLights(renderer, data.frameLightData);
-    
+    resourceManager.loadLights(renderer, data.frameLightData);
+
     for (CPUDrawCallInstanceData& instance : data.drawInstances) {
         MeshBuffers& mesh = resourceManager.getMesh(instance.meshResourceId).meshBuffers;
         bindMesh(mesh.vertexBuffer, mesh.indexBuffer);
-		int indexCount = scene.getMeshAsset(instance.meshId).indices.size();
+        int indexCount = scene.getMeshAsset(instance.meshId).indices.size();
         for (CPUDrawCallData& drawCall : instance.cpuDrawCalls) {
-           
+
             recordDrawCall(renderer.getGraphicsPipeline(), drawCall, indexCount, resourceManager);
         }
     }
@@ -189,3 +139,56 @@ void VulkanCommandBuffer::recordCommandBufferScene(const uint32_t imageIndex, co
     }
 
 }
+
+
+
+*/
+
+
+
+void VulkanCommandBuffer::createCommandBuffer(const VulkanLogicalDevice& device , const VulkanCommandPool& commandPool) {
+
+
+    VkCommandBufferAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.commandPool = commandPool.getCommandPool();
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandBufferCount = 1;
+
+    if (vkAllocateCommandBuffers(device.getDevice(), &allocInfo, &commandBuffer) !=
+        VK_SUCCESS) {
+        throw std::runtime_error("failed to allocate command buffers!");
+    }
+
+}
+
+
+
+
+
+void VulkanCommandBuffer::beginRecordindSingleTimeCommands(const VulkanLogicalDevice& logicalDevice, const VulkanCommandPool& commandPool) {
+
+
+    createCommandBuffer(logicalDevice, commandPool);
+
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+    vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
+
+}
+
+void VulkanCommandBuffer::endRecordingSingleTimeCommands(const VulkanLogicalDevice& logicalDevice, const VulkanCommandPool& commandPool) {
+    vkEndCommandBuffer(commandBuffer);
+
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &commandBuffer;
+
+    vkQueueSubmit(commandPool.getQueue(), 1, &submitInfo, VK_NULL_HANDLE);
+    vkQueueWaitIdle(commandPool.getQueue());
+}
+

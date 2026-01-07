@@ -67,7 +67,7 @@ uint32_t ResourceManager::loadMesh(const VulkanRenderer& renderer, const MeshAss
 
 uint32_t ResourceManager::createDescriptorSet(const VulkanRenderer& renderer, const MaterialAsset& mat, SceneData& scene) {
 	VulkanDescriptorSet newSet;
-	newSet.createMaterialDescriptorLayout(renderer.getLogicalDevice(), descriptorPool);
+	renderer.createMaterialDescriptorLayout(newSet, descriptorPool);
 	newSet.createDescriptor();
 	//TODO:load default textures
 	ImageResource* colorImage;
@@ -147,7 +147,8 @@ uint32_t ResourceManager::createDescriptorSet(const VulkanRenderer& renderer, co
 
 	std::array<VkImageView, 5> imageViews{ colorImage->imageView.getImageView(),normalImage->imageView.getImageView(),metalRoughImage->imageView.getImageView(),occlusionImage->imageView.getImageView(),emissiveImage->imageView.getImageView() };
 	std::array<VkSampler, 5> imageSamplers{ colorSampler->sampler.getSampler(),normalSampler->sampler.getSampler(),metalRoughSampler->sampler.getSampler(),occlusionSampler->sampler.getSampler(),emissiveSampler->sampler.getSampler() };
-	newSet.updateMaterialDescriptor(imageViews.data(), imageSamplers.data());
+	
+	renderer.updateMaterialDescriptor(newSet, imageViews.data(), imageSamplers.data());
 	descriptorSets.emplace_back(std::move(newSet));
 	return static_cast<uint32_t>(descriptorSets.size() - 1);
 
@@ -223,7 +224,7 @@ void ResourceManager::loadLights(const VulkanRenderer& renderer, std::vector<Lig
 		lightsCreated = true;
 	}
 		renderer.bufferStagedUpload(lightBuffer, lights.data(), static_cast<uint32_t>(sizeof(LightGPUData) * lights.size()), 1);
-		lightDescriptorSet.updateLightDescriptor(lightBuffer, lights.size());
+		renderer.updateLightDescriptor(lightDescriptorSet,lightBuffer, lights.size());
 	
 	
 }
@@ -248,13 +249,15 @@ void ResourceManager::loadScene(const VulkanRenderer& renderer,SceneData& scene)
 
 
 	//descriptor pool needs scaling but for that new pools would be needed TODO
-	descriptorPool.createMaterialDescriptorPool(renderer.getLogicalDevice(), scene.imageAssets.size());
+
+	renderer.createMaterialDescriptorPool(descriptorPool, scene.imageAssets.size());
 	descriptorSets.reserve(descriptorSets.size() +scene.imageAssets.size());
 	for (auto& mat : scene.materials) {
 		mat->resourceId = createDescriptorSet(renderer, *(mat.get()), scene);
 	}
 
-	lightdescriptorPool.createLightDescriptorPool(renderer.getLogicalDevice(), 1);
-	lightDescriptorSet.createLightDescriptorLayout(renderer.getLogicalDevice(), lightdescriptorPool);
+
+	renderer.createLightDescriptorPool(lightdescriptorPool,1);
+	renderer.createLightDescriptorLayout(lightDescriptorSet, lightdescriptorPool);
 	lightDescriptorSet.createDescriptor();
 }

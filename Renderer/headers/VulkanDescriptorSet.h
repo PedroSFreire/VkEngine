@@ -9,6 +9,7 @@
 #include <array>
 #include <vector>
 #include <chrono>
+#include <span>
 
 
 class VulkanLogicalDevice;
@@ -54,18 +55,11 @@ public:
 
 	const VkDescriptorPool* getDescriptorPool() const { return descriptorPool; }
 
-	void createMaterialDescriptorLayout(const VulkanLogicalDevice& device, VulkanDescriptorPool& pool);
-	void createUBODescriptorLayout(const VulkanLogicalDevice& device, VulkanDescriptorPool& pool);
-	void createLightDescriptorLayout(const VulkanLogicalDevice& device, VulkanDescriptorPool& pool);
-
-	VkDescriptorSetLayout createMaterialDescriptorLayout(const VulkanLogicalDevice& device);
-	VkDescriptorSetLayout createLightDescriptorLayout(const VulkanLogicalDevice& device);
 
 	void createDescriptor();
 
-	void updateLightDescriptor(VulkanBuffer& lightBuffer, size_t numLights);
-	void updateMaterialDescriptor(const VkImageView* textureView, const VkSampler* textureSampler);
-	void updateUBODescriptor(VulkanBuffer& uniformBuffer);
+	void createDescriptorLayout(const VulkanLogicalDevice& device, VulkanDescriptorPool& pool, std::span<const VkDescriptorSetLayoutBinding> bindings);
+	void updateDescriptorSet(std::span<VkWriteDescriptorSet> data);
 
 	
 };

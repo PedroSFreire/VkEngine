@@ -1,7 +1,7 @@
 #pragma once
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
-
+#include <span>
 /*
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
@@ -17,7 +17,11 @@ class VulkanLogicalDevice;
 
 
 
-
+struct DescriptorPoolCreateInfo {
+	std::span<VkDescriptorPoolSize> poolSizes; 
+	uint32_t maxSets = 0;                         
+	VkDescriptorPoolCreateFlags flags = 0;       
+};
 
 class VulkanDescriptorPool
 {
@@ -47,10 +51,7 @@ public:
 	}
 
 	VkDescriptorPool& getDescriptorPool() { return descriptorPool; }
+	void createDescriptorPool(const VulkanLogicalDevice& device, const DescriptorPoolCreateInfo& info);
 
-
-	void createMaterialDescriptorPool( const VulkanLogicalDevice& device, int size);
-	void createUBODescriptorPool( const VulkanLogicalDevice& device, int size);
-	void createLightDescriptorPool(const VulkanLogicalDevice& device, size_t size);
 };
 

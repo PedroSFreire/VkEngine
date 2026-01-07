@@ -106,6 +106,25 @@ public:
 	const VulkanMemoryAllocator & getAllocator() const { return allocator; }
 
 	void bufferStagedUpload(VulkanBuffer& dstBuffer,const void* bufferData, uint32_t size, uint32_t elementCount) const;
+
+	//The following functions are for descriptor set management and should be refactored into a DescriptorManager class later
+	// *******************************************************************************************************************************************
+	// Descriptor Pools
+	void createMaterialDescriptorPool(VulkanDescriptorPool& pool, int size) const;
+	void createUBODescriptorPool(VulkanDescriptorPool& pool, int size) const;
+	void createLightDescriptorPool(VulkanDescriptorPool& pool, size_t size) const;
+
+
+	// Descriptor Set Layouts
+	void createMaterialDescriptorLayout(VulkanDescriptorSet& set, VulkanDescriptorPool& pool)const;
+	void createUBODescriptorLayout(VulkanDescriptorSet& set, VulkanDescriptorPool& pool)const;
+	void createLightDescriptorLayout(VulkanDescriptorSet& set, VulkanDescriptorPool& pool)const;
+
+	// Descriptor Set Updates
+	void updateLightDescriptor(VulkanDescriptorSet& set, VulkanBuffer& lightBuffer, size_t numLights)const;
+	void updateMaterialDescriptor(VulkanDescriptorSet& set, const VkImageView* textureView, const VkSampler* textureSampler)const;
+	void updateUBODescriptor(VulkanDescriptorSet& set, VulkanBuffer& uniformBuffer)const;
+	// *******************************************************************************************************************************************
 private:
 
 
@@ -202,6 +221,20 @@ private:
 	void cleanDepthResources();
 
 	void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, const VkDeviceSize size) const;
+
+
+	// commandBuffer recording and helpers**************************************************************
+	void bindMesh(VulkanCommandBuffer& commandBuffer, const VulkanBuffer& vertBuffer, const VulkanBuffer& indexBuffer);
+
+	void recordDrawCall(VulkanCommandBuffer& commandBuffer, const VulkanGraphicsPipeline& graphicsPipeline, const CPUDrawCallData data, uint32_t indexCount, ResourceManager& resourceManager,VkDescriptorSet currentUBO);
+
+	void recordCommandBufferScene(VulkanCommandBuffer& commandBuffer, const uint32_t imageIndex, Scene& scene, VkDescriptorSet descriptorSet, ResourceManager& resourceManager);
+
+	void recordCommandBufferCopyBuffer(VulkanCommandBuffer& commandBuffer, const VkBuffer& srcBuffer, const VkBuffer& dstBuffer, const VkDeviceSize size);
+
+	
+
+	//**************************************************************************************************
 
 };
 
