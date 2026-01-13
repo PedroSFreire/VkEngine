@@ -325,6 +325,8 @@ struct MeshResource {
 
 
 struct CPUDrawCallData {
+	uint32_t startIndex;
+	uint32_t count;
 	uint32_t materialDescriptorId = -1;
 	glm::mat4 transform;
 	MaterialAsset* mat;
@@ -376,6 +378,7 @@ struct SceneFramesData {
 		: drawInstances(instances), frameLightData(lights) {
 	}
 	SceneFramesData() = default;
+
 };
 
 namespace std {

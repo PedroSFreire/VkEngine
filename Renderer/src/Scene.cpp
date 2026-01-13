@@ -4,13 +4,42 @@
 #include <filesystem>
 
 
+void Scene::addDefaultLight() {
+	LightAsset newLight;
+	newLight.type = LightType::Point;
+	newLight.color.x = 1.0;
+	newLight.color.y = 1.0;
+	newLight.color.z = 1.0;
+	newLight.intensity = 10;
+	newLight.range = 100.0f;
+	scene.lights.emplace_back(std::make_shared<LightAsset>(std::move(newLight)));
+
+
+	NodeAsset newNode;
+
+	newNode.name = "defaultLight";
+
+	newNode.lightIndex = 0;
+
+	newNode.transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 15.0f, 0.0f));
+
+	scene.nodes.emplace_back(std::make_shared<NodeAsset>(std::move(newNode)));
+	scene.rootNodesIds.emplace_back(scene.nodes.size() - 1);
+
+	//Add emissive mesh ball as child need to add material mesh emissive texture and node as child of light
+}
+
 void Scene::loadFile(const std::string& filePath)
 {
 	GltfLoader gltfLoader;
+	Camera newCamera;
+	cameras.resize(1);
+	cameras[0] = std::move(newCamera);
 	auto ext = std::filesystem::path(filePath).extension();
-	if(ext == ".glm" || ext == ".gltf")
+	if(ext == ".glm" || ext == ".gltf" || ext == ".glb")
 	{
 		gltfLoader.loadGltf(scene,filePath.c_str());
+		addDefaultLight();
 		frameData.drawInstances.resize(scene.meshAssets.size());
 	}
 	else {
@@ -78,9 +107,13 @@ void Scene::recordMesh(int meshId, glm::mat4& transform) {
 	frameData.drawInstances[meshId].cpuDrawCalls.reserve(prevSize + meshAsset.get()->surfaces.size());
 	frameData.drawInstances[meshId].meshId = meshId;
 	frameData.drawInstances[meshId].meshResourceId = meshAsset->resourceId;
-	for (int i = meshAsset.get()->surfaces.size() - 1; i >= 0; i--) {
+	if (meshAsset->resourceId == -1)
+		printf("");
+	for (int i = 0; i < meshAsset.get()->surfaces.size(); i++) {
 
 		CPUDrawCallData newDrawCall;
+		newDrawCall.startIndex = meshAsset->surfaces[i].startIndex;
+		newDrawCall.count = meshAsset->surfaces[i].count;
 		newDrawCall.materialDescriptorId = meshAsset->resourceId;
 		newDrawCall.mat = (scene.materials[meshAsset.get()->surfaces[i].materialIndex]).get();
 		newDrawCall.transform = transform;

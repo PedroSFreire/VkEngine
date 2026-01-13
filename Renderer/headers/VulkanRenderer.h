@@ -47,7 +47,7 @@
 
 #include "Camera.h"
 #include "VulkanRenderPass.h"
-#include "VulkanGraphicsPipeline.h"
+#include "VulkanPipeline.h"
 #include "VulkanFrameBuffers.h"
 #include "VulkanCommandPool.h"
 #include "VulkanCommandBuffer.h"
@@ -62,6 +62,8 @@
 #include "ModelLoader.h"
 #include "GltfLoader.h"
 
+#include "DescriptorManager.h"
+#include "CommandBufferRecorder.h"
 
 
 
@@ -73,11 +75,11 @@ class VulkanRenderer
 public:
 
 
-	void run(Scene& scene, ResourceManager& resourceManager) {
+	void run(SceneFramesData& drawData, ResourceManager& resourceManager,Camera& camera) {
 
 		
 		glfwPollEvents();
-		drawFrame(scene,	resourceManager);
+		drawFrame(drawData,	resourceManager,camera);
 		vkDeviceWaitIdle(logicalDevice.getDevice());
 	}
 
@@ -96,42 +98,25 @@ public:
 
 	bool running() { return !window.shouldClose(); }
 	const VulkanPhysicalDevice& getPhysicalDevice() const { return physicalDevice; }
-	VulkanLogicalDevice& getLogicalDevice() { return logicalDevice; }
 	const VulkanLogicalDevice& getLogicalDevice() const { return logicalDevice; }
+	VulkanLogicalDevice& getLogicalDevice() { return logicalDevice; }
 	const VulkanSwapChain& getSwapChain() const { return swapChain; }
 	const VulkanRenderPass& getRenderPass() const { return renderPass; }
 	const VulkanFrameBuffers& getFrameBuffers() const { return frameBuffers; }
-	const VulkanGraphicsPipeline& getGraphicsPipeline() const { return graphicsPipeline; }
+	const VulkanPipeline& getGraphicsPipeline() const { return graphicsPipeline; }
 	const VulkanCommandPool& getCommandPool() const { return commandPool; }
+	const VulkanCommandPool& getTransferCommandPool() const { return transferCommandPool; }
 	const VulkanMemoryAllocator & getAllocator() const { return allocator; }
+	const VulkanSurface& getSurface() const { return surface; }
 
 	void bufferStagedUpload(VulkanBuffer& dstBuffer,const void* bufferData, uint32_t size, uint32_t elementCount) const;
 
-	//The following functions are for descriptor set management and should be refactored into a DescriptorManager class later
-	// *******************************************************************************************************************************************
-	// Descriptor Pools
-	void createMaterialDescriptorPool(VulkanDescriptorPool& pool, int size) const;
-	void createUBODescriptorPool(VulkanDescriptorPool& pool, int size) const;
-	void createLightDescriptorPool(VulkanDescriptorPool& pool, size_t size) const;
 
-
-	// Descriptor Set Layouts
-	void createMaterialDescriptorLayout(VulkanDescriptorSet& set, VulkanDescriptorPool& pool)const;
-	void createUBODescriptorLayout(VulkanDescriptorSet& set, VulkanDescriptorPool& pool)const;
-	void createLightDescriptorLayout(VulkanDescriptorSet& set, VulkanDescriptorPool& pool)const;
-
-	// Descriptor Set Updates
-	void updateLightDescriptor(VulkanDescriptorSet& set, VulkanBuffer& lightBuffer, size_t numLights)const;
-	void updateMaterialDescriptor(VulkanDescriptorSet& set, const VkImageView* textureView, const VkSampler* textureSampler)const;
-	void updateUBODescriptor(VulkanDescriptorSet& set, VulkanBuffer& uniformBuffer)const;
-	// *******************************************************************************************************************************************
 private:
 
 
 
 	uint32_t currentFrame = 0;
-
-	Camera												camera;
 
 	Window												window{};
 
@@ -153,7 +138,7 @@ private:
 
 	VulkanDescriptorPool								descriptorPool{};
 
-	VulkanGraphicsPipeline								graphicsPipeline{};
+	VulkanPipeline										graphicsPipeline{};
 
 	VulkanFrameBuffers									frameBuffers{};
 
@@ -190,51 +175,23 @@ private:
 
 	void recreateSwapChain();
 
-	void drawFrame(Scene& scene, ResourceManager& resourceManager);
+	void drawFrame(SceneFramesData& drawData, ResourceManager& resourceManager,Camera& camera);
 
 	void processInput(float deltaTime);
-
-	//resource creation and maintenance functions
-
-	void createUniformBuffers();
-
-	void update(uint32_t currentImage, SceneData& sceneData);
-
-	void updateUniformBuffer(uint32_t currentImage, float deltaTime, SceneData& sceneData);
-
-	void createVertexBuffer(const std::vector<Vertex>& vertices, VulkanBuffer& buffer) const;
-
-	void createIndexBuffer(const std::vector<uint32_t>& indices, VulkanBuffer& buffer) const;
-
-	void createTextureImage(const std::string& TEXTURE_PATH, VulkanImage& textureImage) const;
-
-	void createTextureImage(const ImageAsset& data, VulkanImage& textureImage) const;
-
-	void createTextureImageHelper(stbi_uc* pixels, int texWidth, int texHeight, VulkanImage& textureImage) const;
-
-	void transitionImageLayout(VulkanImage& image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t srcQueue, uint32_t destQueue) const;
-
-	void copyBufferToImage(VulkanBuffer& buffer, VulkanImage& image, uint32_t width, uint32_t height) const;
 
 	void createDepthResources();
 
 	void cleanDepthResources();
 
-	void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, const VkDeviceSize size) const;
+	void update(uint32_t currentImage, int lightCount, Camera& camera);
+
+	void updateUniformBuffer(uint32_t currentImage, float deltaTime, int lightCount, Camera& camera);
 
 
-	// commandBuffer recording and helpers**************************************************************
-	void bindMesh(VulkanCommandBuffer& commandBuffer, const VulkanBuffer& vertBuffer, const VulkanBuffer& indexBuffer);
+	void createUniformBuffers();
+	//resource creation and maintenance functions
 
-	void recordDrawCall(VulkanCommandBuffer& commandBuffer, const VulkanGraphicsPipeline& graphicsPipeline, const CPUDrawCallData data, uint32_t indexCount, ResourceManager& resourceManager,VkDescriptorSet currentUBO);
 
-	void recordCommandBufferScene(VulkanCommandBuffer& commandBuffer, const uint32_t imageIndex, Scene& scene, VkDescriptorSet descriptorSet, ResourceManager& resourceManager);
-
-	void recordCommandBufferCopyBuffer(VulkanCommandBuffer& commandBuffer, const VkBuffer& srcBuffer, const VkBuffer& dstBuffer, const VkDeviceSize size);
-
-	
-
-	//**************************************************************************************************
 
 };
 

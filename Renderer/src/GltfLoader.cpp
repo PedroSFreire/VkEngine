@@ -233,28 +233,7 @@ void GltfLoader::loadLights(SceneData& scene) {
 			newLight.spotOuterCos = light.outerConeAngle.value();
 		scene.lights.emplace_back(std::make_shared<LightAsset>(std::move(newLight)));
 	}
-	if (asset.lights.size() == 0) {
-		LightAsset newLight;
-		newLight.type = LightType::Point;
-		newLight.color.x = 1.0;
-		newLight.color.y = 1.0;
-		newLight.color.z = 1.0;
-		newLight.intensity = 10;
-		newLight.range = 100.0f;
-		scene.lights.emplace_back(std::make_shared<LightAsset>(std::move(newLight)));
-		
 
-		NodeAsset newNode;
-
-		newNode.name = "defaultLight";
-
-		newNode.lightIndex = 0;
-
-		newNode.transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 15.0f, 0.0f));
-
-		scene.nodes.emplace_back(std::make_shared<NodeAsset>(std::move(newNode)));
-		scene.rootNodesIds.emplace_back(scene.nodes.size() - 1);
-	}
 
 }
 
@@ -435,7 +414,7 @@ void GltfLoader::loadMeshes(SceneData& scene)
 	std::vector<uint32_t> indices;
 	std::vector<Vertex> vertices;
 
-	scene.meshAssets.reserve(asset.meshes.size());
+	scene.meshAssets.reserve(asset.meshes.size()+ scene.meshAssets.size());
 
 	for (const auto& mesh : asset.meshes) {
 

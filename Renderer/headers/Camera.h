@@ -1,7 +1,8 @@
 #pragma once
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#
+#include "Window.h"
+
 class Camera
 {
 	
@@ -24,6 +25,23 @@ public:
 		yaw = other.yaw;
 	}
 
+	Camera& operator=(Camera&& other) noexcept {
+		if (this != &other) {
+			camPos = other.camPos;
+			camDirection = other.camDirection;
+			camUp = other.camUp;
+			camRight = other.camRight;
+			lastMouseX = other.lastMouseX;
+			lastMouseY = other.lastMouseY;
+			sensitivity = other.sensitivity;
+			camSensivity = other.camSensivity;
+			firstMouse = other.firstMouse;
+			pitch = other.pitch;
+			yaw = other.yaw;
+		}
+		return *this;
+	}
+
 
 	void updateCam(double mouseX, double mouseY);
 
@@ -34,12 +52,17 @@ public:
 	float getFov() const{ return fov; }
 
 	// Movement
+	//void goForward(float d) { camPos += d * camDirection; }
+	//void goUp(float d) { camPos += d * camUp; };
+	//void goRight(float d) { camPos += d * camRight; };
+	void processInput(float deltaTime, Window& window);
+
+private:
+
 	void goForward(float d) { camPos += d * camDirection; }
 	void goUp(float d) { camPos += d * camUp; };
 	void goRight(float d) { camPos += d * camRight; };
 
-
-private:
 	glm::vec3 camPos = glm::vec3(2.0f, 2.0f, 2.0f);
 	glm::vec3 camDirection = glm::normalize(glm::vec3(0.0f, 0.0f, 0.0f) - camPos);
 	glm::vec3 camUp = glm::vec3(0.0f, 0.0f, 1.0f);

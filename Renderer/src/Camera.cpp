@@ -34,3 +34,31 @@ void Camera::updateCam(double mouseX, double mouseY) {
 	lastMouseX = mouseX;
 	lastMouseY = mouseY;
 };
+
+
+void Camera::processInput(float deltaTime, Window& window) {
+	// Implement camera movement and input processing here
+	if (glfwGetKey(window.getWindow(), GLFW_KEY_ESCAPE) == GLFW_PRESS)
+		glfwSetWindowShouldClose(window.getWindow(), true);
+	double mouseX, mouseY;
+	glfwGetCursorPos(window.getWindow(), &mouseX, &mouseY);
+
+	updateCam(mouseX, mouseY);
+
+
+	//WASD movement
+	if (glfwGetKey(window.getWindow(), GLFW_KEY_W) == GLFW_PRESS)
+		goForward(2.0f * deltaTime);
+	if (glfwGetKey(window.getWindow(), GLFW_KEY_S) == GLFW_PRESS)
+		goForward(-2.0f * deltaTime);
+	if (glfwGetKey(window.getWindow(), GLFW_KEY_D) == GLFW_PRESS)
+		goRight(2.0f * deltaTime);
+	if (glfwGetKey(window.getWindow(), GLFW_KEY_A) == GLFW_PRESS)
+		goRight(-2.0f * deltaTime);
+	if (glfwGetKey(window.getWindow(), GLFW_KEY_SPACE) == GLFW_PRESS)
+		goUp(1.0f * deltaTime);
+	if (glfwGetKey(window.getWindow(), GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+		goUp(-1.0f * deltaTime);
+
+
+}

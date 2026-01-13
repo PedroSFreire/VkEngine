@@ -1,5 +1,6 @@
 #pragma once
 #include "../headers/defines.h"
+#include "../headers/camera.h"
 
 class VulkanRenderer;
 
@@ -9,7 +10,13 @@ private:
 
 	SceneFramesData frameData;
 
+	std::vector<Camera> cameras;
+
+	int activeCamera = 0;
+	
 	SceneData scene;
+
+	void addDefaultLight();
 
 public:
 
@@ -19,7 +26,7 @@ public:
 	Scene(Scene&&) = default;
 
 
-
+	Camera& getActiveCamera() { return cameras[activeCamera]; }
 	
 	bool lightsCreated = false;
 

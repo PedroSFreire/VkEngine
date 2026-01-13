@@ -1,17 +1,7 @@
-#include "..\headers\VulkanGraphicsPipeline.h"
-#include "..\headers\VulkanLogicalDevice.h"
-#include "..\headers\VulkanSwapChain.h"
-#include "..\headers\VulkanRenderPass.h"
-#include "..\headers\defines.h"
-
-VulkanGraphicsPipeline::~VulkanGraphicsPipeline() {
-    vkDestroyPipeline((*logicalDevice).getDevice(), graphicsPipeline, nullptr);
-
-    vkDestroyPipelineLayout((*logicalDevice).getDevice(), pipelineLayout, nullptr);
-}
+#include "..\headers\PipelineFactory.h"
 
 
-std::vector<char> VulkanGraphicsPipeline::readFile(const std::string& filename) const {
+std::vector<char> PipelineFactory::readFile(const std::string& filename)  {
     std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
     if (!file.is_open()) {
@@ -29,16 +19,16 @@ std::vector<char> VulkanGraphicsPipeline::readFile(const std::string& filename) 
 }
 
 
-VkShaderModule VulkanGraphicsPipeline::createShaderModule( const std::vector<char>& code)const {
-	
-    
+VkShaderModule PipelineFactory::createShaderModule(const VulkanLogicalDevice& device, const std::vector<char>& code) {
+
+
     VkShaderModuleCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     createInfo.codeSize = code.size();
     createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
 
     VkShaderModule shaderModule;
-    if (vkCreateShaderModule(logicalDevice->getDevice(), &createInfo, nullptr, &shaderModule) !=
+    if (vkCreateShaderModule(device.getDevice(), &createInfo, nullptr, &shaderModule) !=
         VK_SUCCESS) {
         throw std::runtime_error("failed to create shader module!");
     }
@@ -46,14 +36,15 @@ VkShaderModule VulkanGraphicsPipeline::createShaderModule( const std::vector<cha
     return shaderModule;
 }
 
-void VulkanGraphicsPipeline::createGraphicsPipeline(const VulkanLogicalDevice& device, const VulkanSwapChain& swapChain, const VulkanRenderPass& renderPass , const VkDescriptorSetLayout* descriptorSetLayouts) {
-    logicalDevice = &device;
+void PipelineFactory::createGraphicsPipeline(VulkanPipeline& pipeline,const VulkanLogicalDevice& device, const VulkanSwapChain& swapChain, const VulkanRenderPass& renderPass, const VkDescriptorSetLayout* descriptorSetLayouts) {
+   
+    pipeline.setLogicalDevice(device);
 
     auto vertShaderCode = readFile("shaders/vert.spv");
     auto fragShaderCode = readFile("shaders/frag.spv");
 
-    VkShaderModule vertShaderModule = createShaderModule( vertShaderCode);
-    VkShaderModule fragShaderModule = createShaderModule( fragShaderCode);
+    VkShaderModule vertShaderModule = createShaderModule(device ,vertShaderCode);
+    VkShaderModule fragShaderModule = createShaderModule(device ,fragShaderCode);
 
     VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
     vertShaderStageInfo.sType =
@@ -201,15 +192,12 @@ void VulkanGraphicsPipeline::createGraphicsPipeline(const VulkanLogicalDevice& d
 
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = 3;             
+    pipelineLayoutInfo.setLayoutCount = 3;
     pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts;
-    pipelineLayoutInfo.pushConstantRangeCount = 1;     
+    pipelineLayoutInfo.pushConstantRangeCount = 1;
     pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 
-    if (vkCreatePipelineLayout(device.getDevice(), &pipelineLayoutInfo, nullptr,
-        &pipelineLayout) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create pipeline layout!");
-    }
+	pipeline.createPipelineLayout(device, pipelineLayoutInfo);  
 
     VkPipelineDepthStencilStateCreateInfo depthStencil{};
     depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
@@ -237,17 +225,14 @@ void VulkanGraphicsPipeline::createGraphicsPipeline(const VulkanLogicalDevice& d
     pipelineInfo.pColorBlendState = &colorBlending;
     pipelineInfo.pDynamicState = &dynamicState;
 
-    pipelineInfo.layout = pipelineLayout;
+    pipelineInfo.layout = pipeline.getPipelineLayout();
     pipelineInfo.renderPass = renderPass.getRenderPass();
     pipelineInfo.subpass = 0;
 
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;  // Optional
     pipelineInfo.basePipelineIndex = -1;               // Optional
 
-    if (vkCreateGraphicsPipelines(device.getDevice(), VK_NULL_HANDLE, 1, &pipelineInfo,
-        nullptr, &graphicsPipeline) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create graphics pipeline!");
-    }
+	pipeline.createPipeline(device, pipelineInfo);
 
     vkDestroyShaderModule(device.getDevice(), fragShaderModule, nullptr);
     vkDestroyShaderModule(device.getDevice(), vertShaderModule, nullptr);

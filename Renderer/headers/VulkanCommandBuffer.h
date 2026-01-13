@@ -10,7 +10,7 @@ class VulkanLogicalDevice;
 class VulkanSwapChain;
 class VulkanRenderPass;
 class VulkanFrameBuffers;
-class VulkanGraphicsPipeline;
+class VulkanPipeline;
 class VulkanBuffer;
 class VulkanCommandPool;
 class VulkanRenderer;
@@ -46,7 +46,7 @@ public:
 
 	void bindMesh(const VulkanBuffer& vertBuffer, const VulkanBuffer& indexBuffer);
 
-	void recordDrawCall(const VulkanGraphicsPipeline& graphicsPipeline, const CPUDrawCallData data, uint32_t indexCount, ResourceManager& resourceManager);
+	void recordDrawCall(const VulkanPipeline& graphicsPipeline, const CPUDrawCallData data, uint32_t indexCount, ResourceManager& resourceManager);
 
 	void recordCommandBufferScene(const uint32_t imageIndex, const VulkanRenderer& renderer, Scene& scene, VkDescriptorSet descriptorSet, ResourceManager& resourceManager);
 	
