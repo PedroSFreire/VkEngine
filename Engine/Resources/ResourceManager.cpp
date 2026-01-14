@@ -250,8 +250,8 @@ void ResourceManager::loadScene(const VulkanRenderer& renderer,SceneData& scene)
 
 	//descriptor pool needs scaling but for that new pools would be needed TODO
 
-	DescriptorManager::createMaterialDescriptorPool(renderer.getLogicalDevice(),descriptorPool, scene.imageAssets.size());
-	descriptorSets.reserve(scene.imageAssets.size());
+	DescriptorManager::createMaterialDescriptorPool(renderer.getLogicalDevice(),descriptorPool, scene.materials.size());
+	descriptorSets.reserve(scene.materials.size());
 	for (auto& mat : scene.materials) {
 		mat->resourceId = createDescriptorSet(renderer, *(mat.get()), scene);
 	}
