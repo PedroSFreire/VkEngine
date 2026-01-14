@@ -5,11 +5,11 @@
 
 #define TINYOBJLOADER_IMPLEMENTATION
 
-#include "renderer\headers\VulkanRenderer.h"
-#include "renderer\headers\Scene.h"
-#include "renderer\headers\ResourceManager.h"
+#include "Renderer\Renderer\VulkanRenderer.h"
+#include "Engine\Scene\Scene.h"
+#include "Engine\Resources\ResourceManager.h"
 
-#include "renderer\headers\defines.h"
+#include "Engine\Core\defines.h"
 
 
 int main() {
