@@ -16,9 +16,24 @@ find_package(OpenMP REQUIRED)
 
 # ---- Collect source files ----
 file(GLOB_RECURSE RENDERER_SRC
-    Renderer/src/*.cpp
-    Renderer/header/*.h
-    main.cpp
+
+    	Renderer/Vulkan/*.cpp
+	Renderer/Renderer/*.cpp
+	Renderer/Platform/*.cpp
+    	Renderer/Vulkan/*.h
+	Renderer/Renderer/*.h
+	Renderer/Platform/*.h
+
+    	Engine/Core/*.cpp
+	Engine/Scene/*.cpp
+	Engine/Resources/*.cpp
+    	Engine/Loaders/*.cpp
+    	Engine/Core/*.h
+	Engine/Scene/*.h
+	Engine/Resources/*.h
+    	Engine/Loaders/*.h
+
+    	main.cpp
 )
 
 add_executable(Renderer ${RENDERER_SRC})
