@@ -2,29 +2,45 @@
 #include <iostream>
 #include "../Loaders/GltfLoader.h"
 #include <filesystem>
+#include <glm/glm.hpp>
 
 
 void Scene::addDefaultLight() {
 	LightAsset newLight;
 	newLight.type = LightType::Point;
-	newLight.color.x = 1.0;
-	newLight.color.y = 1.0;
-	newLight.color.z = 1.0;
-	newLight.intensity = 10;
+	newLight.color.x = 0.8;
+	newLight.color.y = 0.8;
+	newLight.color.z = 0.8;
+	newLight.intensity = 0.9;
 	newLight.range = 100.0f;
 	scene.lights.emplace_back(std::make_shared<LightAsset>(std::move(newLight)));
 
 
-	NodeAsset newNode;
+	NodeAsset LightNode;
 
-	newNode.name = "defaultLight";
+	LightNode.name = "defaultLight";
 
-	newNode.lightIndex = 0;
+	LightNode.lightIndex = 0;
 
-	newNode.transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 15.0f, 0.0f));
+	LightNode.transform = glm::translate(glm::mat4(1.0f), glm::vec3(5.0f, 1.0f, -5.0f));
 
-	scene.nodes.emplace_back(std::make_shared<NodeAsset>(std::move(newNode)));
-	scene.rootNodesIds.emplace_back(scene.nodes.size() - 1);
+	LightNode.children.emplace_back(scene.nodes.size()+1);
+
+	scene.nodes.emplace_back(std::make_shared<NodeAsset>(std::move(LightNode)));
+
+	NodeAsset meshNode;
+
+	meshNode.name = "defaultMesh";
+
+	meshNode.meshIndex = 1;
+
+	meshNode.parentIndex = scene.nodes.size() - 1;
+
+	meshNode.transform = glm::translate(glm::mat4(1.0f), glm::vec3(1.0f));
+
+	scene.nodes.emplace_back(std::make_shared<NodeAsset>(std::move(meshNode)));
+
+	scene.rootNodesIds.emplace_back(scene.nodes.size() - 2);
 
 	//Add emissive mesh ball as child need to add material mesh emissive texture and node as child of light
 }
@@ -55,11 +71,8 @@ SceneFramesData& Scene::recordScene() {
 
 	frameData.frameLightData.clear();
 
-	glm::mat4 correction = glm::rotate(
-		glm::mat4(1.0f),
-		glm::radians(90.0f),
-		glm::vec3(1.0f, 0.0f, 0.0f)
-	);
+	//glm::mat4 correction = glm::rotate(glm::mat4(1.0f),glm::radians(90.0f),glm::vec3(1.0f, 0.0f, 0.0f));
+	glm::mat4 correction = glm::mat4(1.0f);
 	for (auto rootId : scene.rootNodesIds) {
 		recordNode(rootId, correction);
 	}
@@ -85,8 +98,10 @@ void  Scene::recordNode(int nodeId, glm::mat4& transforMat) {
 		lightDataEntry.range = scene.lights[scene.nodes[nodeId]->lightIndex.value()]->range;
 		lightDataEntry.spotInnerCos = scene.lights[scene.nodes[nodeId]->lightIndex.value()]->spotInnerCos;
 		lightDataEntry.spotOuterCos = scene.lights[scene.nodes[nodeId]->lightIndex.value()]->spotOuterCos;
-		lightDataEntry.position = currentTransform * glm::vec4(0, 0, 0, 0);
-		lightDataEntry.direction = currentTransform * glm::vec4(0, -1, 0, 0);
+		lightDataEntry.position = currentTransform * glm::vec4(0, 0, 0, 1);
+		//lightDataEntry.direction = currentTransform * glm::vec4(0, -1, 0, 0);
+		glm::mat3 normalMat = glm::transpose(glm::inverse(glm::mat3(currentTransform)));
+		lightDataEntry.direction = glm::normalize(normalMat * glm::vec3(0, -1, 0));
 
 		frameData.frameLightData.emplace_back(std::move(lightDataEntry));
 	}

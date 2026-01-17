@@ -69,6 +69,7 @@ struct LightAsset {
 
 struct LightGPUData {
 	uint32_t type;
+	uint32_t paddingfat[3];
 
 	glm::vec3 color;
 	float intensity;
@@ -110,9 +111,9 @@ struct NodeAsset {
 };
 
 struct UniformBufferObject {
-	glm::mat4 model;
 	glm::mat4 view;
 	glm::mat4 proj;
+	glm::vec3 cameraPos;
 	glm::uint lightCount;
 };
 
@@ -242,6 +243,7 @@ struct MeshBuffers {
 struct Vertex {
 	glm::vec3 pos;
 	glm::vec3 normal;
+	glm::vec4 tangent;
 	glm::vec3 color;
 	glm::vec2 texCoord;
 
@@ -256,8 +258,8 @@ struct Vertex {
 		return bindingDescription;
 	}
 
-	static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions() {
-		std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
+	static std::array<VkVertexInputAttributeDescription, 5> getAttributeDescriptions() {
+		std::array<VkVertexInputAttributeDescription, 5> attributeDescriptions{};
 
 		attributeDescriptions[0].binding = 0;
 		attributeDescriptions[0].location = 0;
@@ -267,12 +269,22 @@ struct Vertex {
 		attributeDescriptions[1].binding = 0;
 		attributeDescriptions[1].location = 1;
 		attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attributeDescriptions[1].offset = offsetof(Vertex, color);
+		attributeDescriptions[1].offset = offsetof(Vertex, normal);
 
 		attributeDescriptions[2].binding = 0;
 		attributeDescriptions[2].location = 2;
-		attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-		attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
+		attributeDescriptions[2].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+		attributeDescriptions[2].offset = offsetof(Vertex, tangent);
+
+		attributeDescriptions[3].binding = 0;
+		attributeDescriptions[3].location = 3;
+		attributeDescriptions[3].format = VK_FORMAT_R32G32B32_SFLOAT;
+		attributeDescriptions[3].offset = offsetof(Vertex, color);
+
+		attributeDescriptions[4].binding = 0;
+		attributeDescriptions[4].location = 4;
+		attributeDescriptions[4].format = VK_FORMAT_R32G32_SFLOAT;
+		attributeDescriptions[4].offset = offsetof(Vertex, texCoord);
 		return attributeDescriptions;
 	}
 

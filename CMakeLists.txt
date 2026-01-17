@@ -11,6 +11,7 @@ find_package(glfw3 CONFIG REQUIRED)
 find_package(tinyobjloader CONFIG REQUIRED)
 find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 find_package(fastGltf CONFIG REQUIRED)
+find_package(MikkTSpace CONFIG REQUIRED)
 find_package(OpenMP REQUIRED)
 
 
@@ -39,6 +40,7 @@ file(GLOB_RECURSE RENDERER_SRC
 add_executable(Renderer ${RENDERER_SRC})
 
 # ---- Add include directories ----
+
 # (your own headers)
 target_include_directories(Renderer PRIVATE
     Renderer/header
@@ -48,12 +50,13 @@ $<TARGET_PROPERTY:fastgltf::fastgltf,INTERFACE_INCLUDE_DIRECTORIES>
 
 # ---- Link external libraries ----
 target_link_libraries(Renderer PRIVATE
-    Vulkan::Vulkan
-    glfw
-    glm::glm
-    tinyobjloader::tinyobjloader
-    fastgltf::fastgltf
-     ${VMA_INCLUDE_DIRS}
+    	Vulkan::Vulkan
+    	glfw
+    	glm::glm
+    	tinyobjloader::tinyobjloader
+    	fastgltf::fastgltf
+	mikktspace::mikktspace
+     	${VMA_INCLUDE_DIRS}
 	OpenMP::OpenMP_CXX
 )
 

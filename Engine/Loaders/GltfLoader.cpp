@@ -14,7 +14,78 @@
 //duration = end - start;
 //std::cout << "Loading to structs " << duration.count() << " ms\n";
 
+namespace MikkTSpaceCallbacks {
+	int getNumFaces(const SMikkTSpaceContext* ctx) {
+		auto* mesh = (MeshAsset*)ctx->m_pUserData;
+		return mesh->indices.size() / 3;
+	}
 
+
+	int getNumVerticesOfFace(const SMikkTSpaceContext*, int) {
+		return 3;
+	}
+
+
+	void getPosition(
+		const SMikkTSpaceContext* ctx,
+		float pos[3],
+		int face,
+		int vert)
+	{
+		auto* mesh = (MeshAsset*)ctx->m_pUserData;
+		uint32_t index = mesh->indices[face * 3 + vert];
+		const glm::vec3& p = mesh->vertices[index].pos;
+
+		pos[0] = p.x;
+		pos[1] = p.y;
+		pos[2] = p.z;
+	}
+
+
+	void getNormal(
+		const SMikkTSpaceContext* ctx,
+		float normal[3],
+		int face,
+		int vert)
+	{
+		auto* mesh = (MeshAsset*)ctx->m_pUserData;
+		uint32_t index = mesh->indices[face * 3 + vert];
+		const glm::vec3& n = mesh->vertices[index].normal;
+
+		normal[0] = n.x;
+		normal[1] = n.y;
+		normal[2] = n.z;
+	}
+
+
+	void getTexCoord(
+		const SMikkTSpaceContext* ctx,
+		float uv[2],
+		int face,
+		int vert)
+	{
+		auto* mesh = (MeshAsset*)ctx->m_pUserData;
+		uint32_t index = mesh->indices[face * 3 + vert];
+		const glm::vec2& t = mesh->vertices[index].texCoord;
+
+		uv[0] = t.x;
+		uv[1] = t.y;
+	}
+
+
+	void setTSpaceBasic(const SMikkTSpaceContext* ctx, const float tangent[3], float sign, int face, int vert)
+	{
+		auto* mesh = (MeshAsset*)ctx->m_pUserData;
+		uint32_t index = mesh->indices[face * 3 + vert];
+
+		mesh->vertices[index].tangent = glm::vec4(
+			tangent[0],
+			tangent[1],
+			tangent[2],
+			sign
+		);
+	}
+}
 
 //Loading helper functions
 
@@ -501,6 +572,11 @@ void GltfLoader::loadMeshes(SceneData& scene)
 		}
 		newMeshAsset.vertices = std::move(vertices);
 		newMeshAsset.indices = std::move(indices);
+
+		ctx.m_pUserData = &newMeshAsset;
+
+		genTangSpaceDefault(&ctx);
+
 		scene.meshAssets.emplace_back(std::make_shared<MeshAsset>(std::move(newMeshAsset)));
 	}
 }
@@ -529,7 +605,15 @@ void GltfLoader::loadGltf(SceneData& scene,const char* fname)
 	}
 	asset = std::move(assetOptional.get());
 
+	SMikkTSpaceInterface iface = {};
+	iface.m_getNumFaces = MikkTSpaceCallbacks::getNumFaces;
+	iface.m_getNumVerticesOfFace = MikkTSpaceCallbacks::getNumVerticesOfFace;
+	iface.m_getPosition = MikkTSpaceCallbacks::getPosition;
+	iface.m_getNormal = MikkTSpaceCallbacks::getNormal;
+	iface.m_getTexCoord = MikkTSpaceCallbacks::getTexCoord;
+	iface.m_setTSpaceBasic = MikkTSpaceCallbacks::setTSpaceBasic;
 
+	ctx.m_pInterface = &iface;
 
 
 	loadImages(scene, path);

@@ -18,9 +18,9 @@ int main() {
 	ResourceManager resourceManager(renderer);
 	Scene scene;
 
-	//scene.loadFile("C:/Users/pedro/source/repos/VkEngine/scenes/ABeautifulGame/glTF/ABeautifulGame.gltf");
+	scene.loadFile("C:/Users/pedro/source/repos/VkEngine/scenes/ABeautifulGame/glTF/ABeautifulGame.gltf");
 	//scene.loadFile("C:/Users/pedro/source/repos/VkEngine/scenes/Buggy/newBuggy.glb");
-	scene.loadFile("C:/Users/pedro/source/repos/VkEngine/scenes/test.glb");
+	//scene.loadFile("C:/Users/pedro/source/repos/VkEngine/scenes/test.glb");
 	resourceManager.loadScene(renderer,scene.getScene());
 
 	try {
