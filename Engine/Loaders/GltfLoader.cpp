@@ -6,6 +6,7 @@
 #include "GltfLoader.h"
 
 #include <chrono>
+
 //std::chrono::high_resolution_clock timer;
 //std::chrono::time_point<std::chrono::high_resolution_clock> start,end;
 //std::chrono::duration<double, std::milli> duration;
@@ -299,9 +300,9 @@ void GltfLoader::loadLights(SceneData& scene) {
 			newLight.range = 100.0f;
 
 		if (light.innerConeAngle.has_value())
-			newLight.spotInnerCos = light.innerConeAngle.value();
+			newLight.spotInnerCos = glm::cos(light.innerConeAngle.value());
 		if (light.outerConeAngle.has_value())
-			newLight.spotOuterCos = light.outerConeAngle.value();
+			newLight.spotOuterCos = glm::cos(light.outerConeAngle.value());
 		scene.lights.emplace_back(std::make_shared<LightAsset>(std::move(newLight)));
 	}
 
@@ -355,24 +356,35 @@ void GltfLoader::loadMaterials(SceneData& scene) {
 		//texture ids all are optional
 		if (material.pbrData.baseColorTexture.has_value()) {
 			newMaterial.colorTexId = material.pbrData.baseColorTexture.value().textureIndex;
+			int imageId = scene.textures[newMaterial.colorTexId.value()]->imageId;
+			scene.imageAssets[imageId]->type = TextureType::Color;
 		}
 
 		if (material.pbrData.metallicRoughnessTexture.has_value()) {
 			newMaterial.metalRoughTexId = material.pbrData.metallicRoughnessTexture.value().textureIndex;
+			int imageId = scene.textures[newMaterial.metalRoughTexId.value()]->imageId;
+			scene.imageAssets[imageId]->type = TextureType::MetallicRoughnessAO;
 		}
 
 		if (material.normalTexture.has_value()) {
 			newMaterial.normalTexId = material.normalTexture.value().textureIndex;
 			newMaterial.normalScale = material.normalTexture.value().scale;
+			int imageId = scene.textures[newMaterial.normalTexId.value()]->imageId;
+			scene.imageAssets[imageId]->type = TextureType::Normal;
+
 		}
 
 		if (material.occlusionTexture.has_value()) {
 			newMaterial.occlusionTexId = material.occlusionTexture.value().textureIndex;
 			newMaterial.occlusionTexId = material.occlusionTexture.value().strength;
+			int imageId = scene.textures[newMaterial.occlusionTexId.value()]->imageId;
+			scene.imageAssets[imageId]->type = TextureType::Occlusion;
 		}
 
 		if (material.emissiveTexture.has_value()) {
 			newMaterial.emissiveTexId = material.emissiveTexture.value().textureIndex;
+			int imageId = scene.textures[newMaterial.emissiveTexId.value()]->imageId;
+			scene.imageAssets[imageId]->type = TextureType::Emissive;
 		}
 		scene.materials.emplace_back(std::make_shared<MaterialAsset>(std::move(newMaterial)));
 	}
@@ -627,6 +639,11 @@ void GltfLoader::loadGltf(SceneData& scene,const char* fname)
 
 
 }
+
+
+
+
+
 
 
 

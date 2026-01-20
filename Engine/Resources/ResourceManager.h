@@ -46,7 +46,7 @@ public:
 
 	void createMeshResources(const VulkanRenderer& renderer, const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, MeshBuffers& meshBuffer) const;
 
-	void createTexture(const VulkanRenderer& renderer, const std::string& TEXTURE_PATH, ImageResource& tex) const;
+	void createTexture(const VulkanRenderer& renderer, const std::string& TEXTURE_PATH, ImageResource& tex, TextureType type) const;
 
 	void createTexture(const VulkanRenderer& renderer, const ImageAsset& data, ImageResource& tex) const;
 
@@ -97,12 +97,12 @@ private:
 
 	void createIndexBuffer(const VulkanRenderer& renderer, const std::vector<uint32_t>& indices, VulkanBuffer& indexBuffer) const;
 
-	void createTextureImage(const VulkanRenderer& renderer, const std::string& TEXTURE_PATH, VulkanImage& textureImage) const;
+	void createTextureImage(const VulkanRenderer& renderer, const std::string& TEXTURE_PATH, VulkanImage& textureImage, TextureType type) const;
 
 	void createTextureImage(const VulkanRenderer& renderer, const ImageAsset& data, VulkanImage& textureImage)const;
 
 
-	void createTextureImageHelper(const VulkanRenderer& renderer, stbi_uc* pixels, int texWidth, int texHeight, VulkanImage& textureImage) const;
+	void createTextureImageHelper(const VulkanRenderer& renderer, stbi_uc* pixels, int texWidth, int texHeight, VulkanImage& textureImage, TextureType type) const;
 
 	void createSampler(const VulkanRenderer& renderer, SamplerResource& samplerResource, VkFilter magFilter, VkFilter minFilter, VkSamplerMipmapMode mipMap, VkSamplerAddressMode addressU, VkSamplerAddressMode adressV) const;
 

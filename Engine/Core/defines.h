@@ -26,7 +26,14 @@
 const std::string MODEL_PATH = "models/viking_room.obj";
 const std::string TEXTURE_PATH = "textures/viking_room.png";
 
-
+enum class TextureType {
+	Color,
+	Normal,
+	MetallicRoughnessAO,
+	Emissive,
+	Height,
+	Occlusion
+};
 
 enum class Filter {
 	Nearest = 0,
@@ -81,7 +88,7 @@ struct LightGPUData {
 	float spotInnerCos;
 
 	float spotOuterCos;
-	int padding0;
+	uint32_t padding0[3];
 };
 
 struct NodeAsset {
@@ -193,11 +200,14 @@ struct SamplerResource {
 struct ImageAsset {
 	std::string name;
 	uint32_t resourceId = -1;
+	TextureType type = TextureType::Color;
 
 	uint32_t width;
 	uint32_t height;
 	uint32_t channels;
 	stbi_uc* pixels;
+
+
 	ImageAsset() = default;
 
 

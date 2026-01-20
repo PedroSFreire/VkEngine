@@ -55,7 +55,7 @@ void Scene::loadFile(const std::string& filePath)
 	if(ext == ".glm" || ext == ".gltf" || ext == ".glb")
 	{
 		gltfLoader.loadGltf(scene,filePath.c_str());
-		addDefaultLight();
+		//555addDefaultLight();
 		frameData.drawInstances.resize(scene.meshAssets.size());
 	}
 	else {
@@ -99,9 +99,9 @@ void  Scene::recordNode(int nodeId, glm::mat4& transforMat) {
 		lightDataEntry.spotInnerCos = scene.lights[scene.nodes[nodeId]->lightIndex.value()]->spotInnerCos;
 		lightDataEntry.spotOuterCos = scene.lights[scene.nodes[nodeId]->lightIndex.value()]->spotOuterCos;
 		lightDataEntry.position = currentTransform * glm::vec4(0, 0, 0, 1);
-		//lightDataEntry.direction = currentTransform * glm::vec4(0, -1, 0, 0);
+
 		glm::mat3 normalMat = glm::transpose(glm::inverse(glm::mat3(currentTransform)));
-		lightDataEntry.direction = glm::normalize(normalMat * glm::vec3(0, -1, 0));
+		lightDataEntry.direction = normalMat * glm::vec3(0, 0, -1);
 
 		frameData.frameLightData.emplace_back(std::move(lightDataEntry));
 	}

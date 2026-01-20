@@ -3,12 +3,38 @@
 #include "../../Renderer/Renderer/DescriptorManager.h"
 #include "../../Renderer/Renderer/VulkanRenderer.h"
 
+
+
+static constexpr VkFormat TextureTypeToVkFormat(TextureType type) {
+	switch (type) {
+	case TextureType::Color:
+		return VK_FORMAT_R8G8B8A8_SRGB;
+
+	case TextureType::Normal:
+		return VK_FORMAT_R8G8B8A8_UNORM;
+
+	case TextureType::MetallicRoughnessAO:
+		return VK_FORMAT_R8G8B8A8_UNORM;
+
+	case TextureType::Emissive:
+		return VK_FORMAT_R8G8B8A8_SRGB;
+
+	case TextureType::Height:
+		return VK_FORMAT_R8_UNORM;
+
+	case TextureType::Occlusion:
+		return VK_FORMAT_R8_UNORM;
+	}
+	return VK_FORMAT_UNDEFINED;
+}
+
+
 static constexpr VkFilter toVkFilter(Filter f) {
 	switch (f) {
 		case Filter::Nearest: return VK_FILTER_NEAREST;
 		case Filter::Linear:  return VK_FILTER_LINEAR;
 	}
-	return VK_FILTER_LINEAR; // fallback
+	return VK_FILTER_LINEAR; 
 }
 
 
@@ -40,7 +66,7 @@ ResourceManager::ResourceManager(const VulkanRenderer& renderer) {
 uint32_t ResourceManager::loadImage(const VulkanRenderer& renderer, const ImageAsset& img) {
 	ImageResource newImage;
 	newImage.name = img.name;
-	createTexture(renderer,img, newImage);
+	createTexture(renderer,img, newImage );
 	images.emplace_back(std::make_shared<ImageResource>(std::move(newImage)));
 	return static_cast<uint32_t>(images.size() - 1);
 }
@@ -166,6 +192,7 @@ void ResourceManager::createDefaultImages(const VulkanRenderer& renderer) {
 	imgData.width = 1;
 	imgData.channels = 4;
 	imgData.pixels = colorPixel.data();
+	imgData.type = TextureType::Color;
 	createTexture(renderer,imgData, defaultColorImage);
 
 	//create normal default tex
@@ -176,6 +203,7 @@ void ResourceManager::createDefaultImages(const VulkanRenderer& renderer) {
 	normalData.width = 1;
 	normalData.channels = 4;
 	normalData.pixels = normalPixel.data();
+	normalData.type = TextureType::Normal;
 	createTexture(renderer,normalData, defaultNormalImage);
 
 	//create normal metal rough tex
@@ -186,6 +214,7 @@ void ResourceManager::createDefaultImages(const VulkanRenderer& renderer) {
 	metalRoughData.width = 1;
 	metalRoughData.channels = 4;
 	metalRoughData.pixels = metalRoughPixel.data();
+	metalRoughData.type = TextureType::MetallicRoughnessAO;
 	createTexture(renderer,metalRoughData, defaultMetalRoughImage);
 
 	//create occlusion default tex
@@ -196,6 +225,7 @@ void ResourceManager::createDefaultImages(const VulkanRenderer& renderer) {
 	occlusionData.width = 1;
 	occlusionData.channels = 4;
 	occlusionData.pixels = occlusionPixel.data();
+	occlusionData.type = TextureType::Occlusion;
 	createTexture(renderer,occlusionData, defaultOcclusionImage);
 
 	//create emissive default tex
@@ -206,6 +236,7 @@ void ResourceManager::createDefaultImages(const VulkanRenderer& renderer) {
 	emissiveData.width = 1;
 	emissiveData.channels = 4;
 	emissiveData.pixels = emissivePixel.data();
+	emissiveData.type = TextureType::Emissive;
 	createTexture(renderer,emissiveData, defaultEmissiveImage);
 
 }
@@ -347,8 +378,8 @@ void ResourceManager::bufferStagedUpload(const VulkanRenderer& renderer, VulkanB
 }
 
 
-void ResourceManager::createTexture(const VulkanRenderer& renderer, const std::string& TEXTURE_PATH, ImageResource& tex) const {
-	createTextureImage(renderer,TEXTURE_PATH, tex.image);
+void ResourceManager::createTexture(const VulkanRenderer& renderer, const std::string& TEXTURE_PATH, ImageResource& tex, TextureType type) const {
+	createTextureImage(renderer,TEXTURE_PATH, tex.image ,type);
 	tex.imageView.createImageView(renderer.getLogicalDevice(), tex.image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
@@ -357,7 +388,7 @@ void ResourceManager::createTexture(const VulkanRenderer& renderer, const ImageA
 	tex.imageView.createImageView(renderer.getLogicalDevice(), tex.image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
-void ResourceManager::createTextureImage(const VulkanRenderer& renderer, const std::string& TEXTURE_PATH, VulkanImage& textureImage) const {
+void ResourceManager::createTextureImage(const VulkanRenderer& renderer, const std::string& TEXTURE_PATH, VulkanImage& textureImage, TextureType type) const {
 	int texWidth, texHeight, texChannels;
 
 	stbi_uc* pixels = stbi_load(TEXTURE_PATH.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
@@ -366,7 +397,7 @@ void ResourceManager::createTextureImage(const VulkanRenderer& renderer, const s
 	if (!pixels) {
 		throw std::runtime_error("failed to load texture image!");
 	}
-	createTextureImageHelper(renderer, pixels, texWidth, texHeight, textureImage);
+	createTextureImageHelper(renderer, pixels, texWidth, texHeight, textureImage,type);
 
 	stbi_image_free(pixels);
 }
@@ -374,13 +405,13 @@ void ResourceManager::createTextureImage(const VulkanRenderer& renderer, const s
 void ResourceManager::createTextureImage(const VulkanRenderer& renderer, const ImageAsset& data, VulkanImage& textureImage)const {
 
 	VkDeviceSize imageSize = data.width * data.height * 4;
-	createTextureImageHelper(renderer, data.pixels, data.width, data.height, textureImage);
+	createTextureImageHelper(renderer, data.pixels, data.width, data.height, textureImage,data.type);
 
 
 }
 
 
-void ResourceManager::createTextureImageHelper(const VulkanRenderer& renderer, stbi_uc* pixels, int texWidth, int texHeight, VulkanImage& textureImage) const {
+void ResourceManager::createTextureImageHelper(const VulkanRenderer& renderer, stbi_uc* pixels, int texWidth, int texHeight, VulkanImage& textureImage, TextureType type) const {
 
 	VkDeviceSize imageSize = texWidth * texHeight * 4;
 	VulkanBuffer stagingBuffer;
@@ -404,7 +435,7 @@ void ResourceManager::createTextureImageHelper(const VulkanRenderer& renderer, s
 	VulkanImageCreateInfo textureImageInfo{};
 	textureImageInfo.width = static_cast<uint32_t>(texWidth);
 	textureImageInfo.height = static_cast<uint32_t>(texHeight);
-	textureImageInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
+	textureImageInfo.format = TextureTypeToVkFormat(type);
 	textureImageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 	textureImageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 	textureImageInfo.vmaUsage = VMA_MEMORY_USAGE_GPU_ONLY;
@@ -412,15 +443,15 @@ void ResourceManager::createTextureImageHelper(const VulkanRenderer& renderer, s
 
 	textureImage.create2DImage(renderer.getAllocator(), textureImageInfo);
 
-	transitionImageLayout(renderer, textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
+	transitionImageLayout(renderer, textureImage, TextureTypeToVkFormat(type), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
 
 	copyBufferToImage(renderer, stagingBuffer, textureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
 
-	transitionImageLayout(renderer, textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+	transitionImageLayout(renderer, textureImage, TextureTypeToVkFormat(type), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, renderer.getPhysicalDevice().findQueueFamilies(renderer.getSurface()).transferFamily.value()
 		, renderer.getPhysicalDevice().findQueueFamilies(renderer.getSurface()).graphicsFamily.value());
 
-	transitionImageLayout(renderer, textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+	transitionImageLayout(renderer, textureImage, TextureTypeToVkFormat(type), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 
 		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
 }
