@@ -6,6 +6,7 @@
 #include "GltfLoader.h"
 
 #include <chrono>
+
 //std::chrono::high_resolution_clock timer;
 //std::chrono::time_point<std::chrono::high_resolution_clock> start,end;
 //std::chrono::duration<double, std::milli> duration;
@@ -14,7 +15,78 @@
 //duration = end - start;
 //std::cout << "Loading to structs " << duration.count() << " ms\n";
 
+namespace MikkTSpaceCallbacks {
+	int getNumFaces(const SMikkTSpaceContext* ctx) {
+		auto* mesh = (MeshAsset*)ctx->m_pUserData;
+		return mesh->indices.size() / 3;
+	}
 
+
+	int getNumVerticesOfFace(const SMikkTSpaceContext*, int) {
+		return 3;
+	}
+
+
+	void getPosition(
+		const SMikkTSpaceContext* ctx,
+		float pos[3],
+		int face,
+		int vert)
+	{
+		auto* mesh = (MeshAsset*)ctx->m_pUserData;
+		uint32_t index = mesh->indices[face * 3 + vert];
+		const glm::vec3& p = mesh->vertices[index].pos;
+
+		pos[0] = p.x;
+		pos[1] = p.y;
+		pos[2] = p.z;
+	}
+
+
+	void getNormal(
+		const SMikkTSpaceContext* ctx,
+		float normal[3],
+		int face,
+		int vert)
+	{
+		auto* mesh = (MeshAsset*)ctx->m_pUserData;
+		uint32_t index = mesh->indices[face * 3 + vert];
+		const glm::vec3& n = mesh->vertices[index].normal;
+
+		normal[0] = n.x;
+		normal[1] = n.y;
+		normal[2] = n.z;
+	}
+
+
+	void getTexCoord(
+		const SMikkTSpaceContext* ctx,
+		float uv[2],
+		int face,
+		int vert)
+	{
+		auto* mesh = (MeshAsset*)ctx->m_pUserData;
+		uint32_t index = mesh->indices[face * 3 + vert];
+		const glm::vec2& t = mesh->vertices[index].texCoord;
+
+		uv[0] = t.x;
+		uv[1] = t.y;
+	}
+
+
+	void setTSpaceBasic(const SMikkTSpaceContext* ctx, const float tangent[3], float sign, int face, int vert)
+	{
+		auto* mesh = (MeshAsset*)ctx->m_pUserData;
+		uint32_t index = mesh->indices[face * 3 + vert];
+
+		mesh->vertices[index].tangent = glm::vec4(
+			tangent[0],
+			tangent[1],
+			tangent[2],
+			sign
+		);
+	}
+}
 
 //Loading helper functions
 
@@ -228,9 +300,9 @@ void GltfLoader::loadLights(SceneData& scene) {
 			newLight.range = 100.0f;
 
 		if (light.innerConeAngle.has_value())
-			newLight.spotInnerCos = light.innerConeAngle.value();
+			newLight.spotInnerCos = glm::cos(light.innerConeAngle.value());
 		if (light.outerConeAngle.has_value())
-			newLight.spotOuterCos = light.outerConeAngle.value();
+			newLight.spotOuterCos = glm::cos(light.outerConeAngle.value());
 		scene.lights.emplace_back(std::make_shared<LightAsset>(std::move(newLight)));
 	}
 
@@ -284,24 +356,35 @@ void GltfLoader::loadMaterials(SceneData& scene) {
 		//texture ids all are optional
 		if (material.pbrData.baseColorTexture.has_value()) {
 			newMaterial.colorTexId = material.pbrData.baseColorTexture.value().textureIndex;
+			int imageId = scene.textures[newMaterial.colorTexId.value()]->imageId;
+			scene.imageAssets[imageId]->type = TextureType::Color;
 		}
 
 		if (material.pbrData.metallicRoughnessTexture.has_value()) {
 			newMaterial.metalRoughTexId = material.pbrData.metallicRoughnessTexture.value().textureIndex;
+			int imageId = scene.textures[newMaterial.metalRoughTexId.value()]->imageId;
+			scene.imageAssets[imageId]->type = TextureType::MetallicRoughnessAO;
 		}
 
 		if (material.normalTexture.has_value()) {
 			newMaterial.normalTexId = material.normalTexture.value().textureIndex;
 			newMaterial.normalScale = material.normalTexture.value().scale;
+			int imageId = scene.textures[newMaterial.normalTexId.value()]->imageId;
+			scene.imageAssets[imageId]->type = TextureType::Normal;
+
 		}
 
 		if (material.occlusionTexture.has_value()) {
 			newMaterial.occlusionTexId = material.occlusionTexture.value().textureIndex;
 			newMaterial.occlusionTexId = material.occlusionTexture.value().strength;
+			int imageId = scene.textures[newMaterial.occlusionTexId.value()]->imageId;
+			scene.imageAssets[imageId]->type = TextureType::Occlusion;
 		}
 
 		if (material.emissiveTexture.has_value()) {
 			newMaterial.emissiveTexId = material.emissiveTexture.value().textureIndex;
+			int imageId = scene.textures[newMaterial.emissiveTexId.value()]->imageId;
+			scene.imageAssets[imageId]->type = TextureType::Emissive;
 		}
 		scene.materials.emplace_back(std::make_shared<MaterialAsset>(std::move(newMaterial)));
 	}
@@ -501,6 +584,11 @@ void GltfLoader::loadMeshes(SceneData& scene)
 		}
 		newMeshAsset.vertices = std::move(vertices);
 		newMeshAsset.indices = std::move(indices);
+
+		ctx.m_pUserData = &newMeshAsset;
+
+		genTangSpaceDefault(&ctx);
+
 		scene.meshAssets.emplace_back(std::make_shared<MeshAsset>(std::move(newMeshAsset)));
 	}
 }
@@ -529,7 +617,15 @@ void GltfLoader::loadGltf(SceneData& scene,const char* fname)
 	}
 	asset = std::move(assetOptional.get());
 
+	SMikkTSpaceInterface iface = {};
+	iface.m_getNumFaces = MikkTSpaceCallbacks::getNumFaces;
+	iface.m_getNumVerticesOfFace = MikkTSpaceCallbacks::getNumVerticesOfFace;
+	iface.m_getPosition = MikkTSpaceCallbacks::getPosition;
+	iface.m_getNormal = MikkTSpaceCallbacks::getNormal;
+	iface.m_getTexCoord = MikkTSpaceCallbacks::getTexCoord;
+	iface.m_setTSpaceBasic = MikkTSpaceCallbacks::setTSpaceBasic;
 
+	ctx.m_pInterface = &iface;
 
 
 	loadImages(scene, path);
@@ -543,6 +639,11 @@ void GltfLoader::loadGltf(SceneData& scene,const char* fname)
 
 
 }
+
+
+
+
+
 
 
 

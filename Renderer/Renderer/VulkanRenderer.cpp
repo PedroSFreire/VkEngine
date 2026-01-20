@@ -222,13 +222,15 @@ void VulkanRenderer::update(uint32_t currentImage, int lightCount, Camera& camer
 void VulkanRenderer::updateUniformBuffer(uint32_t currentImage,float  deltaTime, int lightCount, Camera& camera) {
 
 	UniformBufferObject ubo{};
-	ubo.model = glm::rotate(glm::mat4(1.0f), /*time **/ glm::radians(0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+
 
 	ubo.view = glm::lookAt(camera.getPos(), camera.getPos() + camera.getDirection(), camera.getUp());
 
 	ubo.proj = glm::perspective(glm::radians(camera.getFov()), swapChain.getSwapChainExtent().width / (float)swapChain.getSwapChainExtent().height, 0.01f, 2000.0f);
 
 	ubo.proj[1][1] *= -1;
+
+	ubo.cameraPos = camera.getPos();
 
 	ubo.lightCount = lightCount;
 	memcpy(uniformBuffers[currentImage].getAllocationInfo().pMappedData, &ubo, sizeof(ubo));

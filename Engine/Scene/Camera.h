@@ -65,7 +65,7 @@ private:
 
 	glm::vec3 camPos = glm::vec3(2.0f, 2.0f, 2.0f);
 	glm::vec3 camDirection = glm::normalize(glm::vec3(0.0f, 0.0f, 0.0f) - camPos);
-	glm::vec3 camUp = glm::vec3(0.0f, 0.0f, 1.0f);
+	glm::vec3 camUp = glm::vec3(0.0f, 1.0f, 0.0f);
 	glm::vec3 camRight = glm::normalize(glm::cross(camDirection, camUp));
 
 	float fov = 60;

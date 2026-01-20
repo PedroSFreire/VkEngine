@@ -18,6 +18,12 @@
 #include "glm/glm.hpp"
 
 #include "../Core/defines.h"
+
+#include "mikktspace.h"
+
+
+
+
 class VulkanCommandBuffer;
 
 class  VulkanRenderer;
@@ -50,7 +56,8 @@ public:
     void loadGltf(SceneData& Scene, const char* fname);
 
 private:
-
+	//mikktspace context
+    SMikkTSpaceContext ctx = {};
 
 	//load functions
     void loadMeshes(SceneData& Scene);
