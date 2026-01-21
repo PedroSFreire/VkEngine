@@ -140,6 +140,7 @@ void VulkanPhysicalDevice::pickPhysicalDevice(const VulkanInstance& instance, co
     for (const auto& device : devices) {
         if (isDeviceSuitable(device, surface)) {
             physicalDevice = device;
+            msaaSamples = getMaxUsableSampleCount();
             break;
         }
     }

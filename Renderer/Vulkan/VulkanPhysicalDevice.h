@@ -59,7 +59,7 @@ class VulkanPhysicalDevice
 
         VkFormat findDepthFormat() const;
 
-        VkSampleCountFlagBits getMaxUsableSampleCount();
+		VkSampleCountFlagBits getMsaaSamples() const { return msaaSamples; }
 
         bool hasStencilComponent(const VkFormat format) const { return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT; }
 
@@ -71,13 +71,11 @@ class VulkanPhysicalDevice
 
         VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
 
-
         bool checkDeviceExtensionSupport(const VkPhysicalDevice device) const;
 
         bool isDeviceSuitable(const VkPhysicalDevice device, const  VulkanSurface& surface) const ;
-
         
-
+        VkSampleCountFlagBits getMaxUsableSampleCount();
         
 
         

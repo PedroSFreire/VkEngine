@@ -22,6 +22,6 @@ class PipelineFactory
 
 		static VkShaderModule createShaderModule(const VulkanLogicalDevice& device, const std::vector<char>& code);
 
-		static void createGraphicsPipeline(VulkanPipeline& pipeline, const VulkanLogicalDevice& logicalDevice, const VulkanSwapChain& swapChain, const VulkanRenderPass& renderPass, const VkDescriptorSetLayout* descriptorSetLayout);
+		static void createGraphicsPipeline(VulkanPipeline& pipeline, const VulkanLogicalDevice& logicalDevice, const VulkanSwapChain& swapChain, const VulkanRenderPass& renderPass, const VkDescriptorSetLayout* descriptorSetLayout, VkSampleCountFlagBits msaaSamples);
 
 };

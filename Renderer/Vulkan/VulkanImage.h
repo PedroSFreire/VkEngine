@@ -14,6 +14,7 @@ struct VulkanImageCreateInfo
 	VkFormat format;
 	VkImageTiling tiling;
 	VkImageUsageFlags usage;
+	VkSampleCountFlagBits numSamples = VK_SAMPLE_COUNT_1_BIT;
 	// VMA Memory Usage use VMA_MEMORY_USAGE_AUTO wich is the default one but still specify it for clarity
 	// but for safety should use VMA_MEMORY_USAGE_GPU_ONLY for performance critical buffer vertex and so on
 	VmaMemoryUsage vmaUsage;

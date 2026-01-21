@@ -28,7 +28,7 @@ public:
 
 	const VkFramebuffer getFrameBufferAtIndex(size_t index) const { return swapChainFramebuffers[index]; }
 
-	void createFramebuffers(const VulkanLogicalDevice& device, const VulkanSwapChain& swapChain, const VulkanRenderPass& renderPass , const VulkanImageView& depthImageView);
+	void createFramebuffers(const VulkanLogicalDevice& device, const VulkanSwapChain& swapChain, const VulkanRenderPass& renderPass , const VulkanImageView& depthImageView, const VulkanImageView& colorImageView);
 
 private:
 
