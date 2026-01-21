@@ -18,13 +18,13 @@ void VulkanFrameBuffers::clean() {
 }
 
 
-void VulkanFrameBuffers::createFramebuffers(const VulkanLogicalDevice& device, const VulkanSwapChain& swapChain, const VulkanRenderPass& renderPass , const VulkanImageView& depthImageView) {
+void VulkanFrameBuffers::createFramebuffers(const VulkanLogicalDevice& device, const VulkanSwapChain& swapChain, const VulkanRenderPass& renderPass, const VulkanImageView& depthImageView, const VulkanImageView& colorImageView) {
 	logicalDevice = &device;
     
     swapChainFramebuffers.resize(swapChain.getSwapChainImageViews().size());
 
     for (size_t i = 0; i < swapChain.getSwapChainImageViews().size(); i++) {
-        std::array<VkImageView, 2> attachments = { swapChain.getSwapChainImageViews()[i], depthImageView.getImageView()};
+        std::array<VkImageView, 3> attachments = { colorImageView.getImageView(), depthImageView.getImageView() , swapChain.getSwapChainImageViews()[i] };
         
         
         VkFramebufferCreateInfo framebufferInfo{};

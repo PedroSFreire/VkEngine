@@ -131,7 +131,9 @@ private:
 
 	VulkanImageView										depthImageView;
 
+	VulkanImage colorImage;
 
+	VulkanImageView colorImageView;
 
 
 
@@ -147,17 +149,19 @@ private:
 
 	void processInput(float deltaTime);
 
-	void createDepthResources();
+	void createDepthResources(VkSampleCountFlagBits msaaSamples);
 
 	void cleanDepthResources();
+
+	void cleanColorResources();
 
 	void update(uint32_t currentImage, int lightCount, Camera& camera);
 
 	void updateUniformBuffer(uint32_t currentImage, float deltaTime, int lightCount, Camera& camera);
 
-
 	void createUniformBuffers();
-	//resource creation and maintenance functions
+
+	void createColorResources(VkSampleCountFlagBits msaaSamples);
 
 
 

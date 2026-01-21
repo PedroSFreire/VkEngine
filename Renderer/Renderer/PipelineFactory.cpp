@@ -36,7 +36,7 @@ VkShaderModule PipelineFactory::createShaderModule(const VulkanLogicalDevice& de
     return shaderModule;
 }
 
-void PipelineFactory::createGraphicsPipeline(VulkanPipeline& pipeline,const VulkanLogicalDevice& device, const VulkanSwapChain& swapChain, const VulkanRenderPass& renderPass, const VkDescriptorSetLayout* descriptorSetLayouts) {
+void PipelineFactory::createGraphicsPipeline(VulkanPipeline& pipeline,const VulkanLogicalDevice& device, const VulkanSwapChain& swapChain, const VulkanRenderPass& renderPass, const VkDescriptorSetLayout* descriptorSetLayouts, VkSampleCountFlagBits msaaSamples) {
    
     pipeline.setLogicalDevice(device);
 
@@ -144,13 +144,12 @@ void PipelineFactory::createGraphicsPipeline(VulkanPipeline& pipeline,const Vulk
     VkPipelineMultisampleStateCreateInfo multisampling{};
     multisampling.sType =
         VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-    multisampling.sampleShadingEnable = VK_FALSE;
-    multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-    multisampling.minSampleShading = 1.0f;           // Optional
+    multisampling.sampleShadingEnable = VK_TRUE;
+    multisampling.rasterizationSamples = msaaSamples;
+    multisampling.minSampleShading = .2f;           // Optional
     multisampling.pSampleMask = nullptr;             // Optional
     multisampling.alphaToCoverageEnable = VK_FALSE;  // Optional
     multisampling.alphaToOneEnable = VK_FALSE;       // Optional
-
 
     // Color blending setup
 

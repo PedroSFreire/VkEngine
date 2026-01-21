@@ -71,23 +71,42 @@ void VulkanRenderer::initVulkan() {
 
 
 
-	PipelineFactory::createGraphicsPipeline(graphicsPipeline ,logicalDevice, swapChain, renderPass, descriptorLayouts.data());
+	PipelineFactory::createGraphicsPipeline(graphicsPipeline ,logicalDevice, swapChain, renderPass, descriptorLayouts.data(), physicalDevice.getMsaaSamples());
 
-	createDepthResources();
+	createColorResources(physicalDevice.getMsaaSamples());
 
-	frameBuffers.createFramebuffers(logicalDevice, swapChain, renderPass, depthImageView);
+	createDepthResources(physicalDevice.getMsaaSamples());
+
+	frameBuffers.createFramebuffers(logicalDevice, swapChain, renderPass, depthImageView,colorImageView);
 	
 	syncObjects.createSyncObjects(logicalDevice, MAX_FRAMES_IN_FLIGHT, swapChain.getSwapChainImages().size());
 
 }
 
 
+void VulkanRenderer::createColorResources(VkSampleCountFlagBits msaaSamples) {
+	VkFormat colorFormat = swapChain.getSwapChainImageFormat();
 
-void VulkanRenderer::createDepthResources() {
+	VulkanImageCreateInfo colorImageInfo{};
+	colorImageInfo.width = swapChain.getSwapChainExtent().width;
+	colorImageInfo.height = swapChain.getSwapChainExtent().height;
+	colorImageInfo.numSamples = msaaSamples;
+	colorImageInfo.format = colorFormat;
+	colorImageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+	colorImageInfo.usage = VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+	colorImageInfo.vmaUsage = VMA_MEMORY_USAGE_GPU_ONLY;
+	
+	colorImage.create2DImage(allocator, colorImageInfo);
+	colorImageView.createImageView(logicalDevice, colorImage, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+}
+
+
+void VulkanRenderer::createDepthResources(VkSampleCountFlagBits msaaSamples) {
 	VkFormat depthFormat = physicalDevice.findDepthFormat();
 	VulkanImageCreateInfo depthImageInfo{};
 	depthImageInfo.width = swapChain.getSwapChainExtent().width;
 	depthImageInfo.height = swapChain.getSwapChainExtent().height;	
+	depthImageInfo.numSamples = msaaSamples;
 	depthImageInfo.format = depthFormat;	
 	depthImageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 	depthImageInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
@@ -111,6 +130,11 @@ void VulkanRenderer::cleanSwapChain() {
 	swapChain.clean();
 }
 
+void VulkanRenderer::cleanColorResources() {
+	colorImageView.clean();
+	colorImage.clean();
+}
+
 void VulkanRenderer::recreateSwapChain() {
 
 	int width = 0, height = 0;
@@ -123,12 +147,13 @@ void VulkanRenderer::recreateSwapChain() {
 
 	cleanSwapChain();
 	cleanDepthResources();
-
+	cleanColorResources();
 
 	swapChain.createSwapChain(physicalDevice, logicalDevice, surface, window);
-	createDepthResources();
+	createColorResources(physicalDevice.getMsaaSamples());
+	createDepthResources(physicalDevice.getMsaaSamples());
 	swapChain.createImageViews();
-	frameBuffers.createFramebuffers(logicalDevice, swapChain, renderPass, depthImageView);
+	frameBuffers.createFramebuffers(logicalDevice, swapChain, renderPass, depthImageView,colorImageView);
 }
 
 

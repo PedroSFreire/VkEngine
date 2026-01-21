@@ -24,7 +24,6 @@ void VulkanImage::clean() {
 
 void VulkanImage::create2DImage(const VulkanMemoryAllocator& allocator, const VulkanImageCreateInfo& info) {
 	allocatorHandle = &allocator;
-;
 
 
 	imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -41,7 +40,7 @@ void VulkanImage::create2DImage(const VulkanMemoryAllocator& allocator, const Vu
 	imageInfo.imageType = VK_IMAGE_TYPE_2D;
 	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+	imageInfo.samples = info.numSamples;
 	imageInfo.flags = 0;
 
 	VmaAllocationCreateInfo allocInfo = {};
