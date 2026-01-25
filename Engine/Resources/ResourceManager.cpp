@@ -183,62 +183,60 @@ uint32_t ResourceManager::createDescriptorSet(const VulkanRenderer& renderer, co
 
 void ResourceManager::createDefaultImages(const VulkanRenderer& renderer) {
 
-
-	//create color default tex
-	std::array<uint8_t, 4> colorPixel{ 255, 255, 255, 255 };
+	// --- Default Color Texture (SRGB) ---
+	std::array<uint8_t, 4> colorPixel{ 255, 255, 255, 255 }; // white
 	defaultColorImage.name = "color";
-	ImageAsset imgData;
-	imgData.height = 1;
-	imgData.width = 1;
-	imgData.channels = 4;
-	imgData.pixels = colorPixel.data();
-	imgData.type = TextureType::Color;
-	createTexture(renderer,imgData, defaultColorImage);
+	ImageAsset colorData;
+	colorData.width = 1;
+	colorData.height = 1;
+	colorData.channels = 4;
+	colorData.type = TextureType::Color;
+	colorData.pixels = colorPixel.data();
+	createTexture(renderer, colorData, defaultColorImage);
 
-	//create normal default tex
-	std::array<uint8_t, 4> normalPixel{ 255, 255, 255, 255 };
+	// --- Default Normal Texture (UNORM) ---
+	std::array<uint8_t, 4> normalPixel{ 128, 128, 255, 255 }; // neutral normal map
 	defaultNormalImage.name = "normal";
 	ImageAsset normalData;
-	normalData.height = 1;
 	normalData.width = 1;
+	normalData.height = 1;
 	normalData.channels = 4;
-	normalData.pixels = normalPixel.data();
 	normalData.type = TextureType::Normal;
-	createTexture(renderer,normalData, defaultNormalImage);
+	normalData.pixels = normalPixel.data();
+	createTexture(renderer, normalData, defaultNormalImage);
 
-	//create normal metal rough tex
-	std::array<uint8_t, 4> metalRoughPixel{ 255, 255, 255, 255 };
+	// --- Default Metallic-Roughness-AO Texture (UNORM) ---
+	std::array<uint8_t, 4> metalRoughPixel{ 0, 255, 255, 255 }; // R=metal, G=rough, B=AO
 	defaultMetalRoughImage.name = "metalRough";
 	ImageAsset metalRoughData;
-	metalRoughData.height = 1;
 	metalRoughData.width = 1;
+	metalRoughData.height = 1;
 	metalRoughData.channels = 4;
-	metalRoughData.pixels = metalRoughPixel.data();
 	metalRoughData.type = TextureType::MetallicRoughnessAO;
-	createTexture(renderer,metalRoughData, defaultMetalRoughImage);
+	metalRoughData.pixels = metalRoughPixel.data();
+	createTexture(renderer, metalRoughData, defaultMetalRoughImage);
 
-	//create occlusion default tex
-	std::array<uint8_t, 4> occlusionPixel{ 255, 255, 255, 255 };
+	// --- Default Occlusion Texture (R8_UNORM) ---
+	std::array<uint8_t, 4> occlusionPixel{ 255, 255, 255, 255 }; // fully unoccluded
 	defaultOcclusionImage.name = "occlusion";
 	ImageAsset occlusionData;
-	occlusionData.height = 1;
 	occlusionData.width = 1;
+	occlusionData.height = 1;
 	occlusionData.channels = 4;
-	occlusionData.pixels = occlusionPixel.data();
 	occlusionData.type = TextureType::Occlusion;
-	createTexture(renderer,occlusionData, defaultOcclusionImage);
+	occlusionData.pixels = occlusionPixel.data();
+	createTexture(renderer, occlusionData, defaultOcclusionImage);
 
-	//create emissive default tex
-	std::array<uint8_t, 4> emissivePixel{ 255, 255, 255, 255 };
+	// --- Default Emissive Texture (SRGB) ---
+	std::array<uint8_t, 4> emissivePixel{ 0, 0, 0, 255 }; // black (no emission)
 	defaultEmissiveImage.name = "emissive";
 	ImageAsset emissiveData;
-	emissiveData.height = 1;
 	emissiveData.width = 1;
+	emissiveData.height = 1;
 	emissiveData.channels = 4;
-	emissiveData.pixels = emissivePixel.data();
 	emissiveData.type = TextureType::Emissive;
-	createTexture(renderer,emissiveData, defaultEmissiveImage);
-
+	emissiveData.pixels = emissivePixel.data();
+	createTexture(renderer, emissiveData, defaultEmissiveImage);
 }
 
 void ResourceManager::loadLights(const VulkanRenderer& renderer, std::vector<LightGPUData>& lights) {

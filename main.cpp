@@ -20,8 +20,10 @@ int main() {
 
 	//scene.loadFile("C:/Users/pedro/source/repos/VkEngine/scenes/ABeautifulGame/glTF/ABeautifulGame.gltf");
 	//scene.loadFile("C:/Users/pedro/source/repos/VkEngine/scenes/Buggy/newBuggy.glb");
-	scene.loadFile("C:/Users/pedro/source/repos/VkEngine/scenes/testWlights.glb");
-	//scene.loadFile("C:/Users/pedro/source/repos/VkEngine/scenes/newLight.glb");
+	//scene.loadFile("C:/Users/pedro/source/repos/VkEngine/scenes/testWlights.glb");
+	//scene.loadFile("C:/Users/pedro/source/repos/VkEngine/scenes/MetalRoughSpheres/glTF/MetalRoughSpheres.gltf");
+	scene.loadFile("C:/Users/pedro/source/repos/VkEngine/scenes/LightsPunctualLamp/glTF-Binary/LightsPunctualLamp.glb");
+	//scene.loadFile("C:/Users/pedro/source/repos/VkEngine/scenes/balls.glb");
 	resourceManager.loadScene(renderer,scene.getScene());
 
 	try {

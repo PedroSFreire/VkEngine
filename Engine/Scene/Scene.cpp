@@ -11,7 +11,7 @@ void Scene::addDefaultLight() {
 	newLight.color.x = 0.8;
 	newLight.color.y = 0.8;
 	newLight.color.z = 0.8;
-	newLight.intensity = 0.9;
+	newLight.intensity = 1000;
 	newLight.range = 100.0f;
 	scene.lights.emplace_back(std::make_shared<LightAsset>(std::move(newLight)));
 
@@ -32,7 +32,7 @@ void Scene::addDefaultLight() {
 
 	meshNode.name = "defaultMesh";
 
-	meshNode.meshIndex = 1;
+	meshNode.meshIndex = 0;
 
 	meshNode.parentIndex = scene.nodes.size() - 1;
 
@@ -55,7 +55,8 @@ void Scene::loadFile(const std::string& filePath)
 	if(ext == ".glm" || ext == ".gltf" || ext == ".glb")
 	{
 		gltfLoader.loadGltf(scene,filePath.c_str());
-		//555addDefaultLight();
+		if(scene.lights.size() == 0)
+			addDefaultLight();
 		frameData.drawInstances.resize(scene.meshAssets.size());
 	}
 	else {

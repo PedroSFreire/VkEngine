@@ -376,7 +376,7 @@ void GltfLoader::loadMaterials(SceneData& scene) {
 
 		if (material.occlusionTexture.has_value()) {
 			newMaterial.occlusionTexId = material.occlusionTexture.value().textureIndex;
-			newMaterial.occlusionTexId = material.occlusionTexture.value().strength;
+			newMaterial.occlusionStrenght = material.occlusionTexture.value().strength;
 			int imageId = scene.textures[newMaterial.occlusionTexId.value()]->imageId;
 			scene.imageAssets[imageId]->type = TextureType::Occlusion;
 		}
