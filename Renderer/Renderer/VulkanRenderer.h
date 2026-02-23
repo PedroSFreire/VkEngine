@@ -56,13 +56,6 @@ public:
 	VulkanRenderer(const VulkanRenderer&) = default;
 
 
-	void createMeshResources(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, MeshBuffers& meshBuffer) const;
-
-	void createTexture(const std::string& TEXTURE_PATH, ImageResource& tex) const;
-
-	void createTexture(const ImageAsset& data, ImageResource& tex) const;
-
-	void createSampler(SamplerResource& sampler, VkFilter magFilter, VkFilter minFilter, VkSamplerMipmapMode mipMap, VkSamplerAddressMode addressU, VkSamplerAddressMode adressV) const;
 
 	bool running() { return !window.shouldClose(); }
 	const VulkanPhysicalDevice& getPhysicalDevice() const { return physicalDevice; }
@@ -72,13 +65,16 @@ public:
 	const VulkanRenderPass& getRenderPass() const { return renderPass; }
 	const VulkanFrameBuffers& getFrameBuffers() const { return frameBuffers; }
 	const VulkanPipeline& getGraphicsPipeline() const { return graphicsPipeline; }
+	const VulkanPipeline& getEnvironmentPipeline() const { return environmentPipeline; }
 	const VulkanCommandPool& getCommandPool() const { return commandPool; }
 	const VulkanCommandPool& getTransferCommandPool() const { return transferCommandPool; }
 	const VulkanMemoryAllocator & getAllocator() const { return allocator; }
 	const VulkanSurface& getSurface() const { return surface; }
 
-	void bufferStagedUpload(VulkanBuffer& dstBuffer,const void* bufferData, uint32_t size, uint32_t elementCount) const;
 
+	// cupe map creation for env and irradiance maps
+	void cubePass(VulkanImageView& imgResource, CubeMapResource& cubeMap, VulkanSampler& sampler, MeshBuffers& cubeMesh, uint32_t texSize, bool irr) const;
+	void prefilteredCubePass(VulkanImageView& imgResource, CubeMapResource& cubeMap, VulkanSampler& sampler, MeshBuffers& cubeMesh,const uint32_t texSize) const;
 
 private:
 
@@ -107,6 +103,8 @@ private:
 	VulkanDescriptorPool								descriptorPool{};
 
 	VulkanPipeline										graphicsPipeline{};
+
+	VulkanPipeline										environmentPipeline{};
 
 	VulkanFrameBuffers									frameBuffers{};
 
@@ -163,7 +161,12 @@ private:
 
 	void createColorResources(VkSampleCountFlagBits msaaSamples);
 
+	uint32_t beginFrame();
+	
+	void envPass(uint32_t imageIndex, ResourceManager& resourceManager);
 
+	void forwardPass(uint32_t imageIndex, SceneFramesData& drawData, ResourceManager& resourceManager);
 
+	void presentFrame(uint32_t imageIndex);
 };
 

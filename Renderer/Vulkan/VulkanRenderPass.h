@@ -18,7 +18,11 @@ public:
 	VulkanRenderPass(const VulkanRenderPass&) = delete;
 	~VulkanRenderPass();
 
-	void createRenderPass(const VulkanPhysicalDevice& physicalDevice , const VulkanSwapChain& swapChain, const VulkanLogicalDevice& logicalDevice);
+	void createForwardRenderPass(const VulkanPhysicalDevice& physicalDevice, const VulkanLogicalDevice& logicalDevice, const VulkanSwapChain& swapChain);
+
+	void createCubeRenderPass(const VulkanPhysicalDevice& physicalDevice, const VulkanLogicalDevice& logicalDevice);
+
+	void createEnvRenderPass(const VulkanPhysicalDevice& physicalDevice, const VulkanLogicalDevice& logicalDevice, const VulkanSwapChain& swapChain);
 
 	VkRenderPass getRenderPass() const { return renderPass; }
 

@@ -24,4 +24,10 @@ class PipelineFactory
 
 		static void createGraphicsPipeline(VulkanPipeline& pipeline, const VulkanLogicalDevice& logicalDevice, const VulkanSwapChain& swapChain, const VulkanRenderPass& renderPass, const VkDescriptorSetLayout* descriptorSetLayout, VkSampleCountFlagBits msaaSamples);
 
+		static void createCubePipeline(const VulkanLogicalDevice& device, VulkanPipeline& pipeline, VulkanRenderPass& renderPass, const VkDescriptorSetLayout& descriptorSetLayout, uint32_t texSize, bool irr);
+		
+		static void createPreFilteredPipeline(const VulkanLogicalDevice& device, VulkanPipeline& pipeline, VulkanRenderPass& renderPass, const VkDescriptorSetLayout& descriptorSetLayout, uint32_t texSize);
+
+		static void createEnvPipeline(VulkanPipeline& pipeline, const VulkanLogicalDevice& device, const VulkanSwapChain& swapChain, const VulkanRenderPass& renderPass, const VkDescriptorSetLayout* descriptorSetLayouts, VkSampleCountFlagBits msaaSamples);
 };
+

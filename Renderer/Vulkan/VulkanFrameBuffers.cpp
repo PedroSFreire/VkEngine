@@ -11,17 +11,17 @@ VulkanFrameBuffers::~VulkanFrameBuffers() {
 
 
 void VulkanFrameBuffers::clean() {
-    for (auto framebuffer : swapChainFramebuffers) {
+    for (auto framebuffer : framebuffers) {
         vkDestroyFramebuffer((*logicalDevice).getDevice(), framebuffer, nullptr);
     }
-    swapChainFramebuffers.clear();
+    framebuffers.clear();
 }
 
 
 void VulkanFrameBuffers::createFramebuffers(const VulkanLogicalDevice& device, const VulkanSwapChain& swapChain, const VulkanRenderPass& renderPass, const VulkanImageView& depthImageView, const VulkanImageView& colorImageView) {
 	logicalDevice = &device;
     
-    swapChainFramebuffers.resize(swapChain.getSwapChainImageViews().size());
+    framebuffers.resize(swapChain.getSwapChainImageViews().size());
 
     for (size_t i = 0; i < swapChain.getSwapChainImageViews().size(); i++) {
         std::array<VkImageView, 3> attachments = { colorImageView.getImageView(), depthImageView.getImageView() , swapChain.getSwapChainImageViews()[i] };
@@ -37,9 +37,34 @@ void VulkanFrameBuffers::createFramebuffers(const VulkanLogicalDevice& device, c
         framebufferInfo.layers = 1;
 
         if (vkCreateFramebuffer(device.getDevice(), &framebufferInfo, nullptr,
-            &swapChainFramebuffers[i]) != VK_SUCCESS) {
+            &framebuffers[i]) != VK_SUCCESS) {
             throw std::runtime_error("failed to create framebuffer!");
         }
     }
 
+}
+
+
+
+void VulkanFrameBuffers::createCubeFramebuffers(const VulkanLogicalDevice& device,const VulkanRenderPass& renderPass,const std::array<VulkanImageView, 6>& cubemapFaceViews,uint32_t cubemapSize)
+{
+    logicalDevice = &device;
+
+    framebuffers.resize(6);
+
+    for (uint32_t face = 0; face < 6; face++) {
+        VkFramebufferCreateInfo framebufferInfo{};
+        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        framebufferInfo.renderPass = renderPass.getRenderPass();
+        framebufferInfo.attachmentCount = 1;
+        framebufferInfo.pAttachments = cubemapFaceViews[face].getImageViewPtr();
+        framebufferInfo.width = cubemapSize;
+        framebufferInfo.height = cubemapSize;
+        framebufferInfo.layers = 1;
+
+        if (vkCreateFramebuffer(device.getDevice(), &framebufferInfo,nullptr,&framebuffers[face]) != VK_SUCCESS)
+        {
+            throw std::runtime_error( "failed to create equi-to-cubemap framebuffer");
+        }
+    }
 }

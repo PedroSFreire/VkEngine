@@ -34,14 +34,14 @@ void VulkanImage::create2DImage(const VulkanMemoryAllocator& allocator, const Vu
 	imageInfo.usage = info.usage;
 
 	imageInfo.extent.depth = 1;
-	imageInfo.mipLevels = 1;
-	imageInfo.arrayLayers = 1;
+	imageInfo.mipLevels = info.mipLevels;
+	imageInfo.arrayLayers = info.layers;
 
 	imageInfo.imageType = VK_IMAGE_TYPE_2D;
 	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	imageInfo.samples = info.numSamples;
-	imageInfo.flags = 0;
+	imageInfo.flags = info.flags;
 
 	VmaAllocationCreateInfo allocInfo = {};
 	allocInfo.usage = info.vmaUsage;
