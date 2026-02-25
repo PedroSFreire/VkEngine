@@ -69,7 +69,9 @@ ResourceManager::ResourceManager(const VulkanRenderer& renderer) {
 	createSampler(renderer,defaultSampler, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT);
 	createSampler(renderer, defaultCubeSampler, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
 	createSimpleMeshResources(renderer, cubeVertices, cubeIndices, cubeMesh);
-	createEnvironmentMaps(renderer, "textures/monks_forest_4k.hdr");
+	createEnvironmentMaps(renderer, "textures/monkstown_castle_4k.hdr");
+	createBrdfLut(renderer);
+	createIBLCubeResources(renderer);
 }
 
 uint32_t ResourceManager::loadImage(const VulkanRenderer& renderer, const ImageAsset& img) {
@@ -757,23 +759,51 @@ void ResourceManager::createCubeImage(const VulkanRenderer& renderer, CubeMapRes
 }
 
 
+void ResourceManager::createIBLCubeResources(const VulkanRenderer& renderer)
+{
+	//create cube descriptors
+	DescriptorManager::createCubeDescriptorLayout(renderer.getLogicalDevice(), irradianceCubeDescriptorSet, cubeDescriptorPool);
+	DescriptorManager::createCubeDescriptorLayout(renderer.getLogicalDevice(), prefilteredCubeDescriptorSet, cubeDescriptorPool);
+
+	irradianceCubeDescriptorSet.createDescriptor();
+	prefilteredCubeDescriptorSet.createDescriptor();
+
+	
+	uint32_t textSize = 256;
+
+	// allocate cubemap image
+	createCubeImage(renderer, irradianceImage, textSize);
+	createCubeImage(renderer, prefilteredImage, textSize, static_cast<uint32_t>(std::floor(std::log2(textSize))) + 1);
+
+
+	//calculate irradiance map from cubemap**********************************
+	renderer.cubePass(cubemapImage.cubeImageView, irradianceImage, defaultCubeSampler.sampler, cubeMesh, textSize, true/*irradiance pass*/);
+
+	transitionImageLayout(renderer, irradianceImage.image, TextureTypeToVkFormat(TextureType::HDRColor), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, 6);
+	DescriptorManager::updateCubeDescriptor(irradianceCubeDescriptorSet, irradianceImage.cubeImageView.getImageView(), defaultCubeSampler.sampler.getSampler());
+
+	//calculate prefiltered map from cubemap**********************************
+	uint32_t prefilteredLayerCount = std::floor(std::log2(textSize)) + 1;
+	renderer.prefilteredCubePass(cubemapImage.cubeImageView, prefilteredImage, defaultCubeSampler.sampler, cubeMesh, textSize);
+
+	transitionImageLayout(renderer, prefilteredImage.image, TextureTypeToVkFormat(TextureType::HDRColor), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, 6, prefilteredLayerCount);
+	DescriptorManager::updateCubeDescriptor(prefilteredCubeDescriptorSet, prefilteredImage.cubeImageView.getImageView(), defaultCubeSampler.sampler.getSampler());
+	
+
+}
+
 void ResourceManager::createEnvironmentMaps(const VulkanRenderer& renderer, const std::string& HDRI_PATH) {
 	
 
 	//create cube descriptors
-	DescriptorManager::createCubeDescriptorPool(renderer.getLogicalDevice(), cubeDescriptorPool, 3);
+	DescriptorManager::createCubeDescriptorPool(renderer.getLogicalDevice(), cubeDescriptorPool, 3/*3 cubes : env,irradiance,preFiltered specular*/);
 	DescriptorManager::createCubeDescriptorLayout(renderer.getLogicalDevice(), cubeDescriptorSet, cubeDescriptorPool);
-	DescriptorManager::createCubeDescriptorLayout(renderer.getLogicalDevice(), irradianceCubeDescriptorSet, cubeDescriptorPool);
-	DescriptorManager::createCubeDescriptorLayout(renderer.getLogicalDevice(), prefilteredCubeDescriptorSet, cubeDescriptorPool);
 	cubeDescriptorSet.createDescriptor();
-	irradianceCubeDescriptorSet.createDescriptor();
-	prefilteredCubeDescriptorSet.createDescriptor();
+
 
 	uint32_t textSize = 256;
 	// allocate cubemap image
 	createCubeImage(renderer, cubemapImage, textSize*4);
-	createCubeImage(renderer, irradianceImage, textSize);
-	createCubeImage(renderer, prefilteredImage, textSize, static_cast<uint32_t>(std::floor(std::log2(textSize))) + 1);
 
 	// sampler for equi
 	VulkanSampler envSampler;
@@ -789,18 +819,34 @@ void ResourceManager::createEnvironmentMaps(const VulkanRenderer& renderer, cons
 	transitionImageLayout(renderer, cubemapImage.image, TextureTypeToVkFormat(TextureType::HDRColor), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,6);
 	DescriptorManager::updateCubeDescriptor(cubeDescriptorSet, cubemapImage.cubeImageView.getImageView(),defaultCubeSampler.sampler.getSampler());
 
-	//calculate irradiance map from cubemap
-	renderer.cubePass(cubemapImage.cubeImageView, irradianceImage, defaultCubeSampler.sampler, cubeMesh, textSize, true/*irradiance pass*/);
+	
 
-	transitionImageLayout(renderer, irradianceImage.image, TextureTypeToVkFormat(TextureType::HDRColor), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, 6);
-	DescriptorManager::updateCubeDescriptor(irradianceCubeDescriptorSet, irradianceImage.cubeImageView.getImageView(), defaultCubeSampler.sampler.getSampler());
+}
 
-	//calculate prefiltered map from cubemap
-	uint32_t prefilteredLayerCount = std::floor(std::log2(textSize)) + 1;
-	renderer.prefilteredCubePass(cubemapImage.cubeImageView, prefilteredImage, defaultCubeSampler.sampler, cubeMesh, textSize);
+void ResourceManager::createBrdfLut(const VulkanRenderer& renderer)
+{
+	uint32_t brdfTexSize = 256;
+	//create BRDF LUT descriptor
+	DescriptorManager::createImageDescriptorPool(renderer.getLogicalDevice(), brdfLutDescriptorPool, 1);
+	DescriptorManager::createImageDecriptorLayout(renderer.getLogicalDevice(), brdfLutDescriptorSet, brdfLutDescriptorPool);
+	brdfLutDescriptorSet.createDescriptor();
+
+	// allocate BRDF LUT image
+	VulkanImageCreateInfo brdfLUTImageInfo{};
+	brdfLUTImageInfo.width = brdfTexSize;
+	brdfLUTImageInfo.height = brdfTexSize;
+	brdfLUTImageInfo.format = VK_FORMAT_R16G16_SFLOAT;
+	brdfLUTImageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+	brdfLUTImageInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+
+	brdfLutImage.image.create2DImage(renderer.getAllocator(), brdfLUTImageInfo);
 
 
-	transitionImageLayout(renderer, prefilteredImage.image, TextureTypeToVkFormat(TextureType::HDRColor), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, 6, prefilteredLayerCount);
-	DescriptorManager::updateCubeDescriptor(prefilteredCubeDescriptorSet, prefilteredImage.cubeImageView.getImageView(), defaultCubeSampler.sampler.getSampler());
+	brdfLutImage.imageView.createImageView(renderer.getLogicalDevice(),brdfLutImage.image, VK_FORMAT_R16G16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
+
+	//calculate BRDF LUT******************************************************
+	renderer.brdfLutPass(brdfLutImage.imageView, defaultSampler.sampler,brdfTexSize);
+	//transitionImageLayout(renderer, brdfLUTImage.image, VK_FORMAT_R16G16_SFLOAT, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, 1);
+	DescriptorManager::updateImageDescriptor(brdfLutDescriptorSet, brdfLutImage.imageView.getImageView(), defaultSampler.sampler.getSampler());
 
 }

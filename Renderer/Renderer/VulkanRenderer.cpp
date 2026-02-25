@@ -58,18 +58,20 @@ void VulkanRenderer::initVulkan() {
 		DescriptorManager::updateUBODescriptor(descriptorSets[i],uniformBuffers[i]);
 	}
 
-	VulkanDescriptorSet matDescriptorSet,lightDescriptor,cubeDescriptor;
-	VulkanDescriptorPool matDescriptorPool, lightDescriptorPool, cubeDescriptorPool;
+	VulkanDescriptorPool matDescriptorPool, lightDescriptorPool, cubeDescriptorPool, imageDescriptorPool;
+	VulkanDescriptorSet matDescriptorSet, lightDescriptor, cubeDescriptor, imageDescriptor;
 
 	DescriptorManager::createMaterialDescriptorPool(logicalDevice, matDescriptorPool, 1);
 	DescriptorManager::createLightDescriptorPool(logicalDevice, lightDescriptorPool, 1);
 	DescriptorManager::createCubeDescriptorPool(logicalDevice, cubeDescriptorPool, 1);
+	DescriptorManager::createImageDescriptorPool(logicalDevice, imageDescriptorPool, 1);
 
 	DescriptorManager::createMaterialDescriptorLayout(logicalDevice, matDescriptorSet, matDescriptorPool);
 	DescriptorManager::createLightDescriptorLayout(logicalDevice, lightDescriptor, lightDescriptorPool);
 	DescriptorManager::createCubeDescriptorLayout(logicalDevice, cubeDescriptor, cubeDescriptorPool);
+	DescriptorManager::createImageDecriptorLayout(logicalDevice, imageDescriptor, imageDescriptorPool);
 
-	std::array<VkDescriptorSetLayout, 4> descriptorLayouts{ descriptorSets[0].getDescriptorSetLayout(), matDescriptorSet.getDescriptorSetLayout(), lightDescriptor.getDescriptorSetLayout(), cubeDescriptor.getDescriptorSetLayout()};
+	std::array<VkDescriptorSetLayout, 6> descriptorLayouts{ descriptorSets[0].getDescriptorSetLayout(), matDescriptorSet.getDescriptorSetLayout(), lightDescriptor.getDescriptorSetLayout(), cubeDescriptor.getDescriptorSetLayout() , cubeDescriptor.getDescriptorSetLayout() , imageDescriptor.getDescriptorSetLayout() };
 
 
 
@@ -491,4 +493,52 @@ void VulkanRenderer::prefilteredCubePass(VulkanImageView& imgResource, CubeMapRe
 	vkWaitForFences(logicalDevice.getDevice(), 1, &(syncObjects.inFlightFences[0]), VK_TRUE, UINT64_MAX);
 
 
+}
+
+
+void VulkanRenderer::brdfLutPass(VulkanImageView& imgView, VulkanSampler& sampler, const uint32_t texSize) const {
+	//create render pass 
+	VulkanRenderPass renderPass;
+	renderPass.createbrdfLutRenderPass(physicalDevice, logicalDevice);
+
+	//create framebuffer
+	VulkanFrameBuffers frameBuffer;
+	frameBuffer.createBrdfLutFramebuffer(logicalDevice, renderPass, imgView,texSize);
+
+	//create descriptor
+	VulkanDescriptorPool descriptorPool;
+	VulkanDescriptorSet descriptorSet;
+	DescriptorManager::createCubeDescriptorPool(logicalDevice, descriptorPool, 1);
+	DescriptorManager::createCubeDescriptorLayout(logicalDevice, descriptorSet, descriptorPool);
+	descriptorSet.createDescriptor();
+	DescriptorManager::updateCubeDescriptor(descriptorSet, imgView.getImageView(), sampler.getSampler());
+
+	//create pipeline 
+	VulkanPipeline pipeline;
+	PipelineFactory::createBrdfLutPipeline(logicalDevice, pipeline, renderPass, descriptorSet.getDescriptorSetLayout(), texSize);
+
+	//record command buffer
+	VulkanCommandPool commandPool;
+	VulkanCommandBuffer commandBuffer;
+	commandPool.createGraphicsCommandPool(physicalDevice, logicalDevice, surface);
+	commandBuffer.createCommandBuffer(logicalDevice, commandPool);
+	CommandBufferRecorder::recordCommandBufferBrdfLutPass(*this, renderPass, frameBuffer, commandBuffer, pipeline, texSize, descriptorSet);
+
+
+	//submit command Buffer
+	VkSubmitInfo submitInfo{};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &(commandBuffer.getCommandBuffer());
+
+
+	vkResetFences(logicalDevice.getDevice(), 1, &syncObjects.inFlightFences[0]);
+
+
+	if (vkQueueSubmit(logicalDevice.getGraphicsQueue(), 1, &submitInfo, syncObjects.inFlightFences[0]) != VK_SUCCESS) {
+		throw std::runtime_error("failed to submit draw command buffer!");
+	}
+
+	//wait for completion
+	vkWaitForFences(logicalDevice.getDevice(), 1, &(syncObjects.inFlightFences[0]), VK_TRUE, UINT64_MAX);
 }

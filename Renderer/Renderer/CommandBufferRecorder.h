@@ -25,6 +25,9 @@ public:
 	static void recordCommandBufferCubePass(const VulkanRenderer& renderer, VulkanRenderPass& renderpass, VulkanFrameBuffers& frameBuffers, VulkanCommandBuffer& commandBuffer,
 													VulkanPipeline& pipeline, uint32_t cubemapSize, VulkanDescriptorSet& texDescriptor, const MeshBuffers& cube);
 
+	static void recordCommandBufferBrdfLutPass(const VulkanRenderer& renderer, VulkanRenderPass& renderpass, VulkanFrameBuffers& frameBuffers, VulkanCommandBuffer& commandBuffer,
+		VulkanPipeline& pipeline, uint32_t texSize, VulkanDescriptorSet& texDescriptor);
+
 	static void recordCommandBufferPreFilteredCubePass(const VulkanRenderer& renderer, VulkanRenderPass& renderpass, VulkanFrameBuffers& frameBuffers, VulkanCommandBuffer& commandBuffer,
 		VulkanPipeline& pipeline, uint32_t cubemapSize, VulkanDescriptorSet& texDescriptor, const MeshBuffers& cube, float roughness);
 

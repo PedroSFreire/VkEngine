@@ -228,7 +228,8 @@ struct ImageAsset {
 
 	ImageAsset(const ImageAsset&) = delete;
 	ImageAsset(ImageAsset&& other) noexcept 
-		:width(other.width),
+		:name(std::move(other.name)),
+		width(other.width),
 		height(other.height),
 		channels(other.channels),
 		pixels(std::move(other.pixels)){ }

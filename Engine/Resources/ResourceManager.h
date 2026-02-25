@@ -43,6 +43,7 @@ public:
 	VulkanDescriptorSet& getEnvCubeDescriptor() { return cubeDescriptorSet; }
 	VulkanDescriptorSet& getIrradianceCubeDescriptor() { return irradianceCubeDescriptorSet; }
 	VulkanDescriptorSet& getPrefilteredCubeDescriptor() { return prefilteredCubeDescriptorSet; }
+	VulkanDescriptorSet& getBrdfLut() { return brdfLutDescriptorSet; }
 
 	const MeshBuffers& getCubeMesh() const { return cubeMesh; }
 
@@ -104,6 +105,11 @@ private:
 	CubeMapResource irradianceImage;
 	CubeMapResource prefilteredImage;
 
+	//brdf LUT of env Tex
+	VulkanDescriptorPool brdfLutDescriptorPool;
+	VulkanDescriptorSet brdfLutDescriptorSet;
+	ImageResource brdfLutImage;
+
 
 
 	//should prob not be here but cube for cubemaps
@@ -132,9 +138,14 @@ private:
     uint32_t createDescriptorSet(const VulkanRenderer& renderer, const MaterialAsset& mat, SceneData& scene);
     void createDefaultImages(const VulkanRenderer& renderer);
 
+	void createIBLCubeResources(const VulkanRenderer& renderer);
+
 	void createEnvironmentMaps(const VulkanRenderer& renderer, const std::string& HDRI_PATH);
 
 	void createCubeImage(const VulkanRenderer& renderer, CubeMapResource& resource, uint32_t textSize, uint32_t mipLevels = 1);
+
+	void createBrdfLut(const VulkanRenderer& renderer);
+
 	//creation functions helpers
 
 	void bufferStagedUpload(const VulkanRenderer& renderer, VulkanBuffer& dstBuffer, const void* bufferData, uint32_t size, uint32_t elementCount) const;

@@ -18,17 +18,20 @@ public:
 	static void createUBODescriptorPool(const VulkanLogicalDevice& device, VulkanDescriptorPool& pool, int size);
 	static void createLightDescriptorPool(const VulkanLogicalDevice& device, VulkanDescriptorPool& pool, size_t size);
 	static void createCubeDescriptorPool(const VulkanLogicalDevice& device, VulkanDescriptorPool& pool, int size);
+	static void createImageDescriptorPool(const VulkanLogicalDevice& device, VulkanDescriptorPool& pool, int size);
 
 	// Descriptor Set Layouts
 	static void createMaterialDescriptorLayout(const VulkanLogicalDevice& device, VulkanDescriptorSet& set, VulkanDescriptorPool& pool);
 	static void createUBODescriptorLayout(const VulkanLogicalDevice& device, VulkanDescriptorSet& set, VulkanDescriptorPool& pool);
 	static void createLightDescriptorLayout(const VulkanLogicalDevice& device, VulkanDescriptorSet& set, VulkanDescriptorPool& pool);
 	static void createCubeDescriptorLayout(const VulkanLogicalDevice& device, VulkanDescriptorSet& set, VulkanDescriptorPool& pool);
+	static void createImageDecriptorLayout(const VulkanLogicalDevice& device, VulkanDescriptorSet& set, VulkanDescriptorPool& pool);
 
 	// Descriptor Set Updates
 	static void updateLightDescriptor( VulkanDescriptorSet& set, VulkanBuffer& lightBuffer, size_t numLights);
 	static void updateMaterialDescriptor( VulkanDescriptorSet& set, const VkImageView* textureView, const VkSampler* textureSampler);
 	static void updateUBODescriptor( VulkanDescriptorSet& set, VulkanBuffer& uniformBuffer);
 	static void updateCubeDescriptor(VulkanDescriptorSet& set, const VkImageView& textureView, const VkSampler& textureSampler);
+	static void updateImageDescriptor(VulkanDescriptorSet& set, const VkImageView& textureView, const VkSampler& textureSampler);
 	// *******************************************************************************************************************************************
 };

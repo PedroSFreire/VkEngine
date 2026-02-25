@@ -77,6 +77,15 @@ void DescriptorManager::createCubeDescriptorLayout(const VulkanLogicalDevice& de
 
 	set.createDescriptorLayout(device, pool, bindings);
 }
+void DescriptorManager::createImageDecriptorLayout(const VulkanLogicalDevice& device, VulkanDescriptorSet& set, VulkanDescriptorPool& pool) {
+	std::array<VkDescriptorSetLayoutBinding, 1> bindings{};
+	bindings[0].binding = 0;
+	bindings[0].descriptorCount = 1;
+	bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	bindings[0].pImmutableSamplers = nullptr;
+	bindings[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	set.createDescriptorLayout(device, pool, bindings);
+}
 
 
 void DescriptorManager::createMaterialDescriptorPool(const VulkanLogicalDevice& device, VulkanDescriptorPool& pool, int size)  {
@@ -132,6 +141,16 @@ void DescriptorManager::createCubeDescriptorPool(const VulkanLogicalDevice& devi
 	info.maxSets = static_cast<uint32_t>(size);
 	info.flags = 0;
 
+	pool.createDescriptorPool(device, info);
+}
+void DescriptorManager::createImageDescriptorPool(const VulkanLogicalDevice& device, VulkanDescriptorPool& pool, int size) {
+	DescriptorPoolCreateInfo info{};
+	std::array<VkDescriptorPoolSize, 1> poolSizes{};
+	poolSizes[0].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	poolSizes[0].descriptorCount = static_cast<uint32_t>(size);
+	info.poolSizes = poolSizes;
+	info.maxSets = static_cast<uint32_t>(size);
+	info.flags = 0;
 	pool.createDescriptorPool(device, info);
 }
 
@@ -270,5 +289,20 @@ void DescriptorManager::updateCubeDescriptor(VulkanDescriptorSet& set, const VkI
 	descriptorWrites[0].descriptorCount = 1;
 	descriptorWrites[0].pImageInfo = &imageInfo;
 
+	set.updateDescriptorSet(descriptorWrites);
+}
+void DescriptorManager::updateImageDescriptor(VulkanDescriptorSet& set, const VkImageView& textureView, const VkSampler& textureSampler) {
+	VkDescriptorImageInfo imageInfo{};
+	imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	imageInfo.imageView = textureView;
+	imageInfo.sampler = textureSampler;
+	std::array<VkWriteDescriptorSet, 1> descriptorWrites{};
+	descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	descriptorWrites[0].dstSet = set.getDescriptorSet();
+	descriptorWrites[0].dstBinding = 0;
+	descriptorWrites[0].dstArrayElement = 0;
+	descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	descriptorWrites[0].descriptorCount = 1;
+	descriptorWrites[0].pImageInfo = &imageInfo;
 	set.updateDescriptorSet(descriptorWrites);
 }

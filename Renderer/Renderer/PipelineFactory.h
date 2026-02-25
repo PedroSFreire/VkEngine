@@ -29,5 +29,7 @@ class PipelineFactory
 		static void createPreFilteredPipeline(const VulkanLogicalDevice& device, VulkanPipeline& pipeline, VulkanRenderPass& renderPass, const VkDescriptorSetLayout& descriptorSetLayout, uint32_t texSize);
 
 		static void createEnvPipeline(VulkanPipeline& pipeline, const VulkanLogicalDevice& device, const VulkanSwapChain& swapChain, const VulkanRenderPass& renderPass, const VkDescriptorSetLayout* descriptorSetLayouts, VkSampleCountFlagBits msaaSamples);
+
+		static void createBrdfLutPipeline(const VulkanLogicalDevice& device, VulkanPipeline& pipeline, VulkanRenderPass& renderPass, const VkDescriptorSetLayout& descriptorSetLayout, uint32_t texSize);	
 };
 

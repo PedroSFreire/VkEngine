@@ -22,7 +22,7 @@ public:
 
 	void createCubeRenderPass(const VulkanPhysicalDevice& physicalDevice, const VulkanLogicalDevice& logicalDevice);
 
-	void createEnvRenderPass(const VulkanPhysicalDevice& physicalDevice, const VulkanLogicalDevice& logicalDevice, const VulkanSwapChain& swapChain);
+	void createbrdfLutRenderPass(const VulkanPhysicalDevice& physicalDevice, const VulkanLogicalDevice& logicalDevice);
 
 	VkRenderPass getRenderPass() const { return renderPass; }
 

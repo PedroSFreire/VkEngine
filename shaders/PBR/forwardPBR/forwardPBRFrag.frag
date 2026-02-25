@@ -39,7 +39,12 @@ layout(set = 2, binding = 0) readonly buffer LightBuffer {
     LightGPUData lights[];
 };
 
-layout(set = 3, binding = 0) uniform samplerCube  envTexture;
+layout(set = 3, binding = 0) uniform samplerCube  irradienceTexture;
+
+layout(set = 4, binding = 0) uniform samplerCube  preFilteredTexture;
+
+layout(set = 5, binding = 0) uniform sampler2D  brdfLutTexture;
+
 
 layout(push_constant) uniform PushConstants{
     mat4 transform;
@@ -240,8 +245,43 @@ void main() {
 			outColor.xyz += calcSpotLight(fNormal, i);
 		}
 	}
-	vec3 uselessColor = texture(envTexture,vec3(1,1,1)).rgb;
-	vec3 ambient = vec3(0.1) * texture(ColorTexture,fragTexCoord).rgb * texture(occlusionTexture,fragTexCoord).r;
+
+
+	//read Textures
+	float metallic = texture(metalRoughTexture, fragTexCoord).b;// * pc.metallicFactor;
+	vec3 color = texture(ColorTexture, fragTexCoord).rgb;
+	float ao = texture(occlusionTexture, fragTexCoord).r;	
+	float roughness = texture(metalRoughTexture, fragTexCoord).g;
+	    
+    
+
+	//compute views 
+	vec3 V = normalize( ubo.cameraPos - inPosition );
+	vec3 F0 = vec3(0.04); 
+	F0 = mix(F0, color, metallic);
+	vec3 R = reflect(-V, fNormal);   
+	R.y *= -1.0;
+	//compute ratios
+	vec3 kS = fresnelSchlickRoughness(max(dot(fNormal, V), 0.0), F0, roughness);
+	vec3 kD = (1.0 - kS)*(1-metallic);
+
+
+	//diff
+	vec3 irradiance = texture(irradienceTexture, fNormal).rgb;
+	vec3 diffuse    = irradiance * color;
+
+	//spec
+	const float MAX_REFLECTION_LOD = 4.0;
+    vec3 prefilteredColor = textureLod(preFilteredTexture, R,  roughness * MAX_REFLECTION_LOD).rgb;
+	vec2 envBRDF  = texture(brdfLutTexture, vec2(max(dot(fNormal, V), 0.0), roughness)).rg;
+	vec3 specular = prefilteredColor * (kS * envBRDF.x + envBRDF.y) * 0.1;
+  
+
+
+	vec3 ambient    = (kD * diffuse)* ao + specular; 
+
 	outColor.xyz += ambient + texture(emissiveTexture,fragTexCoord).rgb; 
+
+
 
 }

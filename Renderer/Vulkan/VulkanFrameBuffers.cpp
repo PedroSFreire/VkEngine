@@ -68,3 +68,25 @@ void VulkanFrameBuffers::createCubeFramebuffers(const VulkanLogicalDevice& devic
         }
     }
 }
+
+
+void VulkanFrameBuffers::createBrdfLutFramebuffer(const VulkanLogicalDevice& device, const VulkanRenderPass& renderPass, const VulkanImageView& imageView, uint32_t texSize)
+{
+    logicalDevice = &device;
+
+	framebuffers.resize(1);
+
+    VkFramebufferCreateInfo framebufferInfo{};
+    framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    framebufferInfo.renderPass = renderPass.getRenderPass();
+    framebufferInfo.attachmentCount = 1;
+    framebufferInfo.pAttachments = imageView.getImageViewPtr();
+    framebufferInfo.width = texSize;
+    framebufferInfo.height = texSize;
+    framebufferInfo.layers = 1;
+
+    if (vkCreateFramebuffer(device.getDevice(), &framebufferInfo, nullptr, &framebuffers[0]) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to create equi-to-cubemap framebuffer");
+    }
+}

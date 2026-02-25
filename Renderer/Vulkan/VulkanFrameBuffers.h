@@ -50,6 +50,8 @@ public:
 	void createFramebuffers(const VulkanLogicalDevice& device, const VulkanSwapChain& swapChain, const VulkanRenderPass& renderPass , const VulkanImageView& depthImageView, const VulkanImageView& colorImageView);
 
 	void createCubeFramebuffers(const VulkanLogicalDevice& device, const VulkanRenderPass& renderPass, const std::array<VulkanImageView, 6>& cubemapFaceViews, uint32_t cubemapSize);
+
+    void createBrdfLutFramebuffer(const VulkanLogicalDevice& device, const VulkanRenderPass& renderPass,const VulkanImageView& imageView, uint32_t texSize);
 private:
 
 	std::vector<VkFramebuffer> framebuffers;
