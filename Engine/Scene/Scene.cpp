@@ -11,7 +11,7 @@ void Scene::addDefaultLight() {
 	newLight.color.x = 0.8;
 	newLight.color.y = 0.8;
 	newLight.color.z = 0.8;
-	newLight.intensity = 0.9;
+	newLight.intensity = 1;
 	newLight.range = 100.0f;
 	scene.lights.emplace_back(std::make_shared<LightAsset>(std::move(newLight)));
 
@@ -24,15 +24,17 @@ void Scene::addDefaultLight() {
 
 	LightNode.transform = glm::translate(glm::mat4(1.0f), glm::vec3(5.0f, 1.0f, -5.0f));
 
-	LightNode.children.emplace_back(scene.nodes.size()+1);
+	//LightNode.children.emplace_back(scene.nodes.size()+1);
 
 	scene.nodes.emplace_back(std::make_shared<NodeAsset>(std::move(LightNode)));
 
+	scene.rootNodesIds.emplace_back(scene.nodes.size() - 1);
+	/*
 	NodeAsset meshNode;
 
 	meshNode.name = "defaultMesh";
 
-	meshNode.meshIndex = 1;
+	meshNode.meshIndex = 0;
 
 	meshNode.parentIndex = scene.nodes.size() - 1;
 
@@ -41,6 +43,7 @@ void Scene::addDefaultLight() {
 	scene.nodes.emplace_back(std::make_shared<NodeAsset>(std::move(meshNode)));
 
 	scene.rootNodesIds.emplace_back(scene.nodes.size() - 2);
+	*/
 
 	//Add emissive mesh ball as child need to add material mesh emissive texture and node as child of light
 }
@@ -55,7 +58,8 @@ void Scene::loadFile(const std::string& filePath)
 	if(ext == ".glm" || ext == ".gltf" || ext == ".glb")
 	{
 		gltfLoader.loadGltf(scene,filePath.c_str());
-		//555addDefaultLight();
+		if(scene.lights.size() == 0)
+			addDefaultLight();
 		frameData.drawInstances.resize(scene.meshAssets.size());
 	}
 	else {

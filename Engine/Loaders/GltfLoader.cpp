@@ -230,7 +230,7 @@ void GltfLoader::loadNodesRelatrions(SceneData& scene) {
 
 }
 
-bool GltfLoader::loadImageData(SceneData& scene, stbi_uc* bytes, uint32_t size, ImageAsset& tempImage, int id) {
+bool GltfLoader::loadImageData(SceneData& scene, stbi_uc* bytes, uint32_t size,  int id) {
 	int width, height, channels;
 
 	stbi_uc* pixels = stbi_load_from_memory(bytes, size, &width, &height, &channels, STBI_rgb_alpha);
@@ -242,6 +242,7 @@ bool GltfLoader::loadImageData(SceneData& scene, stbi_uc* bytes, uint32_t size, 
 	}
 
 	ImageAsset imgArray;
+	imgArray.name = id;
 	imgArray.height = height;
 	imgArray.width = width;
 	imgArray.channels = channels;
@@ -252,7 +253,7 @@ bool GltfLoader::loadImageData(SceneData& scene, stbi_uc* bytes, uint32_t size, 
 	return true;
 }
 
-bool GltfLoader::loadImageData(SceneData& scene, const std::string& TEXTURE_PATH, ImageAsset& tempImage, int id) {
+bool GltfLoader::loadImageData(SceneData& scene, const std::string& TEXTURE_PATH, int id) {
 	int width, height, channels;
 
 	stbi_uc* pixels = stbi_load(TEXTURE_PATH.c_str(), &width, &height, &channels, STBI_rgb_alpha);
@@ -265,6 +266,7 @@ bool GltfLoader::loadImageData(SceneData& scene, const std::string& TEXTURE_PATH
 	}
 
 	ImageAsset imgArray;
+	imgArray.name = TEXTURE_PATH;
 	imgArray.height = height;
 	imgArray.width = width;
 	imgArray.channels = channels;
@@ -376,7 +378,7 @@ void GltfLoader::loadMaterials(SceneData& scene) {
 
 		if (material.occlusionTexture.has_value()) {
 			newMaterial.occlusionTexId = material.occlusionTexture.value().textureIndex;
-			newMaterial.occlusionTexId = material.occlusionTexture.value().strength;
+			newMaterial.occlusionStrenght = material.occlusionTexture.value().strength;
 			int imageId = scene.textures[newMaterial.occlusionTexId.value()]->imageId;
 			scene.imageAssets[imageId]->type = TextureType::Occlusion;
 		}
@@ -445,17 +447,17 @@ void GltfLoader::loadImages(SceneData& scene, const std::filesystem::path& path)
 	for (int imgId = 0; imgId < asset.images.size(); imgId++) {
 
 		auto& image = asset.images[imgId];
-		ImageAsset tempImage;
-		tempImage.name = image.name;
 
 		std::string imagePath;
 
 		//Load Based on variant type
 		if (auto filename = std::get_if<fastgltf::sources::URI>(&image.data)) {
 			//type URI just a file path
+			if( (std::string)filename->uri.c_str() == "YellowGrid.png")
+				printf("found yellow grid\n");
 			imagePath = path.parent_path().string() + "/" + filename->uri.c_str();
 
-			if (!loadImageData(scene, imagePath, tempImage, imgId)) {
+			if (!loadImageData(scene, imagePath,  imgId)) {
 				continue;
 			}
 
@@ -465,7 +467,7 @@ void GltfLoader::loadImages(SceneData& scene, const std::filesystem::path& path)
 			stbi_uc* bytes = reinterpret_cast<stbi_uc*>(imageArray->bytes.data());
 			int width, height, channels;
 
-			if (!loadImageData(scene, bytes, imageArray->bytes.size(),tempImage, imgId)) {
+			if (!loadImageData(scene, bytes, imageArray->bytes.size(), imgId)) {
 				continue;
 			}
 
@@ -479,7 +481,7 @@ void GltfLoader::loadImages(SceneData& scene, const std::filesystem::path& path)
 			auto data = reinterpret_cast<stbi_uc*>(bufferAdress + bufferView->byteOffset);
 			auto size = bufferView->byteLength;
 
-			if (!loadImageData(scene, data, size, tempImage, imgId)) {
+			if (!loadImageData(scene, data, size,  imgId)) {
 				continue;
 			}
 

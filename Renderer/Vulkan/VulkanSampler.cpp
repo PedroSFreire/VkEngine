@@ -9,7 +9,7 @@ VulkanSampler::~VulkanSampler() {
 }
 
 
-void VulkanSampler::createTextureSampler(const VulkanPhysicalDevice& physicalDevice, const VulkanLogicalDevice& device, VkFilter magFilter, VkFilter minFilter, VkSamplerMipmapMode mipMap, VkSamplerAddressMode addressU, VkSamplerAddressMode addressV) {
+void VulkanSampler::createTextureSampler(const VulkanPhysicalDevice& physicalDevice, const VulkanLogicalDevice& device, VkFilter magFilter, VkFilter minFilter, VkSamplerMipmapMode mipMap, VkSamplerAddressMode addressU, VkSamplerAddressMode addressV, VkSamplerAddressMode addressW) {
 
 	logicalDevice = &device;
 
@@ -20,7 +20,7 @@ void VulkanSampler::createTextureSampler(const VulkanPhysicalDevice& physicalDev
 
 	samplerInfo.addressModeU = addressU;
 	samplerInfo.addressModeV = addressV;
-	samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	samplerInfo.addressModeW = addressW;
 
 	VkPhysicalDeviceProperties properties{};
 	vkGetPhysicalDeviceProperties(physicalDevice.getPhysicalDevice(), &properties);

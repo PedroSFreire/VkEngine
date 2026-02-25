@@ -47,7 +47,7 @@ void VulkanRenderer::initVulkan() {
 		commandBuffers[i].createCommandBuffer(logicalDevice, commandPool);
 	}
 
-	renderPass.createRenderPass(physicalDevice, swapChain, logicalDevice);
+	renderPass.createForwardRenderPass(physicalDevice, logicalDevice, swapChain);
 
 	DescriptorManager::createUBODescriptorPool(logicalDevice, descriptorPool, MAX_FRAMES_IN_FLIGHT);
 
@@ -58,20 +58,29 @@ void VulkanRenderer::initVulkan() {
 		DescriptorManager::updateUBODescriptor(descriptorSets[i],uniformBuffers[i]);
 	}
 
-	VulkanDescriptorSet matDescriptorSet,lightDescriptor;
-	VulkanDescriptorPool matDescriptorPool, lightDescriptorPool;
+	VulkanDescriptorPool matDescriptorPool, lightDescriptorPool, cubeDescriptorPool, imageDescriptorPool;
+	VulkanDescriptorSet matDescriptorSet, lightDescriptor, cubeDescriptor, imageDescriptor;
 
 	DescriptorManager::createMaterialDescriptorPool(logicalDevice, matDescriptorPool, 1);
 	DescriptorManager::createLightDescriptorPool(logicalDevice, lightDescriptorPool, 1);
+	DescriptorManager::createCubeDescriptorPool(logicalDevice, cubeDescriptorPool, 1);
+	DescriptorManager::createImageDescriptorPool(logicalDevice, imageDescriptorPool, 1);
 
 	DescriptorManager::createMaterialDescriptorLayout(logicalDevice, matDescriptorSet, matDescriptorPool);
 	DescriptorManager::createLightDescriptorLayout(logicalDevice, lightDescriptor, lightDescriptorPool);
+	DescriptorManager::createCubeDescriptorLayout(logicalDevice, cubeDescriptor, cubeDescriptorPool);
+	DescriptorManager::createImageDecriptorLayout(logicalDevice, imageDescriptor, imageDescriptorPool);
 
-	std::array<VkDescriptorSetLayout, 3> descriptorLayouts{ descriptorSets[0].getDescriptorSetLayout(), matDescriptorSet.getDescriptorSetLayout(), lightDescriptor.getDescriptorSetLayout() };
+	std::array<VkDescriptorSetLayout, 6> descriptorLayouts{ descriptorSets[0].getDescriptorSetLayout(), matDescriptorSet.getDescriptorSetLayout(), lightDescriptor.getDescriptorSetLayout(), cubeDescriptor.getDescriptorSetLayout() , cubeDescriptor.getDescriptorSetLayout() , imageDescriptor.getDescriptorSetLayout() };
 
 
 
 	PipelineFactory::createGraphicsPipeline(graphicsPipeline ,logicalDevice, swapChain, renderPass, descriptorLayouts.data(), physicalDevice.getMsaaSamples());
+
+	std::array<VkDescriptorSetLayout, 2> envDescriptorLayouts{ descriptorSets[0].getDescriptorSetLayout(), cubeDescriptor.getDescriptorSetLayout() };
+
+	PipelineFactory::createEnvPipeline(environmentPipeline, logicalDevice, swapChain, renderPass, envDescriptorLayouts.data(), physicalDevice.getMsaaSamples());
+	
 
 	createColorResources(physicalDevice.getMsaaSamples());
 
@@ -157,8 +166,7 @@ void VulkanRenderer::recreateSwapChain() {
 }
 
 
-void VulkanRenderer::drawFrame(SceneFramesData& drawData, ResourceManager& resourceManager,Camera& camera)
-{
+uint32_t VulkanRenderer::beginFrame() {
 	uint32_t imageIndex;
 	vkWaitForFences(logicalDevice.getDevice(), 1, &syncObjects.inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
@@ -167,7 +175,7 @@ void VulkanRenderer::drawFrame(SceneFramesData& drawData, ResourceManager& resou
 
 	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
 		recreateSwapChain();
-		return;
+
 	}
 	else if (result != VK_SUCCESS) {
 		throw std::runtime_error("failed to acquire swap chain image!");
@@ -175,11 +183,16 @@ void VulkanRenderer::drawFrame(SceneFramesData& drawData, ResourceManager& resou
 
 	vkResetFences(logicalDevice.getDevice(), 1, &syncObjects.inFlightFences[currentFrame]);
 
-	resourceManager.getLightDescriptor();
 	vkResetCommandBuffer(commandBuffers[currentFrame].getCommandBuffer(), 0);
-	update(currentFrame, drawData.frameLightData.size(), camera);
 
-	CommandBufferRecorder::recordCommandBufferBase(*this,commandBuffers[currentFrame],imageIndex, drawData, descriptorSets[currentFrame].getDescriptorSet(),resourceManager);
+	return imageIndex;
+}
+
+
+
+
+void VulkanRenderer::forwardPass(uint32_t imageIndex, SceneFramesData& drawData,ResourceManager& resourceManager) {
+	CommandBufferRecorder::recordCommandBufferForwardPass(*this, commandBuffers[currentFrame], imageIndex, drawData, descriptorSets[currentFrame].getDescriptorSet(), resourceManager);
 
 
 	VkSubmitInfo submitInfo{};
@@ -203,7 +216,12 @@ void VulkanRenderer::drawFrame(SceneFramesData& drawData, ResourceManager& resou
 	if (vkQueueSubmit(logicalDevice.getGraphicsQueue(), 1, &submitInfo, syncObjects.inFlightFences[currentFrame]) != VK_SUCCESS) {
 		throw std::runtime_error("failed to submit draw command buffer!");
 	}
+}
 
+
+
+void VulkanRenderer::presentFrame(uint32_t imageIndex) {
+	VkSemaphore signalSemaphores[] = { syncObjects.renderFinishedSemaphores[imageIndex] };
 
 	VkPresentInfoKHR presentInfo{};
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -217,7 +235,7 @@ void VulkanRenderer::drawFrame(SceneFramesData& drawData, ResourceManager& resou
 	presentInfo.pImageIndices = &imageIndex;
 	presentInfo.pResults = nullptr;
 
-	result = vkQueuePresentKHR(logicalDevice.getPresentQueue(), &presentInfo);
+	VkResult result = vkQueuePresentKHR(logicalDevice.getPresentQueue(), &presentInfo);
 
 
 	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || window.getFramebufferResized()) {
@@ -228,6 +246,25 @@ void VulkanRenderer::drawFrame(SceneFramesData& drawData, ResourceManager& resou
 	else if (result != VK_SUCCESS) {
 		throw std::runtime_error("failed to acquire swap chain image!");
 	}
+
+
+}
+
+
+
+void VulkanRenderer::drawFrame(SceneFramesData& drawData, ResourceManager& resourceManager,Camera& camera)
+{
+	//acquire image from swap chain and wait and reset sync objects and frame resources
+	uint32_t imageIndex = beginFrame();
+
+	update(currentFrame, drawData.frameLightData.size(), camera);
+
+
+
+	forwardPass(imageIndex, drawData, resourceManager);
+
+	//present image to swap chain	
+	presentFrame(imageIndex);
 
 	currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 
@@ -281,303 +318,227 @@ void VulkanRenderer::createUniformBuffers() {
 }
 
 
-/*
 
-void VulkanRenderer::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, const VkDeviceSize size) const {
-	VulkanCommandBuffer commandBuffer;
-	commandBuffer.beginRecordindSingleTimeCommands(logicalDevice, transferCommandPool);
 
-	VkBufferCopy copyRegion{};
-	copyRegion.size = size;
-	vkCmdCopyBuffer(commandBuffer.getCommandBuffer(), srcBuffer, dstBuffer, 1, &copyRegion);
 
-	commandBuffer.endRecordingSingleTimeCommands(logicalDevice, transferCommandPool);
+void VulkanRenderer::cubePass(VulkanImageView& imgResource, CubeMapResource& cubeMap, VulkanSampler& sampler, MeshBuffers& cubeMesh, uint32_t texSize, bool irr) const {
 
-}
 
-void VulkanRenderer::createMeshResources(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, MeshBuffers& meshBuffer) const {
-
-	createVertexBuffer(vertices,meshBuffer.vertexBuffer);
-	createIndexBuffer(indices, meshBuffer.indexBuffer);
-
-}
-
-void VulkanRenderer::createVertexBuffer(const std::vector<Vertex>& vertices, VulkanBuffer& vertexBuffer) const {
-
-	VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
-	uint32_t vextexCount = static_cast<uint32_t>(vertices.size());
-
-	//create buffer
-	VulkanBufferCreateInfo vertexBufferInfo{};
-	vertexBufferInfo.elementCount = vextexCount;
-	vertexBufferInfo.size = bufferSize;
-	vertexBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-	vertexBufferInfo.vmaUsage = VMA_MEMORY_USAGE_GPU_ONLY;
-
-	vertexBuffer.createBuffer(allocator,vertexBufferInfo);
-
-	//upload data
-	bufferStagedUpload(vertexBuffer, vertices.data(), bufferSize, vextexCount);
-
-}
-
-void VulkanRenderer::createIndexBuffer(const std::vector<uint32_t>& indices, VulkanBuffer& indexBuffer) const {
-	VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
-	uint32_t indexCount = static_cast<uint32_t>(indices.size());
-	VulkanBuffer stagingBuffer;
-
-	//create buffer
-	VulkanBufferCreateInfo indexBufferInfo{};
-	indexBufferInfo.elementCount = indexCount;
-	indexBufferInfo.size = bufferSize;
-	indexBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-	indexBufferInfo.vmaUsage = VMA_MEMORY_USAGE_GPU_ONLY;
-
-	indexBuffer.createBuffer(allocator, indexBufferInfo);
-
-	//upload data
-	bufferStagedUpload(indexBuffer, indices.data(), bufferSize, indexCount);
-}
-
-void VulkanRenderer::bufferStagedUpload(VulkanBuffer& dstBuffer,const void* bufferData, uint32_t size,uint32_t elementCount) const {
-
-	VkDeviceSize bufferSize = size;
-
-
-	VulkanBuffer stagingBuffer;
-
-	VulkanBufferCreateInfo stagingBufferInfo{};
-	stagingBufferInfo.elementCount = elementCount;
-	stagingBufferInfo.size = bufferSize;
-	stagingBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-	stagingBufferInfo.vmaUsage = VMA_MEMORY_USAGE_AUTO;
-	stagingBufferInfo.vmaFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-
-	stagingBuffer.createBuffer(allocator, stagingBufferInfo);
-
-
-	void* data;
-	vmaMapMemory(allocator.getAllocator(), stagingBuffer.getAllocation(), &data);
-	memcpy(data, bufferData, (size_t)bufferSize);
-	vmaUnmapMemory(allocator.getAllocator(), stagingBuffer.getAllocation());
-
-
-	copyBuffer(stagingBuffer.getBuffer(), dstBuffer.getBuffer(), bufferSize);
-}
-
-
-void VulkanRenderer::createTexture(const std::string& TEXTURE_PATH, ImageResource& tex) const {
-	createTextureImage(TEXTURE_PATH, tex.image);
-	tex.imageView.createImageView(logicalDevice, tex.image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
-}
-
-void VulkanRenderer::createTexture(const ImageAsset& data, ImageResource& tex) const {
-	createTextureImage(data, tex.image);
-	tex.imageView.createImageView(logicalDevice, tex.image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
-}
-
-void VulkanRenderer::createTextureImage(const std::string& TEXTURE_PATH,VulkanImage& textureImage) const {
-	int texWidth, texHeight, texChannels;
-
-	stbi_uc* pixels =stbi_load(TEXTURE_PATH.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-	VkDeviceSize imageSize = texWidth * texHeight * 4;
-
-	if (!pixels) {
-		throw std::runtime_error("failed to load texture image!");
-	}
-	createTextureImageHelper(pixels, texWidth, texHeight, textureImage);
-
-	stbi_image_free(pixels);
-}
-
-void VulkanRenderer::createTextureImage(const ImageAsset& data, VulkanImage& textureImage)const {
-	
-	VkDeviceSize imageSize = data.width * data.height * 4;
-	createTextureImageHelper(data.pixels, data.width, data.height, textureImage);
-
-	
-}
-
-
-void VulkanRenderer::createTextureImageHelper( stbi_uc* pixels, int texWidth, int texHeight, VulkanImage& textureImage) const {
-
-	VkDeviceSize imageSize = texWidth * texHeight * 4;
-	VulkanBuffer stagingBuffer;
-
-	VulkanBufferCreateInfo stagingBufferInfo{};
-	stagingBufferInfo.elementCount = 1;
-	stagingBufferInfo.size = imageSize;
-	stagingBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-	stagingBufferInfo.vmaUsage = VMA_MEMORY_USAGE_AUTO;
-	stagingBufferInfo.vmaFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-
-
-	stagingBuffer.createBuffer(allocator, stagingBufferInfo);
-
-	void* data;
-
-	vmaMapMemory(allocator.getAllocator(), stagingBuffer.getAllocation(), &data);
-	memcpy(data, pixels, static_cast<size_t>(imageSize));
-	vmaUnmapMemory(allocator.getAllocator(), stagingBuffer.getAllocation());
-
-	VulkanImageCreateInfo textureImageInfo{};
-	textureImageInfo.width = static_cast<uint32_t>(texWidth);
-	textureImageInfo.height = static_cast<uint32_t>(texHeight);
-	textureImageInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
-	textureImageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-	textureImageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-	textureImageInfo.vmaUsage = VMA_MEMORY_USAGE_GPU_ONLY;
-
-
-	textureImage.create2DImage(allocator, textureImageInfo);
-
-	transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
-
-	copyBufferToImage(stagingBuffer, textureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
-
-	transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, physicalDevice.findQueueFamilies(surface).transferFamily.value()
-		, physicalDevice.findQueueFamilies(surface).graphicsFamily.value());
-
-	transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-
-		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
-}
-
-void VulkanRenderer::createSampler(SamplerResource& samplerResource, VkFilter magFilter, VkFilter minFilter, VkSamplerMipmapMode mipMap, VkSamplerAddressMode addressU, VkSamplerAddressMode adressV) const{
-
-
-	samplerResource.sampler.createTextureSampler(physicalDevice, logicalDevice, magFilter, minFilter, mipMap, addressU, adressV);
-
-}
-
-
-void VulkanRenderer::transitionImageLayout(VulkanImage& image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t srcQueue, uint32_t destQueue)const {
-
-	VulkanCommandBuffer commandBuffer;
-	if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
-		commandBuffer.beginRecordindSingleTimeCommands(logicalDevice, commandPool);
-	}
-	else {
-		commandBuffer.beginRecordindSingleTimeCommands(logicalDevice, transferCommandPool);
-	}
-
-
-	VkImageMemoryBarrier barrier{};
-	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-	barrier.oldLayout = oldLayout;
-	barrier.newLayout = newLayout;
-
-	
-	barrier.srcQueueFamilyIndex = srcQueue;
-	barrier.dstQueueFamilyIndex = destQueue;
-
-	barrier.image = image.getImage();
-	barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	barrier.subresourceRange.baseMipLevel = 0;
-	barrier.subresourceRange.levelCount = 1;
-	barrier.subresourceRange.baseArrayLayer = 0;
-	barrier.subresourceRange.layerCount = 1;
-
-	barrier.srcAccessMask = 0; // TODO
-	barrier.dstAccessMask = 0; // TODO
-
-	VkPipelineStageFlags sourceStage;
-	VkPipelineStageFlags destinationStage;
-
-	if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
-		barrier.srcAccessMask = 0;
-		barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-
-		sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-		destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-
-		vkCmdPipelineBarrier(
-			commandBuffer.getCommandBuffer(),
-			sourceStage, destinationStage,
-			0,
-			0, nullptr,
-			0, nullptr,
-			1, &barrier
-		);
-
-		commandBuffer.endRecordingSingleTimeCommands(logicalDevice, transferCommandPool);
-	}
-	else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
-		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-		barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-
-		sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-		destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-
-		vkCmdPipelineBarrier(
-			commandBuffer.getCommandBuffer(),
-			sourceStage, destinationStage,
-			0,
-			0, nullptr,
-			0, nullptr,
-			1, &barrier
-		);
-
-		commandBuffer.endRecordingSingleTimeCommands(logicalDevice, transferCommandPool);
-	}
-	else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
-		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-		sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-		destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-
-		vkCmdPipelineBarrier(
-			commandBuffer.getCommandBuffer(),
-			sourceStage, destinationStage,
-			0,
-			0, nullptr,
-			0, nullptr,
-			1, &barrier
-		);
-		commandBuffer.endRecordingSingleTimeCommands(logicalDevice, commandPool);
-	}
-	else {
-		throw std::invalid_argument("unsupported layout transition!");
-	}
-
-
-
-}
-
-void VulkanRenderer::copyBufferToImage(VulkanBuffer& buffer, VulkanImage& image, uint32_t width, uint32_t height)const {
-	VulkanCommandBuffer commandBuffer;
-	commandBuffer.beginRecordindSingleTimeCommands(logicalDevice, transferCommandPool);
-
-	VkBufferImageCopy region{};
-	region.bufferOffset = 0;
-	region.bufferRowLength = 0;
-	region.bufferImageHeight = 0;
-
-	region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	region.imageSubresource.mipLevel = 0;
-	region.imageSubresource.baseArrayLayer = 0;
-	region.imageSubresource.layerCount = 1;
-
-	region.imageOffset = { 0, 0, 0 };
-	region.imageExtent = {
-		width,
-		height,
-		1
+	//view for each face of the cubemap
+	const std::array<glm::mat4, 6> cubemapLookAt = {
+	glm::lookAt(glm::vec3(0.0f), glm::vec3(1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+	glm::lookAt(glm::vec3(0.0f), glm::vec3(-1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+	glm::lookAt(glm::vec3(0.0f), glm::vec3(0.0f,  1.0f,  0.0f), glm::vec3(0.0f,  0.0f,  1.0f)),
+	glm::lookAt(glm::vec3(0.0f), glm::vec3(0.0f, -1.0f,  0.0f), glm::vec3(0.0f,  0.0f, -1.0f)),
+	glm::lookAt(glm::vec3(0.0f), glm::vec3(0.0f,  0.0f,  1.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+	glm::lookAt(glm::vec3(0.0f), glm::vec3(0.0f,  0.0f, -1.0f), glm::vec3(0.0f, -1.0f,  0.0f))
 	};
 
-	vkCmdCopyBufferToImage(
-		commandBuffer.getCommandBuffer(),
-		buffer.getBuffer(),
-		image.getImage(),
-		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-		1,
-		&region
-	);
 
-	commandBuffer.endRecordingSingleTimeCommands(logicalDevice, transferCommandPool);
+	//create render pass 
+	VulkanRenderPass cubeRenderPass;
+	cubeRenderPass.createCubeRenderPass(physicalDevice, logicalDevice);
+
+
+
+	//create framebuffers 
+	VulkanFrameBuffers frameBuffers;
+	frameBuffers.createCubeFramebuffers(logicalDevice, cubeRenderPass, cubeMap.imageViews, texSize);
+
+	//thsi should be removed can just use texDescriptorSet
+	//create descriptor set 
+	VulkanDescriptorPool descriptorPool;
+	VulkanDescriptorSet descriptorSet;
+
+	DescriptorManager::createCubeDescriptorPool(logicalDevice, descriptorPool, 1);
+	DescriptorManager::createCubeDescriptorLayout(logicalDevice, descriptorSet, descriptorPool);
+	descriptorSet.createDescriptor();
+	DescriptorManager::updateCubeDescriptor(descriptorSet, imgResource.getImageView(), sampler.getSampler());
+
+	//create pipeline 
+	VulkanPipeline pipeline;
+
+	PipelineFactory::createCubePipeline(logicalDevice, pipeline, cubeRenderPass, descriptorSet.getDescriptorSetLayout(), texSize, irr);
+
+
+	//create descriptor
+	VulkanDescriptorPool texDescriptorPool;
+	VulkanDescriptorSet texDescriptorSet;
+
+	DescriptorManager::createCubeDescriptorPool(logicalDevice, texDescriptorPool, 1);
+	DescriptorManager::createCubeDescriptorLayout(logicalDevice, texDescriptorSet, texDescriptorPool);
+	texDescriptorSet.createDescriptor();
+
+	DescriptorManager::updateCubeDescriptor(texDescriptorSet, imgResource.getImageView(), sampler.getSampler());
+
+	//record command buffer
+	VulkanCommandBuffer commandBuffer;
+	VulkanCommandPool commandPool;
+	commandPool.createGraphicsCommandPool(physicalDevice, logicalDevice, surface);
+	commandBuffer.createCommandBuffer(logicalDevice, commandPool);
+
+	CommandBufferRecorder::recordCommandBufferCubePass(*this, cubeRenderPass, frameBuffers, commandBuffer, pipeline, texSize, texDescriptorSet, cubeMesh);
+
+	//submit command Buffer
+	VkSubmitInfo submitInfo{};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &(commandBuffer.getCommandBuffer());
+
+	vkResetFences(logicalDevice.getDevice(), 1, &syncObjects.inFlightFences[0]);
+
+	if (vkQueueSubmit(logicalDevice.getGraphicsQueue(), 1, &submitInfo, syncObjects.inFlightFences[0]) != VK_SUCCESS) {
+		throw std::runtime_error("failed to submit draw command buffer!");
+	}
+
+
+	//wait for completion
+	vkWaitForFences(logicalDevice.getDevice(), 1, &(syncObjects.inFlightFences[0]), VK_TRUE, UINT64_MAX);
+
+
 }
 
 
-*/
+
+
+void VulkanRenderer::prefilteredCubePass(VulkanImageView& imgResource, CubeMapResource& cubeMap, VulkanSampler& sampler, MeshBuffers& cubeMesh,const uint32_t texSize) const {
+
+
+	//view for each face of the cubemap
+	const std::array<glm::mat4, 6> cubemapLookAt = {
+	glm::lookAt(glm::vec3(0.0f), glm::vec3(1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+	glm::lookAt(glm::vec3(0.0f), glm::vec3(-1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+	glm::lookAt(glm::vec3(0.0f), glm::vec3(0.0f,  1.0f,  0.0f), glm::vec3(0.0f,  0.0f,  1.0f)),
+	glm::lookAt(glm::vec3(0.0f), glm::vec3(0.0f, -1.0f,  0.0f), glm::vec3(0.0f,  0.0f, -1.0f)),
+	glm::lookAt(glm::vec3(0.0f), glm::vec3(0.0f,  0.0f,  1.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+	glm::lookAt(glm::vec3(0.0f), glm::vec3(0.0f,  0.0f, -1.0f), glm::vec3(0.0f, -1.0f,  0.0f))
+	};
+
+	const int levelCount = log2(texSize) + 1;
+	// create image view for framebuffer becaus eneed one for each mip level and layer of the cubemap
+	std::vector<CubeMapResource> framebufferImageViews;
+	for (uint32_t i = 0; i < levelCount; i++) {
+		CubeMapResource cubeResource;
+		for (uint32_t j = 0; j < 6; j++) {
+			VulkanImageView imageView;
+			imageView.createImageView(logicalDevice, cubeMap.image, j, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT,i);
+			cubeResource.imageViews[j] = std::move(imageView);
+		}
+		framebufferImageViews.push_back(std::move(cubeResource));
+	}
+
+
+	//create render pass 
+	VulkanRenderPass cubeRenderPass;
+	cubeRenderPass.createCubeRenderPass(physicalDevice, logicalDevice);
+
+
+
+	//create framebuffersf
+	std::vector<VulkanFrameBuffers> frameBuffers;
+	for (uint32_t i = 0; i < levelCount; i++) {
+		VulkanFrameBuffers frameBuffer;
+		frameBuffer.createCubeFramebuffers(logicalDevice, cubeRenderPass, framebufferImageViews[i].imageViews, texSize >> i);
+		frameBuffers.push_back(std::move(frameBuffer));
+	}
+
+
+
+
+	//create descriptor
+	VulkanDescriptorPool texDescriptorPool;
+	VulkanDescriptorSet texDescriptorSet;
+
+	DescriptorManager::createCubeDescriptorPool(logicalDevice, texDescriptorPool, 1);
+	DescriptorManager::createCubeDescriptorLayout(logicalDevice, texDescriptorSet, texDescriptorPool);
+	texDescriptorSet.createDescriptor();
+
+	DescriptorManager::updateCubeDescriptor(texDescriptorSet, imgResource.getImageView(), sampler.getSampler());
+
+
+	//create pipeline 
+	VulkanPipeline pipeline;
+
+	PipelineFactory::createPreFilteredPipeline(logicalDevice, pipeline, cubeRenderPass, texDescriptorSet.getDescriptorSetLayout(), texSize);
+
+
+	//record command buffer
+	std::vector<VulkanCommandBuffer> commandBuffers;
+	std::vector<VkCommandBuffer> vkCommandBuffers;
+	commandBuffers.resize(levelCount);
+	VulkanCommandPool commandPool;
+	commandPool.createGraphicsCommandPool(physicalDevice, logicalDevice, surface);
+	for (int i = 0; i < levelCount; i++) {
+		commandBuffers[i].createCommandBuffer(logicalDevice, commandPool);
+		float roughness = (float)i / (float)(levelCount - 1);
+		CommandBufferRecorder::recordCommandBufferPreFilteredCubePass(*this, cubeRenderPass, frameBuffers[i], commandBuffers[i], pipeline, texSize >>i, texDescriptorSet, cubeMesh, roughness);
+		vkCommandBuffers.push_back(commandBuffers[i].getCommandBuffer());
+	}
+
+
+	//submit command Buffer
+	VkSubmitInfo submitInfo{};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.commandBufferCount = levelCount;
+	submitInfo.pCommandBuffers = vkCommandBuffers.data();
+
+	vkResetFences(logicalDevice.getDevice(), 1, &syncObjects.inFlightFences[0]);
+
+	if (vkQueueSubmit(logicalDevice.getGraphicsQueue(), 1, &submitInfo, syncObjects.inFlightFences[0]) != VK_SUCCESS) {
+		throw std::runtime_error("failed to submit draw command buffer!");
+	}
+
+
+	//wait for completion
+	vkWaitForFences(logicalDevice.getDevice(), 1, &(syncObjects.inFlightFences[0]), VK_TRUE, UINT64_MAX);
+
+
+}
+
+
+void VulkanRenderer::brdfLutPass(VulkanImageView& imgView, VulkanSampler& sampler, const uint32_t texSize) const {
+	//create render pass 
+	VulkanRenderPass renderPass;
+	renderPass.createbrdfLutRenderPass(physicalDevice, logicalDevice);
+
+	//create framebuffer
+	VulkanFrameBuffers frameBuffer;
+	frameBuffer.createBrdfLutFramebuffer(logicalDevice, renderPass, imgView,texSize);
+
+	//create descriptor
+	VulkanDescriptorPool descriptorPool;
+	VulkanDescriptorSet descriptorSet;
+	DescriptorManager::createCubeDescriptorPool(logicalDevice, descriptorPool, 1);
+	DescriptorManager::createCubeDescriptorLayout(logicalDevice, descriptorSet, descriptorPool);
+	descriptorSet.createDescriptor();
+	DescriptorManager::updateCubeDescriptor(descriptorSet, imgView.getImageView(), sampler.getSampler());
+
+	//create pipeline 
+	VulkanPipeline pipeline;
+	PipelineFactory::createBrdfLutPipeline(logicalDevice, pipeline, renderPass, descriptorSet.getDescriptorSetLayout(), texSize);
+
+	//record command buffer
+	VulkanCommandPool commandPool;
+	VulkanCommandBuffer commandBuffer;
+	commandPool.createGraphicsCommandPool(physicalDevice, logicalDevice, surface);
+	commandBuffer.createCommandBuffer(logicalDevice, commandPool);
+	CommandBufferRecorder::recordCommandBufferBrdfLutPass(*this, renderPass, frameBuffer, commandBuffer, pipeline, texSize, descriptorSet);
+
+
+	//submit command Buffer
+	VkSubmitInfo submitInfo{};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &(commandBuffer.getCommandBuffer());
+
+
+	vkResetFences(logicalDevice.getDevice(), 1, &syncObjects.inFlightFences[0]);
+
+
+	if (vkQueueSubmit(logicalDevice.getGraphicsQueue(), 1, &submitInfo, syncObjects.inFlightFences[0]) != VK_SUCCESS) {
+		throw std::runtime_error("failed to submit draw command buffer!");
+	}
+
+	//wait for completion
+	vkWaitForFences(logicalDevice.getDevice(), 1, &(syncObjects.inFlightFences[0]), VK_TRUE, UINT64_MAX);
+}
