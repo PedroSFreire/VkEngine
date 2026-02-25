@@ -49,8 +49,8 @@ public:
 
 	}
 
-	VkDescriptorSetLayout getDescriptorSetLayout() const{ return descriptorSetLayout; }
-	VkDescriptorSet getDescriptorSet()const  { return descriptorSet; }
+	const VkDescriptorSetLayout& getDescriptorSetLayout() const{ return descriptorSetLayout; }
+	const VkDescriptorSet& getDescriptorSet() const  { return descriptorSet; }
 
 
 	const VkDescriptorPool* getDescriptorPool() const { return descriptorPool; }

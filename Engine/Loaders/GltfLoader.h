@@ -74,8 +74,8 @@ private:
     //load Helpers
     void loadNodesData(SceneData& Scene);
     void loadNodesRelatrions(SceneData& Scene);
-    bool loadImageData(SceneData& scene, stbi_uc* bytes, uint32_t size, ImageAsset& tempTexture, int id);
-    bool loadImageData(SceneData& scene, const std::string& TEXTURE_PATH, ImageAsset& tempImage, int id);
+    bool loadImageData(SceneData& scene, stbi_uc* bytes, uint32_t size,  int id);
+    bool loadImageData(SceneData& scene, const std::string& TEXTURE_PATH, int id);
 
     Filter getFilter(fastgltf::Filter gltfFilter);
     MipmapMode getFilterMode(fastgltf::Filter gltfFilter);

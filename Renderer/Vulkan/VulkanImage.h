@@ -11,7 +11,10 @@ struct VulkanImageCreateInfo
 {
 	uint32_t width;
 	uint32_t height;
+	uint32_t layers = 1;
 	VkFormat format;
+	
+	int mipLevels = 1;
 	VkImageTiling tiling;
 	VkImageUsageFlags usage;
 	VkSampleCountFlagBits numSamples = VK_SAMPLE_COUNT_1_BIT;
@@ -20,7 +23,9 @@ struct VulkanImageCreateInfo
 	VmaMemoryUsage vmaUsage;
 	// VMA Flags for now use VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT for most stuff and VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT for staging buffers
 	// include VMA_ALLOCATION_CREATE_MAPPED_BIT for permanently mapped buffers 
-	VmaAllocationCreateFlags vmaFlags; 
+	VmaAllocationCreateFlags vmaFlags;
+
+	VkImageCreateFlags flags = 0;
 };
 
 class VulkanImage

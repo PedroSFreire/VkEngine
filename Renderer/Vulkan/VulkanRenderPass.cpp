@@ -11,13 +11,14 @@ VulkanRenderPass::~VulkanRenderPass()
 
 
 
-void VulkanRenderPass::createRenderPass(const VulkanPhysicalDevice& physicalDevice, const VulkanSwapChain& swapChain, const VulkanLogicalDevice& device)
+void VulkanRenderPass::createForwardRenderPass(const VulkanPhysicalDevice& physicalDevice, const VulkanLogicalDevice& device, const VulkanSwapChain& swapChain)
 {
 
 	logicalDevice = &device;
     VkAttachmentDescription colorAttachment{};
     colorAttachment.format = swapChain.getSwapChainImageFormat();
     colorAttachment.samples = physicalDevice.getMsaaSamples();
+
 
     colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -64,15 +65,93 @@ void VulkanRenderPass::createRenderPass(const VulkanPhysicalDevice& physicalDevi
     colorAttachmentResolveRef.attachment = 2;
     colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
+    std::array<VkAttachmentDescription, 3> attachments = { colorAttachment, depthAttachment ,colorAttachmentResolve };
+
+    VkSubpassDescription envSubpass{};
+    envSubpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    envSubpass.colorAttachmentCount = 1;
+    envSubpass.pColorAttachments = &colorAttachmentRef;
+
+
+    VkSubpassDescription forwardSubpass{};
+    forwardSubpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    forwardSubpass.colorAttachmentCount = 1;
+    forwardSubpass.pColorAttachments = &colorAttachmentRef;
+    forwardSubpass.pDepthStencilAttachment = &depthAttachmentRef;
+    forwardSubpass.pResolveAttachments = &colorAttachmentResolveRef;
+
+
+	std::array<VkSubpassDescription, 2> subpasses = { envSubpass,forwardSubpass };
+
+    VkRenderPassCreateInfo renderPassInfo{};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+    renderPassInfo.pAttachments = attachments.data();
+    renderPassInfo.subpassCount = 2;
+    renderPassInfo.pSubpasses = subpasses.data();
+  
+
+    VkSubpassDependency extToEnvDependency{};
+	extToEnvDependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+    extToEnvDependency.dstSubpass = 0;
+
+    extToEnvDependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT ;
+    extToEnvDependency.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT ;
+
+    extToEnvDependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT ;
+    extToEnvDependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT ;
+
+
+
+    VkSubpassDependency envToForwardDependency{};
+    envToForwardDependency.srcSubpass = 0;
+    envToForwardDependency.dstSubpass = 1;
+    
+    envToForwardDependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+    envToForwardDependency.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+    
+    envToForwardDependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+    envToForwardDependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+
+	std::array<VkSubpassDependency, 2> dependencies = { extToEnvDependency,envToForwardDependency };
+
+    renderPassInfo.dependencyCount = 1;
+    renderPassInfo.pDependencies = dependencies.data();
+
+
+    if (vkCreateRenderPass(device.getDevice(), &renderPassInfo, nullptr, &renderPass) !=
+        VK_SUCCESS) {
+        throw std::runtime_error("failed to create render pass!");
+    }
+}
+
+void VulkanRenderPass::createCubeRenderPass(const VulkanPhysicalDevice& physicalDevice, const VulkanLogicalDevice& device)
+{
+
+    logicalDevice = &device;
+    VkAttachmentDescription colorAttachment{};
+    colorAttachment.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+
+    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+
+    VkAttachmentReference colorAttachmentRef{};
+    colorAttachmentRef.attachment = 0;
+    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
 
     VkSubpassDescription subpass{};
     subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     subpass.colorAttachmentCount = 1;
     subpass.pColorAttachments = &colorAttachmentRef;
-    subpass.pDepthStencilAttachment = &depthAttachmentRef;
-    subpass.pResolveAttachments = &colorAttachmentResolveRef;
 
-    std::array<VkAttachmentDescription, 3> attachments = { colorAttachment, depthAttachment ,colorAttachmentResolve };
+    std::array<VkAttachmentDescription, 1> attachments = { colorAttachment };
 
     VkRenderPassCreateInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -80,16 +159,71 @@ void VulkanRenderPass::createRenderPass(const VulkanPhysicalDevice& physicalDevi
     renderPassInfo.pAttachments = attachments.data();
     renderPassInfo.subpassCount = 1;
     renderPassInfo.pSubpasses = &subpass;
-  
+
 
     VkSubpassDependency dependency{};
     dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
     dependency.dstSubpass = 0;
 
-    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-    dependency.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.srcAccessMask = 0;
+
+    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+    renderPassInfo.dependencyCount = 1;
+    renderPassInfo.pDependencies = &dependency;
+
+
+    if (vkCreateRenderPass(device.getDevice(), &renderPassInfo, nullptr, &renderPass) !=
+        VK_SUCCESS) {
+        throw std::runtime_error("failed to create render pass!");
+    }
+}
+
+void VulkanRenderPass::createbrdfLutRenderPass(const VulkanPhysicalDevice& physicalDevice, const VulkanLogicalDevice& device)
+{
+    logicalDevice = &device;
+    VkAttachmentDescription colorAttachment{};
+    colorAttachment.format = VK_FORMAT_R16G16_SFLOAT;
+    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+
+    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+
+    VkAttachmentReference colorAttachmentRef{};
+    colorAttachmentRef.attachment = 0;
+    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+
+    VkSubpassDescription subpass{};
+    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.colorAttachmentCount = 1;
+    subpass.pColorAttachments = &colorAttachmentRef;
+
+    std::array<VkAttachmentDescription, 1> attachments = { colorAttachment };
+
+    VkRenderPassCreateInfo renderPassInfo{};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+    renderPassInfo.pAttachments = attachments.data();
+    renderPassInfo.subpassCount = 1;
+    renderPassInfo.pSubpasses = &subpass;
+
+
+    VkSubpassDependency dependency{};
+    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+    dependency.dstSubpass = 0;
+
+    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.srcAccessMask = 0;
+
+    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
     renderPassInfo.dependencyCount = 1;
     renderPassInfo.pDependencies = &dependency;
