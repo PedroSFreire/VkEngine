@@ -32,7 +32,7 @@
 #include "CommandBufferRecorder.h"
 #include "PipelineFactory.h"
 
-
+#include "../../Engine/UI/ImGuiManager.h"
 
 
 static const int MAX_FRAMES_IN_FLIGHT = 2;
@@ -43,11 +43,11 @@ class VulkanRenderer
 public:
 
 
-	void run(SceneFramesData& drawData, ResourceManager& resourceManager,Camera& camera) {
+	void run(SceneFramesData& drawData, ResourceManager& resourceManager,Camera& camera, ImGuiManager& ImGuiManager) {
 
 		
 		glfwPollEvents();
-		drawFrame(drawData,	resourceManager,camera);
+		drawFrame(drawData,	resourceManager,camera, ImGuiManager);
 		vkDeviceWaitIdle(logicalDevice.getDevice());
 	}
 
@@ -70,6 +70,8 @@ public:
 	const VulkanCommandPool& getTransferCommandPool() const { return transferCommandPool; }
 	const VulkanMemoryAllocator & getAllocator() const { return allocator; }
 	const VulkanSurface& getSurface() const { return surface; }
+	const VulkanInstance& getInstance() const { return instance; }
+	const Window& getWindow() const { return window; }
 
 
 	// cupe map creation for env and irradiance maps
@@ -144,7 +146,7 @@ private:
 
 	void recreateSwapChain();
 
-	void drawFrame(SceneFramesData& drawData, ResourceManager& resourceManager,Camera& camera);
+	void drawFrame(SceneFramesData& drawData, ResourceManager& resourceManager,Camera& camera, ImGuiManager& ImGuiManager);
 
 	void processInput(float deltaTime);
 
@@ -166,7 +168,7 @@ private:
 	
 	void envPass(uint32_t imageIndex, ResourceManager& resourceManager);
 
-	void forwardPass(uint32_t imageIndex, SceneFramesData& drawData, ResourceManager& resourceManager);
+	void forwardPass(uint32_t imageIndex, SceneFramesData& drawData, ResourceManager& resourceManager, ImGuiManager& ImGuiManager);
 
 	void presentFrame(uint32_t imageIndex);
 };

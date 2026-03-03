@@ -25,13 +25,20 @@ private:
 
 	VkCommandBuffer commandBuffer;
 	VkDescriptorSet currentUBO = VK_NULL_HANDLE;
-
+	const VulkanLogicalDevice* logicalDevice = nullptr;
+	const VulkanCommandPool* commandPool = nullptr;
 public:
 	VulkanCommandBuffer() = default;
-	~VulkanCommandBuffer() = default;
-	VulkanCommandBuffer(const VulkanCommandBuffer&) = delete;
+	VulkanCommandBuffer(const VulkanLogicalDevice& device,const VulkanCommandPool& commandPool);
+	~VulkanCommandBuffer();
+	//VulkanCommandBuffer(const VulkanCommandBuffer&) = delete;
+	
 	VulkanCommandBuffer(VulkanCommandBuffer&& other) noexcept {
 		commandBuffer = other.commandBuffer;
+		currentUBO = other.currentUBO;
+		logicalDevice = other.logicalDevice;
+		commandPool = other.commandPool;
+
 		other.commandBuffer = VK_NULL_HANDLE;
 	}
 
@@ -42,26 +49,13 @@ public:
 
 	const VkCommandBuffer& getCommandBuffer() const { return commandBuffer; }
 
-	/*
 
-	void bindMesh(const VulkanBuffer& vertBuffer, const VulkanBuffer& indexBuffer);
+	void beginRecordindSingleTimeCommands(const VulkanLogicalDevice& device);
 
-	void recordDrawCall(const VulkanPipeline& graphicsPipeline, const CPUDrawCallData data, uint32_t indexCount, ResourceManager& resourceManager);
+	void endRecordingSingleTimeCommands(const VulkanLogicalDevice& device);
 
-	void recordCommandBufferScene(const uint32_t imageIndex, const VulkanRenderer& renderer, Scene& scene, VkDescriptorSet descriptorSet, ResourceManager& resourceManager);
-	
-	void recordCommandBufferCopyBuffer(const VulkanPhysicalDevice& physicalDevice, const VulkanLogicalDevice& device, const VkBuffer& srcBuffer, const VkBuffer& dstBuffer, const VkDeviceSize size);
-	*/
-
-
+	//should only be directly called if using an array of command buffers, otherwise rely on constructor and destructor to handle creation
 	void createCommandBuffer(const VulkanLogicalDevice& device, const VulkanCommandPool& commandPool);
-	
-
-	void beginRecordindSingleTimeCommands(const VulkanLogicalDevice& device, const VulkanCommandPool& commandPool);
-
-	void endRecordingSingleTimeCommands(const VulkanLogicalDevice& device, const VulkanCommandPool& commandPool);
-
-
 
 	
 	

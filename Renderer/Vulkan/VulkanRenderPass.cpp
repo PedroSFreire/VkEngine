@@ -116,7 +116,7 @@ void VulkanRenderPass::createForwardRenderPass(const VulkanPhysicalDevice& physi
 
 	std::array<VkSubpassDependency, 2> dependencies = { extToEnvDependency,envToForwardDependency };
 
-    renderPassInfo.dependencyCount = 1;
+    renderPassInfo.dependencyCount = 2;
     renderPassInfo.pDependencies = dependencies.data();
 
 
