@@ -6,7 +6,19 @@
 
 
 
+VulkanCommandBuffer::~VulkanCommandBuffer()
+{
+    if(logicalDevice != nullptr && commandBuffer != nullptr)
+        vkFreeCommandBuffers(logicalDevice->getDevice(), commandPool->getCommandPool(), 1, &commandBuffer);
+}
 
+
+VulkanCommandBuffer::VulkanCommandBuffer(const VulkanLogicalDevice& device, const VulkanCommandPool& commandPool)
+{
+	logicalDevice = &device;
+	this->commandPool = &commandPool;
+    createCommandBuffer(device,commandPool);
+}
 
 
 
@@ -14,6 +26,8 @@
 
 void VulkanCommandBuffer::createCommandBuffer(const VulkanLogicalDevice& device , const VulkanCommandPool& commandPool) {
 
+    logicalDevice = &device;
+    this->commandPool = &commandPool;
 
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -32,10 +46,8 @@ void VulkanCommandBuffer::createCommandBuffer(const VulkanLogicalDevice& device 
 
 
 
-void VulkanCommandBuffer::beginRecordindSingleTimeCommands(const VulkanLogicalDevice& logicalDevice, const VulkanCommandPool& commandPool) {
+void VulkanCommandBuffer::beginRecordindSingleTimeCommands(const VulkanLogicalDevice& logicalDevice) {
 
-
-    createCommandBuffer(logicalDevice, commandPool);
 
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -46,7 +58,7 @@ void VulkanCommandBuffer::beginRecordindSingleTimeCommands(const VulkanLogicalDe
 
 }
 
-void VulkanCommandBuffer::endRecordingSingleTimeCommands(const VulkanLogicalDevice& logicalDevice, const VulkanCommandPool& commandPool) {
+void VulkanCommandBuffer::endRecordingSingleTimeCommands(const VulkanLogicalDevice& logicalDevice) {
     vkEndCommandBuffer(commandBuffer);
 
     VkSubmitInfo submitInfo{};
@@ -54,7 +66,8 @@ void VulkanCommandBuffer::endRecordingSingleTimeCommands(const VulkanLogicalDevi
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &commandBuffer;
 
-    vkQueueSubmit(commandPool.getQueue(), 1, &submitInfo, VK_NULL_HANDLE);
-    vkQueueWaitIdle(commandPool.getQueue());
+    vkQueueSubmit(commandPool->getQueue(), 1, &submitInfo, VK_NULL_HANDLE);
+    vkQueueWaitIdle(commandPool->getQueue());
+
 }
 

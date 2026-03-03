@@ -12,6 +12,7 @@ find_package(tinyobjloader CONFIG REQUIRED)
 find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 find_package(fastGltf CONFIG REQUIRED)
 find_package(MikkTSpace CONFIG REQUIRED)
+find_package(imGui CONFIG REQUIRED)
 find_package(OpenMP REQUIRED)
 
 
@@ -29,10 +30,12 @@ file(GLOB_RECURSE RENDERER_SRC
 	Engine/Scene/*.cpp
 	Engine/Resources/*.cpp
     	Engine/Loaders/*.cpp
+	Engine/UI/*.cpp
     	Engine/Core/*.h
 	Engine/Scene/*.h
 	Engine/Resources/*.h
     	Engine/Loaders/*.h
+	Engine/UI/*.h
 
     	main.cpp
 )
@@ -58,6 +61,7 @@ target_link_libraries(Renderer PRIVATE
 	mikktspace::mikktspace
      	${VMA_INCLUDE_DIRS}
 	OpenMP::OpenMP_CXX
+	imgui::imgui
 )
 
 # ---- Copy shaders next to executable after build ----

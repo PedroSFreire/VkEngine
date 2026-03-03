@@ -1,4 +1,8 @@
 #include "Camera.h"
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_vulkan.h"
+
 
 void Camera::updateCam(double mouseX, double mouseY) {
 
@@ -40,12 +44,22 @@ void Camera::processInput(float deltaTime, Window& window) {
 	// Implement camera movement and input processing here
 	if (glfwGetKey(window.getWindow(), GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window.getWindow(), true);
-	double mouseX, mouseY;
-	glfwGetCursorPos(window.getWindow(), &mouseX, &mouseY);
-
-	updateCam(mouseX, mouseY);
 
 
+	if (glfwGetMouseButton(window.getWindow(), GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
+	{
+		glfwSetInputMode(window.getWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+		double mouseX, mouseY;
+		glfwGetCursorPos(window.getWindow(), &mouseX, &mouseY);
+
+		updateCam(mouseX, mouseY);
+	}
+	else
+	{
+		glfwSetInputMode(window.getWindow(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+	}
+
+	
 	//WASD movement
 	if (glfwGetKey(window.getWindow(), GLFW_KEY_W) == GLFW_PRESS)
 		goForward(2.0f * deltaTime);
@@ -60,5 +74,5 @@ void Camera::processInput(float deltaTime, Window& window) {
 	if (glfwGetKey(window.getWindow(), GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
 		goUp(-1.0f * deltaTime);
 
-
+	
 }

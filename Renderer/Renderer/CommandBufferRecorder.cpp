@@ -26,7 +26,7 @@ void CommandBufferRecorder::recordDrawCall(VulkanRenderer& renderer, VulkanComma
 	vkCmdDrawIndexed(commandBuffer.getCommandBuffer(), data.count, 1, data.startIndex, 0, 0);
 }
 
-void CommandBufferRecorder::recordCommandBufferForwardPass(VulkanRenderer& renderer, VulkanCommandBuffer& commandBuffer, const uint32_t imageIndex, SceneFramesData& drawData, VkDescriptorSet currentUBO, ResourceManager& resourceManager) {
+void CommandBufferRecorder::recordCommandBufferForwardPass(VulkanRenderer& renderer, VulkanCommandBuffer& commandBuffer, const uint32_t imageIndex, SceneFramesData& drawData, VkDescriptorSet currentUBO, ResourceManager& resourceManager, ImGuiManager& ImGuiManager) {
 
 
 	VkCommandBufferBeginInfo beginInfo{};
@@ -107,6 +107,7 @@ void CommandBufferRecorder::recordCommandBufferForwardPass(VulkanRenderer& rende
 		}
 	}
 
+	ImGuiManager.recordCommands(commandBuffer);
 
 	vkCmdEndRenderPass(commandBuffer.getCommandBuffer());
 

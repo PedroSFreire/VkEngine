@@ -191,8 +191,8 @@ uint32_t VulkanRenderer::beginFrame() {
 
 
 
-void VulkanRenderer::forwardPass(uint32_t imageIndex, SceneFramesData& drawData,ResourceManager& resourceManager) {
-	CommandBufferRecorder::recordCommandBufferForwardPass(*this, commandBuffers[currentFrame], imageIndex, drawData, descriptorSets[currentFrame].getDescriptorSet(), resourceManager);
+void VulkanRenderer::forwardPass(uint32_t imageIndex, SceneFramesData& drawData,ResourceManager& resourceManager, ImGuiManager& ImGuiManager) {
+	CommandBufferRecorder::recordCommandBufferForwardPass(*this, commandBuffers[currentFrame], imageIndex, drawData, descriptorSets[currentFrame].getDescriptorSet(), resourceManager,ImGuiManager);
 
 
 	VkSubmitInfo submitInfo{};
@@ -252,7 +252,7 @@ void VulkanRenderer::presentFrame(uint32_t imageIndex) {
 
 
 
-void VulkanRenderer::drawFrame(SceneFramesData& drawData, ResourceManager& resourceManager,Camera& camera)
+void VulkanRenderer::drawFrame(SceneFramesData& drawData, ResourceManager& resourceManager,Camera& camera, ImGuiManager& ImGuiManager)
 {
 	//acquire image from swap chain and wait and reset sync objects and frame resources
 	uint32_t imageIndex = beginFrame();
@@ -261,7 +261,7 @@ void VulkanRenderer::drawFrame(SceneFramesData& drawData, ResourceManager& resou
 
 
 
-	forwardPass(imageIndex, drawData, resourceManager);
+	forwardPass(imageIndex, drawData, resourceManager, ImGuiManager);
 
 	//present image to swap chain	
 	presentFrame(imageIndex);
@@ -277,7 +277,9 @@ void VulkanRenderer::update(uint32_t currentImage, int lightCount, Camera& camer
 
 	auto currentTime = std::chrono::high_resolution_clock::now();
 	float deltaTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - prevTime).count();
+
 	camera.processInput(deltaTime, window);
+
 	updateUniformBuffer(currentImage, deltaTime, lightCount, camera);
 	prevTime = currentTime;
 }
@@ -372,10 +374,9 @@ void VulkanRenderer::cubePass(VulkanImageView& imgResource, CubeMapResource& cub
 	DescriptorManager::updateCubeDescriptor(texDescriptorSet, imgResource.getImageView(), sampler.getSampler());
 
 	//record command buffer
-	VulkanCommandBuffer commandBuffer;
-	VulkanCommandPool commandPool;
-	commandPool.createGraphicsCommandPool(physicalDevice, logicalDevice, surface);
-	commandBuffer.createCommandBuffer(logicalDevice, commandPool);
+
+	VulkanCommandBuffer commandBuffer(logicalDevice, commandPool);
+
 
 	CommandBufferRecorder::recordCommandBufferCubePass(*this, cubeRenderPass, frameBuffers, commandBuffer, pipeline, texSize, texDescriptorSet, cubeMesh);
 
@@ -466,8 +467,7 @@ void VulkanRenderer::prefilteredCubePass(VulkanImageView& imgResource, CubeMapRe
 	std::vector<VulkanCommandBuffer> commandBuffers;
 	std::vector<VkCommandBuffer> vkCommandBuffers;
 	commandBuffers.resize(levelCount);
-	VulkanCommandPool commandPool;
-	commandPool.createGraphicsCommandPool(physicalDevice, logicalDevice, surface);
+
 	for (int i = 0; i < levelCount; i++) {
 		commandBuffers[i].createCommandBuffer(logicalDevice, commandPool);
 		float roughness = (float)i / (float)(levelCount - 1);
@@ -518,10 +518,8 @@ void VulkanRenderer::brdfLutPass(VulkanImageView& imgView, VulkanSampler& sample
 	PipelineFactory::createBrdfLutPipeline(logicalDevice, pipeline, renderPass, descriptorSet.getDescriptorSetLayout(), texSize);
 
 	//record command buffer
-	VulkanCommandPool commandPool;
-	VulkanCommandBuffer commandBuffer;
-	commandPool.createGraphicsCommandPool(physicalDevice, logicalDevice, surface);
-	commandBuffer.createCommandBuffer(logicalDevice, commandPool);
+	VulkanCommandBuffer commandBuffer(logicalDevice, commandPool);
+
 	CommandBufferRecorder::recordCommandBufferBrdfLutPass(*this, renderPass, frameBuffer, commandBuffer, pipeline, texSize, descriptorSet);
 
 

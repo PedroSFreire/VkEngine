@@ -263,8 +263,22 @@ void ResourceManager::loadLights(const VulkanRenderer& renderer, std::vector<Lig
 		lightBuffer.createBuffer(renderer.getAllocator(), info);
 		lightsCreated = true;
 	}
-		bufferStagedUpload(renderer,lightBuffer, lights.data(), static_cast<uint32_t>(sizeof(LightGPUData) * lights.size()), 1);
-		DescriptorManager::updateLightDescriptor(lightDescriptorSet,lightBuffer, lights.size());
+	else {
+
+		lightBuffer.~VulkanBuffer();
+		VulkanBufferCreateInfo info;
+		info.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+		info.vmaUsage = VMA_MEMORY_USAGE_GPU_ONLY;
+		info.size = sizeof(LightGPUData) * lights.size();
+		info.elementCount = static_cast<uint32_t>(lights.size());
+		info.vmaFlags = VMA_MEMORY_USAGE_GPU_ONLY;
+
+
+		lightBuffer.createBuffer(renderer.getAllocator(), info);
+		lightsCreated = true;
+	}
+	bufferStagedUpload(renderer,lightBuffer, lights.data(), static_cast<uint32_t>(sizeof(LightGPUData) * lights.size()), 1);
+	DescriptorManager::updateLightDescriptor(lightDescriptorSet,lightBuffer, lights.size());
 	
 	
 }
@@ -305,14 +319,14 @@ void ResourceManager::loadScene(const VulkanRenderer& renderer,SceneData& scene)
 
 
 void ResourceManager::copyBuffer(const VulkanRenderer& renderer, VkBuffer srcBuffer, VkBuffer dstBuffer, const VkDeviceSize size) const {
-	VulkanCommandBuffer commandBuffer;
-	commandBuffer.beginRecordindSingleTimeCommands(renderer.getLogicalDevice(), renderer.getTransferCommandPool());
+	VulkanCommandBuffer commandBuffer(renderer.getLogicalDevice(), renderer.getTransferCommandPool());
+	commandBuffer.beginRecordindSingleTimeCommands(renderer.getLogicalDevice());
 
 	VkBufferCopy copyRegion{};
 	copyRegion.size = size;
 	vkCmdCopyBuffer(commandBuffer.getCommandBuffer(), srcBuffer, dstBuffer, 1, &copyRegion);
 
-	commandBuffer.endRecordingSingleTimeCommands(renderer.getLogicalDevice(), renderer.getTransferCommandPool());
+	commandBuffer.endRecordingSingleTimeCommands(renderer.getLogicalDevice());
 
 }
 
@@ -390,7 +404,7 @@ void ResourceManager::bufferStagedUpload(const VulkanRenderer& renderer, VulkanB
 
 	VkDeviceSize bufferSize = size;
 
-
+	
 	VulkanBuffer stagingBuffer;
 
 	VulkanBufferCreateInfo stagingBufferInfo{};
@@ -573,10 +587,12 @@ void ResourceManager::transitionImageLayout(const VulkanRenderer& renderer, Vulk
 
 	VulkanCommandBuffer commandBuffer;
 	if ((oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) || (oldLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) || (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED  && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)) {
-		commandBuffer.beginRecordindSingleTimeCommands(renderer.getLogicalDevice(), renderer.getCommandPool());
+		commandBuffer.createCommandBuffer(renderer.getLogicalDevice(), renderer.getCommandPool());
+		commandBuffer.beginRecordindSingleTimeCommands(renderer.getLogicalDevice());
 	}
 	else {
-		commandBuffer.beginRecordindSingleTimeCommands(renderer.getLogicalDevice(), renderer.getTransferCommandPool());
+		commandBuffer.createCommandBuffer(renderer.getLogicalDevice(), renderer.getTransferCommandPool());
+		commandBuffer.beginRecordindSingleTimeCommands(renderer.getLogicalDevice());
 	}
 
 
@@ -618,7 +634,7 @@ void ResourceManager::transitionImageLayout(const VulkanRenderer& renderer, Vulk
 			1, &barrier
 		);
 
-		commandBuffer.endRecordingSingleTimeCommands(renderer.getLogicalDevice(), renderer.getTransferCommandPool());
+		commandBuffer.endRecordingSingleTimeCommands(renderer.getLogicalDevice());
 	}
 	else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
 		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
@@ -636,7 +652,7 @@ void ResourceManager::transitionImageLayout(const VulkanRenderer& renderer, Vulk
 			1, &barrier
 		);
 
-		commandBuffer.endRecordingSingleTimeCommands(renderer.getLogicalDevice(), renderer.getTransferCommandPool());
+		commandBuffer.endRecordingSingleTimeCommands(renderer.getLogicalDevice());
 	}
 	else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
 		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
@@ -653,7 +669,7 @@ void ResourceManager::transitionImageLayout(const VulkanRenderer& renderer, Vulk
 			0, nullptr,
 			1, &barrier
 		);
-		commandBuffer.endRecordingSingleTimeCommands(renderer.getLogicalDevice(), renderer.getCommandPool());
+		commandBuffer.endRecordingSingleTimeCommands(renderer.getLogicalDevice());
 	}
 	else if (oldLayout ==  VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL && newLayout ==  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
 		barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
@@ -672,7 +688,7 @@ void ResourceManager::transitionImageLayout(const VulkanRenderer& renderer, Vulk
 		);
 
 		// End the single-time command buffer so the layout transition executes
-		commandBuffer.endRecordingSingleTimeCommands(renderer.getLogicalDevice(), renderer.getCommandPool());
+		commandBuffer.endRecordingSingleTimeCommands(renderer.getLogicalDevice());
 	}
 	else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
 	{
@@ -691,7 +707,7 @@ void ResourceManager::transitionImageLayout(const VulkanRenderer& renderer, Vulk
 			1, &barrier
 		);
 
-		commandBuffer.endRecordingSingleTimeCommands(renderer.getLogicalDevice(), renderer.getCommandPool());
+		commandBuffer.endRecordingSingleTimeCommands(renderer.getLogicalDevice());
 	}
 	else {
 		throw std::invalid_argument("unsupported layout transition!");
@@ -702,8 +718,8 @@ void ResourceManager::transitionImageLayout(const VulkanRenderer& renderer, Vulk
 }
 
 void ResourceManager::copyBufferToImage(const VulkanRenderer& renderer, VulkanBuffer& buffer, VulkanImage& image, uint32_t width, uint32_t height)const {
-	VulkanCommandBuffer commandBuffer;
-	commandBuffer.beginRecordindSingleTimeCommands(renderer.getLogicalDevice(), renderer.getTransferCommandPool());
+	VulkanCommandBuffer commandBuffer(renderer.getLogicalDevice(), renderer.getTransferCommandPool());
+	commandBuffer.beginRecordindSingleTimeCommands(renderer.getLogicalDevice());
 
 	VkBufferImageCopy region{};
 	region.bufferOffset = 0;
@@ -731,7 +747,7 @@ void ResourceManager::copyBufferToImage(const VulkanRenderer& renderer, VulkanBu
 		&region
 	);
 
-	commandBuffer.endRecordingSingleTimeCommands(renderer.getLogicalDevice(), renderer.getTransferCommandPool());
+	commandBuffer.endRecordingSingleTimeCommands(renderer.getLogicalDevice());
 }
 
 

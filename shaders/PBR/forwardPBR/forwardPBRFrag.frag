@@ -274,7 +274,7 @@ void main() {
 	const float MAX_REFLECTION_LOD = 4.0;
     vec3 prefilteredColor = textureLod(preFilteredTexture, R,  roughness * MAX_REFLECTION_LOD).rgb;
 	vec2 envBRDF  = texture(brdfLutTexture, vec2(max(dot(fNormal, V), 0.0), roughness)).rg;
-	vec3 specular = prefilteredColor * (kS * envBRDF.x + envBRDF.y) * 0.1;
+	vec3 specular = prefilteredColor * (kS * envBRDF.x + envBRDF.y) * 0.2;
   
 
 
