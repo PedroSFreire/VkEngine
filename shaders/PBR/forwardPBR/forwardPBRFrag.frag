@@ -77,7 +77,7 @@ layout(location = 0) out vec4 outColor;
 vec3 calcDirectLight(vec3 fNormal, uint i)
 {
 	//get material tex values
-	vec3 color = texture(ColorTexture, fragTexCoord).rgb;// * pc.colorFactor.rgb;
+	vec3 color = texture(ColorTexture, fragTexCoord).rgb * pc.colorFactor.rgb;
 	float metallic = texture(metalRoughTexture, fragTexCoord).b;// * pc.metallicFactor;
 	float roughness = texture(metalRoughTexture, fragTexCoord).g;// * pc.roughnessFactor;
 
@@ -113,7 +113,7 @@ vec3 calcPointLight(vec3 fNormal, uint i)
 {
 
 	//get material tex values
-	vec3 color = texture(ColorTexture, fragTexCoord).rgb;// * pc.colorFactor.rgb;
+	vec3 color = texture(ColorTexture, fragTexCoord).rgb * pc.colorFactor.rgb;
 	float metallic = texture(metalRoughTexture, fragTexCoord).b;// * pc.metallicFactor;
 	float roughness = texture(metalRoughTexture, fragTexCoord).g;// * pc.roughnessFactor;
 
@@ -178,7 +178,7 @@ vec3 calcSpotLight(vec3 fNormal, uint i)
 		vec3 radiance = lights[i].color * attenuation * intensity; 
 
 			//get material tex values
-		vec3 color = texture(ColorTexture, fragTexCoord).rgb;// * pc.colorFactor.rgb;
+		vec3 color = texture(ColorTexture, fragTexCoord).rgb * pc.colorFactor.rgb;
 		float metallic = texture(metalRoughTexture, fragTexCoord).b;// * pc.metallicFactor;
 		float roughness = texture(metalRoughTexture, fragTexCoord).g;// * pc.roughnessFactor;
 
@@ -252,7 +252,7 @@ void main() {
 	vec3 color = texture(ColorTexture, fragTexCoord).rgb;
 	float ao = texture(occlusionTexture, fragTexCoord).r;	
 	float roughness = texture(metalRoughTexture, fragTexCoord).g;
-	    
+	float alpha = texture(ColorTexture, fragTexCoord).a;    
     
 
 	//compute views 
@@ -274,14 +274,15 @@ void main() {
 	const float MAX_REFLECTION_LOD = 4.0;
     vec3 prefilteredColor = textureLod(preFilteredTexture, R,  roughness * MAX_REFLECTION_LOD).rgb;
 	vec2 envBRDF  = texture(brdfLutTexture, vec2(max(dot(fNormal, V), 0.0), roughness)).rg;
-	vec3 specular = prefilteredColor * (kS * envBRDF.x + envBRDF.y) * 0.2;
+	vec3 specular = prefilteredColor * (kS * envBRDF.x + envBRDF.y) * 0.7;
   
 
 
 	vec3 ambient    = (kD * diffuse)* ao + specular; 
 
-	outColor.xyz += ambient + texture(emissiveTexture,fragTexCoord).rgb; 
-
+	outColor.a = alpha;
+	outColor.xyz += ambient*0.1 + texture(emissiveTexture,fragTexCoord).rgb; 
+	if(outColor.a < 0.1) discard;
 
 
 }

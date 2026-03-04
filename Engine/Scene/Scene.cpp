@@ -11,8 +11,8 @@ void Scene::addDefaultLight() {
 	newLight.color.x = 0.8;
 	newLight.color.y = 0.8;
 	newLight.color.z = 0.8;
-	newLight.intensity = 1;
-	newLight.range = 100.0f;
+	newLight.intensity = 5;
+	newLight.range = 10000.0f;
 	scene.lights.emplace_back(std::make_shared<LightAsset>(std::move(newLight)));
 
 
@@ -22,7 +22,7 @@ void Scene::addDefaultLight() {
 
 	LightNode.lightIndex = 0;
 
-	LightNode.transform = glm::translate(glm::mat4(1.0f), glm::vec3(5.0f, 1.0f, -5.0f));
+	LightNode.transform = glm::translate(glm::mat4(1.0f), glm::vec3(8.0f, 2.0f, 0.0f));
 
 	//LightNode.children.emplace_back(scene.nodes.size()+1);
 
@@ -63,7 +63,7 @@ void Scene::loadFile(const std::string& filePath)
 		frameData.drawInstances.resize(scene.meshAssets.size());
 	}
 	else {
-		std::cerr << "File was not a GLTF and GLTF loader used. " << std::endl;
+		throw std::runtime_error("Invalid File Format");
 	}
 
 }

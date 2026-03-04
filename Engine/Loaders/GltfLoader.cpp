@@ -609,7 +609,7 @@ void GltfLoader::loadGltf(SceneData& scene,const char* fname)
 	if (!data) {
 		std::filesystem::path cwd = std::filesystem::current_path();
 		std::cout << "Current working directory: " << cwd << std::endl;
-		std::cerr << "Failed to load glTF file: " << static_cast<int>(data.error()) << std::endl;
+		throw std::runtime_error("Failed to load scene file");
 		return;
 	}
 	auto assetOptional = parser.loadGltf(data.get(), path.parent_path(), gltfOptions);
