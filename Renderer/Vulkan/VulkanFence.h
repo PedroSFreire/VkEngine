@@ -10,15 +10,19 @@ public:
 	VulkanFence(const VulkanLogicalDevice&);
 	VulkanFence(const VulkanFence&) = delete;
 	~VulkanFence();
-	VulkanFence(VulkanFence&& other) {
+	VulkanFence(VulkanFence&& other) noexcept{
 		fence = other.fence;
+		logicalDevice = other.logicalDevice;
 		other.fence = VK_NULL_HANDLE;
+		other.logicalDevice = nullptr;
 	}
 
-	VulkanFence& operator=(VulkanFence&& other) {
+	VulkanFence& operator=(VulkanFence&& other) noexcept {
 		if (this != &other) {
 			fence = other.fence;
+			logicalDevice = other.logicalDevice;
 			other.fence = VK_NULL_HANDLE;
+			other.logicalDevice = nullptr;
 		}
 		return *this;
 	}

@@ -13,13 +13,17 @@ public:
 	~VulkanSemaphore();
 	VulkanSemaphore(VulkanSemaphore&& other) noexcept {
 		semaphore = other.semaphore;
+		logicalDevice = other.logicalDevice;
 		other.semaphore = VK_NULL_HANDLE;
+		other.logicalDevice = nullptr;
 	}
 
 	VulkanSemaphore & operator=(VulkanSemaphore&& other) noexcept {
 		if (this != &other) {
 			semaphore = other.semaphore;
+			logicalDevice = other.logicalDevice;
 			other.semaphore = VK_NULL_HANDLE;
+			other.logicalDevice = nullptr;
 		}
 		return *this;
 	}
