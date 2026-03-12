@@ -75,7 +75,7 @@ public:
 
 
 	// cupe map creation for env and irradiance maps
-	void cubePass(VulkanImageView& imgResource, CubeMapResource& cubeMap, VulkanSampler& sampler, MeshBuffers& cubeMesh, uint32_t texSize, bool irr) const;
+	void cubePass(VulkanImageView& imgResource, CubeMapResource& cubeMap, VulkanSampler& sampler, MeshBuffers& cubeMesh, uint32_t texSize,  bool irr) const;
 	void prefilteredCubePass(VulkanImageView& imgResource, CubeMapResource& cubeMap, VulkanSampler& sampler, MeshBuffers& cubeMesh,const uint32_t texSize) const;
 	void brdfLutPass(VulkanImageView& imgView, VulkanSampler& sampler, const uint32_t texSize)const;
 
@@ -117,7 +117,7 @@ private:
 
 	std::vector <VulkanCommandBuffer>					commandBuffers;
 
-	VulkanSyncObjects									syncObjects{};
+	SwapChainSyncObjects									syncObjects{};
 
 
 
