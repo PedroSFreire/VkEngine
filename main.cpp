@@ -32,7 +32,7 @@ int main() {
 	ResourceManager resourceManager(renderer);
 	Scene scene;
 
-	std::string pathToRoot = "../../../";
+	std::string pathToRoot = "../../";
 	//scene.loadFile(pathToRoot + "scenes/ABeautifulGame/glTF/ABeautifulGame.gltf");
 	//scene.loadFile(pathToRoot + "scenes/Buggy/newBuggy.glb");
 	//scene.loadFile(pathToRoot + "scenes/testWlights.glb");
