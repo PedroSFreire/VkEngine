@@ -50,21 +50,14 @@ vcpkg install glm glfw3 tinyobjloader vulkan-memory-allocator fastgltf mikktspac
 
 This installs:
 
-glm
-
-glfw
-
-tinyobjloader
-
-Vulkan Memory Allocator
-
-fastgltf
-
-mikktspace
-
-Dear ImGui (Vulkan + GLFW bindings)
-
-stb
+- glm
+- glfw
+- tinyobjloader
+- Vulkan Memory Allocator
+- fastgltf
+- mikktspace
+- Dear ImGui (Vulkan + GLFW bindings)
+- stb
 
 ## Building the Project
 
