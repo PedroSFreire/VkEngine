@@ -22,7 +22,7 @@ public:
 		other.logicalDevice = nullptr;
 	}
 	void createTextureSampler(const VulkanPhysicalDevice& physicalDevice, const VulkanLogicalDevice& logicalDevice);
-	void createTextureSampler(const VulkanPhysicalDevice& physicalDevice, const VulkanLogicalDevice& logicalDevice, VkFilter magFilter, VkFilter minFilter, VkSamplerMipmapMode mipMap, VkSamplerAddressMode addressU, VkSamplerAddressMode adressV, VkSamplerAddressMode addressV);
+	void createTextureSampler(const VulkanPhysicalDevice& physicalDevice, const VulkanLogicalDevice& logicalDevice, VkFilter magFilter, VkFilter minFilter, VkSamplerMipmapMode mipMap, VkSamplerAddressMode addressU, VkSamplerAddressMode adressV, VkSamplerAddressMode addressV,int maxLod);
 	VkSampler getSampler() const { return sampler; }
 
 private:

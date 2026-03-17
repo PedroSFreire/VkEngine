@@ -1,6 +1,6 @@
 #include "ImGui.h"
 #include "../../Renderer/Renderer/VulkanRenderer.h"
-
+#include <filesystem>
 
 
 
@@ -65,6 +65,68 @@ void ImGuiManager::init(VulkanRenderer& renderer) {
 }
 
 
+void ImGuiManager::startUpFrame() {
+
+	static bool firstFrame = true;
+	static std::vector<std::filesystem::path> scenes;
+
+	if (firstFrame) {
+		for (auto& entry : std::filesystem::recursive_directory_iterator("../../../scenes"))
+		{
+			if (entry.is_regular_file() && (entry.path().extension() == ".glb" || entry.path().extension() == ".gltf"))
+			{
+					scenes.push_back(entry.path());
+			}
+		}
+		firstFrame = false;
+	}
+
+	//record frame
+	ImGui_ImplVulkan_NewFrame();
+	ImGui_ImplGlfw_NewFrame();
+	ImGui::NewFrame();
+	/*
+	ImGui::Begin("Load Scene");
+
+	ImGui::Text("Select a GLB scene to load:");
+
+	for (auto& scene : scenes)
+	{
+		if (ImGui::Button(scene.filename().string().c_str()))
+		{
+
+			selectePath = scene.string();
+
+			selected = true;
+
+		}
+	}
+	ImGui::End();
+	*/
+
+
+
+
+	//ImGui::Begin("Load Scene");
+	if (ImGui::BeginCombo("GLB Scene", "Select a scene")) {
+
+		for (auto& scene : scenes) {
+			auto name = std::filesystem::relative(scene,"..\\..\\..\\scenes");
+			if (ImGui::Selectable(name.string().c_str(), false)) {
+				selectePath = scene.string();
+
+				selected = true;
+			}
+
+		}
+
+		ImGui::EndCombo();
+	}
+	//ImGui::End();
+
+	ImGui::Render();
+}
+
 void ImGuiManager::recordFrame( float deltaTime) {
 
 	static float frameTimes[200] = {};
@@ -75,19 +137,7 @@ void ImGuiManager::recordFrame( float deltaTime) {
 
 
 	float fps = 1000.0f / deltaTime;
-	/*
-	float averageFrameTime = 0;
 
-	for (int i = 0; i < 200; i++)
-	{
-		averageFrameTime += frameTimes[i];
-	}
-
-	averageFrameTime = averageFrameTime / 200.0f;
-
-
-	float averageFps = 1000.0f / averageFrameTime;
-	*/
 
 
 	ImGui_ImplVulkan_NewFrame();

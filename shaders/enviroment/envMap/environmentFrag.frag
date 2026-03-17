@@ -32,11 +32,11 @@ void main() {
 
 	vec3 color = texture(skyboxTexture,  normalize(vec3(inPosition.x,-inPosition.y,inPosition.z))).rgb ;
   
-    float exposure = 0.08;
+    float exposure = 0.4;
     color *= exposure;
 
     color = ACESFilm(color);
-    color = pow(color, vec3(1.0/2.2));
+    //color = pow(color, vec3(1.0/2.2));
 
-    outColor = vec4(color, 1.0);
+    outColor = vec4(clamp(color,0,1), 1.0);
 }

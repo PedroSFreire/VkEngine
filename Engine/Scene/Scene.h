@@ -17,11 +17,17 @@ private:
 	
 	SceneData scene;
 
+	bool loaded = false;
+
 	void addDefaultLight();
 
 public:
 
-	Scene() = default;
+	Scene() {
+		Camera newCamera;
+		cameras.resize(1);
+		cameras[0] = std::move(newCamera);
+	}
 	~Scene() = default;
 	Scene(const Scene&) = delete;
 	Scene(Scene&&) = default;
@@ -40,4 +46,6 @@ public:
 	void recordMesh( int meshId, glm::mat4& transform);
 
 	MeshAsset& getMeshAsset(uint32_t index) { return *scene.meshAssets[index]; }
+
+	bool isLoaded() const { return loaded; }	
 };

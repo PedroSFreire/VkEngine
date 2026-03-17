@@ -44,7 +44,6 @@ private:
     ImageResource defaultOcclusionImage;
     ImageResource defaultEmissiveImage;
 
-    SamplerResource defaultSampler;
 
 	bool lightsCreated = false;
 public:

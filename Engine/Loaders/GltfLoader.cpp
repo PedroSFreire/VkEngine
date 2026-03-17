@@ -197,9 +197,7 @@ void GltfLoader::loadNodesData(SceneData& scene) {
 			newNode.transform = glm::scale(newNode.transform, glm::vec3(transform->scale[0], transform->scale[1], transform->scale[2]));
 		}
 		else if (auto transform = std::get_if<fastgltf::math::fmat4x4>(&node.transform)) {
-			for (int row = 0; row < 4; ++row)
-				for (int col = 0; col < 4; ++col)
-					newNode.transform[col][row] = transform->data()[row];
+			memcpy(&newNode.transform, transform->data(), sizeof(float) * 16);
 		}
 		scene.nodes.emplace_back(std::make_shared<NodeAsset>(std::move(newNode)));
 	}
@@ -422,7 +420,6 @@ void GltfLoader::loadSamplers(SceneData& scene) {
 		scene.samplerAssets.emplace_back(std::make_shared<SamplerAsset>(std::move(newSamplerAsset)));
 	}
 
-	//renderer.createSampler(defaultSampler, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT);
 }
 
 void GltfLoader::loadTextures(SceneData& scene) {
@@ -430,10 +427,16 @@ void GltfLoader::loadTextures(SceneData& scene) {
 	for (auto& texture : asset.textures) {
 		TextureAsset newTexture;
 		newTexture.name = texture.name;
-		if (!texture.imageIndex.has_value() || !texture.samplerIndex.has_value())
-			std::cout << "Texture missing image or sampler index\n";
+		if (!texture.imageIndex.has_value())
+			std::cout << "Texture missing\n";
 		newTexture.imageId = texture.imageIndex.value();
-		newTexture.samplerId = texture.samplerIndex.value();
+		if (texture.samplerIndex.has_value()) {
+			newTexture.samplerId = texture.samplerIndex.value();
+		}else {
+			newTexture.samplerId = -1;
+		}
+
+
 		scene.textures.emplace_back(std::make_shared<TextureAsset>(std::move(newTexture)));
 	}
 }

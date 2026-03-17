@@ -5,7 +5,7 @@
 VulkanDescriptorSet::~VulkanDescriptorSet() {
 
 	if(logicalDevice != NULL)
-	vkDestroyDescriptorSetLayout(logicalDevice->getDevice(), descriptorSetLayout, nullptr);
+		vkDestroyDescriptorSetLayout(logicalDevice->getDevice(), descriptorSetLayout, nullptr);
 }
 
 

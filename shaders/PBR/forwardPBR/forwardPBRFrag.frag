@@ -249,12 +249,12 @@ void main() {
 
 	//read Textures
 	float metallic = texture(metalRoughTexture, fragTexCoord).b;// * pc.metallicFactor;
-	vec3 color = texture(ColorTexture, fragTexCoord).rgb;
+	vec3 color = texture(ColorTexture, fragTexCoord).rgb * pc.colorFactor.rgb;
 	float ao = texture(occlusionTexture, fragTexCoord).r;	
 	float roughness = texture(metalRoughTexture, fragTexCoord).g;
 	float alpha = texture(ColorTexture, fragTexCoord).a;    
     
-
+		float envStrength = 0.05;
 	//compute views 
 	vec3 V = normalize( ubo.cameraPos - inPosition );
 	vec3 F0 = vec3(0.04); 
@@ -267,21 +267,23 @@ void main() {
 
 
 	//diff
-	vec3 irradiance = texture(irradienceTexture, fNormal).rgb;
+	vec3 irradiance = texture(irradienceTexture, fNormal).rgb * envStrength ;
 	vec3 diffuse    = irradiance * color;
 
 	//spec
-	const float MAX_REFLECTION_LOD = 4.0;
-    vec3 prefilteredColor = textureLod(preFilteredTexture, R,  roughness * MAX_REFLECTION_LOD).rgb;
+	const float MAX_REFLECTION_LOD = 8.0;
+    vec3 prefilteredColor = textureLod(preFilteredTexture, R,  roughness*MAX_REFLECTION_LOD).rgb* envStrength;
 	vec2 envBRDF  = texture(brdfLutTexture, vec2(max(dot(fNormal, V), 0.0), roughness)).rg;
-	vec3 specular = prefilteredColor * (kS * envBRDF.x + envBRDF.y) * 0.7;
+	vec3 specular = prefilteredColor * (kS * envBRDF.x + envBRDF.y) ;
   
+	vec3 ambient = vec3(0.0,0.0,0.0);
 
 
-	vec3 ambient    = (kD * diffuse)* ao + specular; 
+	ambient    = (kD * diffuse)*ao + specular; 
+
 
 	outColor.a = alpha;
-	outColor.xyz += ambient*0.1 + texture(emissiveTexture,fragTexCoord).rgb; 
+	outColor.xyz += ambient + texture(emissiveTexture,fragTexCoord).rgb; 
 	if(outColor.a < 0.1) discard;
 
 
