@@ -851,13 +851,6 @@ void ResourceManager::createIBLCubeResources(const VulkanRenderer& renderer)
 	transitionImageLayout(renderer, irradianceImage.image, TextureTypeToVkFormat(TextureType::HDRColor), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, 6);
 	DescriptorManager::updateCubeDescriptor(irradianceCubeDescriptorSet, irradianceImage.cubeImageView.getImageView(), defaultCubeSampler.sampler.getSampler());
 
-<<<<<<< Better-Sync
-=======
-	//calculate prefiltered map from cubemap**********************************
-	uint32_t prefilteredLayerCount = std::floor(std::log2(textSize)) + 1;
-	renderer.prefilteredCubePass(cubemapImage.cubeImageView, prefilteredImage, preFilteredCubeSampler.sampler, cubeMesh, textSize);
-
->>>>>>> master
 	transitionImageLayout(renderer, prefilteredImage.image, TextureTypeToVkFormat(TextureType::HDRColor), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, 6, prefilteredLayerCount);
 	DescriptorManager::updateCubeDescriptor(prefilteredCubeDescriptorSet, prefilteredImage.cubeImageView.getImageView(), preFilteredCubeSampler.sampler.getSampler());
 	
