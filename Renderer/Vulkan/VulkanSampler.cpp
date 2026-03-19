@@ -9,7 +9,7 @@ VulkanSampler::~VulkanSampler() {
 }
 
 
-void VulkanSampler::createTextureSampler(const VulkanPhysicalDevice& physicalDevice, const VulkanLogicalDevice& device, VkFilter magFilter, VkFilter minFilter, VkSamplerMipmapMode mipMap, VkSamplerAddressMode addressU, VkSamplerAddressMode addressV, VkSamplerAddressMode addressW) {
+void VulkanSampler::createTextureSampler(const VulkanPhysicalDevice& physicalDevice, const VulkanLogicalDevice& device, VkFilter magFilter, VkFilter minFilter, VkSamplerMipmapMode mipMap, VkSamplerAddressMode addressU, VkSamplerAddressMode addressV, VkSamplerAddressMode addressW, int maxLod) {
 
 	logicalDevice = &device;
 
@@ -37,7 +37,7 @@ void VulkanSampler::createTextureSampler(const VulkanPhysicalDevice& physicalDev
 	samplerInfo.mipmapMode = mipMap;
 	samplerInfo.mipLodBias = 0.0f;
 	samplerInfo.minLod = 0.0f;
-	samplerInfo.maxLod = 0.0f;
+	samplerInfo.maxLod = maxLod;
 
 	if (vkCreateSampler(logicalDevice->getDevice(), &samplerInfo, nullptr, &sampler) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create texture sampler!");

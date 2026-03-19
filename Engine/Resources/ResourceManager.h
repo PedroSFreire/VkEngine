@@ -89,6 +89,7 @@ private:
 
     SamplerResource defaultSampler;
 	SamplerResource defaultCubeSampler;
+	SamplerResource preFilteredCubeSampler;
 
 	bool lightsCreated = false;
 
@@ -167,7 +168,7 @@ private:
 
 	void createSampler(const VulkanRenderer& renderer, SamplerResource& samplerResource, VkFilter magFilter, VkFilter minFilter, VkSamplerMipmapMode mipMap, VkSamplerAddressMode addressU, VkSamplerAddressMode adressV) const;
 
-	void createSampler(const VulkanRenderer& renderer, SamplerResource& samplerResource, VkFilter magFilter, VkFilter minFilter, VkSamplerMipmapMode mipMap, VkSamplerAddressMode addressU, VkSamplerAddressMode adressV, VkSamplerAddressMode adressW) const;
+	void createSampler(const VulkanRenderer& renderer, SamplerResource& samplerResource, VkFilter magFilter, VkFilter minFilter, VkSamplerMipmapMode mipMap, VkSamplerAddressMode addressU, VkSamplerAddressMode adressV, VkSamplerAddressMode adressW,int maxLod) const;
 
 	void transitionImageLayout(const VulkanRenderer& renderer, VulkanImage& image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t srcQueue, uint32_t destQueue, uint32_t layercount =1, uint32_t levelCount = 1)const;
 

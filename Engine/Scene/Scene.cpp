@@ -11,7 +11,7 @@ void Scene::addDefaultLight() {
 	newLight.color.x = 0.8;
 	newLight.color.y = 0.8;
 	newLight.color.z = 0.8;
-	newLight.intensity = 5;
+	newLight.intensity = 10;
 	newLight.range = 10000.0f;
 	scene.lights.emplace_back(std::make_shared<LightAsset>(std::move(newLight)));
 
@@ -22,15 +22,15 @@ void Scene::addDefaultLight() {
 
 	LightNode.lightIndex = 0;
 
-	LightNode.transform = glm::translate(glm::mat4(1.0f), glm::vec3(8.0f, 2.0f, 0.0f));
+	LightNode.transform = glm::translate(glm::mat4(1.0f), glm::vec3(2.0f, 1.0f, 0.0f));
 
 	//LightNode.children.emplace_back(scene.nodes.size()+1);
 
 	scene.nodes.emplace_back(std::make_shared<NodeAsset>(std::move(LightNode)));
 
 	scene.rootNodesIds.emplace_back(scene.nodes.size() - 1);
-	/*
-	NodeAsset meshNode;
+	
+	/*NodeAsset meshNode;
 
 	meshNode.name = "defaultMesh";
 
@@ -51,9 +51,7 @@ void Scene::addDefaultLight() {
 void Scene::loadFile(const std::string& filePath)
 {
 	GltfLoader gltfLoader;
-	Camera newCamera;
-	cameras.resize(1);
-	cameras[0] = std::move(newCamera);
+
 	auto ext = std::filesystem::path(filePath).extension();
 	if(ext == ".glm" || ext == ".gltf" || ext == ".glb")
 	{
@@ -65,6 +63,7 @@ void Scene::loadFile(const std::string& filePath)
 	else {
 		throw std::runtime_error("Invalid File Format");
 	}
+	loaded = true;
 
 }
 

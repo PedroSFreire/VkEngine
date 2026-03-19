@@ -3,7 +3,8 @@
 
 
 VulkanDescriptorPool::~VulkanDescriptorPool() {
-	vkDestroyDescriptorPool(logicalDevice->getDevice(), descriptorPool, nullptr);
+	if (logicalDevice != NULL)
+		vkDestroyDescriptorPool(logicalDevice->getDevice(), descriptorPool, nullptr);
 }
 
 

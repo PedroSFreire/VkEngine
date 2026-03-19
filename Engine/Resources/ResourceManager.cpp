@@ -67,7 +67,8 @@ static constexpr VkSamplerAddressMode toVkAddressMode(AddressMode a) {
 ResourceManager::ResourceManager(const VulkanRenderer& renderer) {
 	createDefaultImages(renderer);
 	createSampler(renderer,defaultSampler, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT);
-	createSampler(renderer, defaultCubeSampler, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
+	createSampler(renderer, defaultCubeSampler, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, 0);
+	createSampler(renderer, preFilteredCubeSampler, VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,8);
 	createSimpleMeshResources(renderer, cubeVertices, cubeIndices, cubeMesh);
 	createEnvironmentMaps(renderer, "textures/monkstown_castle_4k.hdr");
 	createBrdfLut(renderer);
@@ -126,7 +127,13 @@ uint32_t ResourceManager::createDescriptorSet(const VulkanRenderer& renderer, co
 	if (mat.colorTexId.has_value()) {
 		auto& colorTexture = scene.textures[mat.colorTexId.value()];
 		colorImage = images[scene.imageAssets[colorTexture->imageId]->resourceId].get();
-		colorSampler = samplers[scene.samplerAssets[colorTexture->samplerId]->resourceId].get();
+		if (colorTexture->samplerId == -1) {
+			colorSampler = &defaultSampler;
+		}
+		else {
+			colorSampler = samplers[scene.samplerAssets[colorTexture->samplerId]->resourceId].get();
+		}
+
 
 	}
 	else {
@@ -138,7 +145,14 @@ uint32_t ResourceManager::createDescriptorSet(const VulkanRenderer& renderer, co
 	if (mat.normalTexId.has_value()) {
 		auto& normalTexture = scene.textures[mat.normalTexId.value()];
 		normalImage = images[scene.imageAssets[normalTexture->imageId]->resourceId].get();
-		normalSampler = samplers[scene.samplerAssets[normalTexture->samplerId]->resourceId].get();
+
+		if (normalTexture->samplerId == -1) {
+			normalSampler = &defaultSampler;
+		}
+		else {
+			normalSampler = samplers[scene.samplerAssets[normalTexture->samplerId]->resourceId].get();
+		}
+		
 
 	}
 	else {
@@ -150,7 +164,14 @@ uint32_t ResourceManager::createDescriptorSet(const VulkanRenderer& renderer, co
 	if (mat.metalRoughTexId.has_value()) {
 		auto& metalRoughTexture = scene.textures[mat.metalRoughTexId.value()];
 		metalRoughImage = images[scene.imageAssets[metalRoughTexture->imageId]->resourceId].get();
-		metalRoughSampler = samplers[scene.samplerAssets[metalRoughTexture->samplerId]->resourceId].get();
+
+		if (metalRoughTexture->samplerId == -1) {
+			metalRoughSampler = &defaultSampler;
+		}
+		else {
+			metalRoughSampler = samplers[scene.samplerAssets[metalRoughTexture->samplerId]->resourceId].get();
+		}
+		
 
 	}
 	else {
@@ -162,7 +183,14 @@ uint32_t ResourceManager::createDescriptorSet(const VulkanRenderer& renderer, co
 	if (mat.occlusionTexId.has_value()) {
 		auto& occlusionTexture = scene.textures[mat.occlusionTexId.value()];
 		occlusionImage = images[scene.imageAssets[occlusionTexture->imageId]->resourceId].get();
-		occlusionSampler = samplers[scene.samplerAssets[occlusionTexture->samplerId]->resourceId].get();
+
+		if (occlusionTexture->samplerId == -1) {
+			occlusionSampler = &defaultSampler;
+		}
+		else {
+			occlusionSampler = samplers[scene.samplerAssets[occlusionTexture->samplerId]->resourceId].get();
+		}
+		
 
 	}
 	else {
@@ -174,7 +202,14 @@ uint32_t ResourceManager::createDescriptorSet(const VulkanRenderer& renderer, co
 	if (mat.emissiveTexId.has_value()) {
 		auto& emissiveTexture = scene.textures[mat.emissiveTexId.value()];
 		emissiveImage = images[scene.imageAssets[emissiveTexture->imageId]->resourceId].get();
-		emissiveSampler = samplers[scene.samplerAssets[emissiveTexture->samplerId]->resourceId].get();
+
+		if (emissiveTexture->samplerId == -1) {
+			emissiveSampler = &defaultSampler;
+		}
+		else {
+			emissiveSampler = samplers[scene.samplerAssets[emissiveTexture->samplerId]->resourceId].get();
+		}
+		
 
 	}
 	else {
@@ -217,7 +252,7 @@ void ResourceManager::createDefaultImages(const VulkanRenderer& renderer) {
 	createTexture(renderer, normalData, defaultNormalImage);
 
 	// --- Default Metallic-Roughness-AO Texture (UNORM) ---
-	std::array<uint8_t, 4> metalRoughPixel{ 0, 255, 255, 255 }; // R=metal, G=rough, B=AO
+	std::array<uint8_t, 4> metalRoughPixel{ 0, 255, 0, 255 }; // B=metal, G=rough, B=AO
 	defaultMetalRoughImage.name = "metalRough";
 	ImageAsset metalRoughData;
 	metalRoughData.width = 1;
@@ -571,14 +606,14 @@ void ResourceManager::createTextureImageHelper(const VulkanRenderer& renderer, f
 void ResourceManager::createSampler(const VulkanRenderer& renderer, SamplerResource& samplerResource, VkFilter magFilter, VkFilter minFilter, VkSamplerMipmapMode mipMap, VkSamplerAddressMode addressU, VkSamplerAddressMode adressV) const {
 
 
-	samplerResource.sampler.createTextureSampler(renderer.getPhysicalDevice(), renderer.getLogicalDevice(), magFilter, minFilter, mipMap, addressU, adressV, VK_SAMPLER_ADDRESS_MODE_REPEAT);
+	samplerResource.sampler.createTextureSampler(renderer.getPhysicalDevice(), renderer.getLogicalDevice(), magFilter, minFilter, mipMap, addressU, adressV, VK_SAMPLER_ADDRESS_MODE_REPEAT,0);
 
 }
 
-void ResourceManager::createSampler(const VulkanRenderer& renderer, SamplerResource& samplerResource, VkFilter magFilter, VkFilter minFilter, VkSamplerMipmapMode mipMap, VkSamplerAddressMode addressU, VkSamplerAddressMode adressV, VkSamplerAddressMode adressW) const {
+void ResourceManager::createSampler(const VulkanRenderer& renderer, SamplerResource& samplerResource, VkFilter magFilter, VkFilter minFilter, VkSamplerMipmapMode mipMap, VkSamplerAddressMode addressU, VkSamplerAddressMode adressV, VkSamplerAddressMode adressW, int maxLod) const {
 
 
-	samplerResource.sampler.createTextureSampler(renderer.getPhysicalDevice(), renderer.getLogicalDevice(), magFilter, minFilter, mipMap, addressU, adressV, adressW);
+	samplerResource.sampler.createTextureSampler(renderer.getPhysicalDevice(), renderer.getLogicalDevice(), magFilter, minFilter, mipMap, addressU, adressV, adressW, maxLod);
 
 }
 
@@ -800,10 +835,10 @@ void ResourceManager::createIBLCubeResources(const VulkanRenderer& renderer)
 
 	//calculate prefiltered map from cubemap**********************************
 	uint32_t prefilteredLayerCount = std::floor(std::log2(textSize)) + 1;
-	renderer.prefilteredCubePass(cubemapImage.cubeImageView, prefilteredImage, defaultCubeSampler.sampler, cubeMesh, textSize);
+	renderer.prefilteredCubePass(cubemapImage.cubeImageView, prefilteredImage, preFilteredCubeSampler.sampler, cubeMesh, textSize);
 
 	transitionImageLayout(renderer, prefilteredImage.image, TextureTypeToVkFormat(TextureType::HDRColor), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, 6, prefilteredLayerCount);
-	DescriptorManager::updateCubeDescriptor(prefilteredCubeDescriptorSet, prefilteredImage.cubeImageView.getImageView(), defaultCubeSampler.sampler.getSampler());
+	DescriptorManager::updateCubeDescriptor(prefilteredCubeDescriptorSet, prefilteredImage.cubeImageView.getImageView(), preFilteredCubeSampler.sampler.getSampler());
 	
 
 }
@@ -823,7 +858,7 @@ void ResourceManager::createEnvironmentMaps(const VulkanRenderer& renderer, cons
 
 	// sampler for equi
 	VulkanSampler envSampler;
-	envSampler.createTextureSampler(renderer.getPhysicalDevice(), renderer.getLogicalDevice(), VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT);
+	envSampler.createTextureSampler(renderer.getPhysicalDevice(), renderer.getLogicalDevice(), VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,0);
 	//load equirectangular HDR image
 
 	createTexture(renderer, HDRI_PATH, equirectangularImage, TextureType::HDRColor);
