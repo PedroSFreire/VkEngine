@@ -33,20 +33,25 @@ int main() {
 	Scene scene;
 
 	std::string pathToRoot = "../../../";
-	//scene.loadFile(pathToRoot + "scenes/ABeautifulGame/glTF/ABeautifulGame.gltf");
+	//scene.loadFile(pathToRoot + "scenes/BoomBoxWithAxes/glTF/BoomBoxWithAxes.gltf");
 	//scene.loadFile(pathToRoot + "scenes/Buggy/newBuggy.glb");
 	//scene.loadFile(pathToRoot + "scenes/testWlights.glb");
 	//scene.loadFile(pathToRoot + "scenes/MetalRoughSpheres/glTF/MetalRoughSpheres.gltf");
 	//scene.loadFile(pathToRoot + "scenes/LightsPunctualLamp/glTF-Binary/LightsPunctualLamp.glb");
 	//scene.loadFile(pathToRoot + "scenes/SpecularTest/glTF/SpecularTest.gltf");
-	//scene.loadFile(pathToRoot + "scenes/Sponza/glTF/Sponza.gltf");
-	scene.loadFile(pathToRoot + "scenes/sponzaLight.glb");
-	//scene.loadFile(pathToRoot + "scenes/text.glb");
-	resourceManager.loadScene(renderer,scene.getScene());
+	//scene.loadFile(pathToRoot + "scenes/DamagedHelmet/glTF/DamagedHelmet.gltf");
+	//scene.loadFile(pathToRoot + "scenes/sponzaLight.glb");
+	//scene.loadFile(pathToRoot + "scenes/bb.glb");
+	//resourceManager.loadScene(renderer,scene.getScene());
 	prevTime = timer.now();
 
 	try {
 		while (renderer.running()) {
+
+			if (imGuiManager.isSelected() && !scene.isLoaded()) {
+				scene.loadFile(imGuiManager.getSelectedPath());
+				resourceManager.loadScene(renderer, scene.getScene());
+			}
 
 			currentTime = timer.now();
 
@@ -54,11 +59,21 @@ int main() {
 
 			prevTime = currentTime;
 
-			imGuiManager.recordFrame(deltaTime);
+			
+			if (!imGuiManager.isSelected()) {
+				imGuiManager.startUpFrame();
+			}else {
+				imGuiManager.recordFrame(deltaTime);
+			}
 
-			SceneFramesData& drawData = scene.recordScene();
 
-			resourceManager.loadLights(renderer, drawData.frameLightData);
+			SceneFramesData drawData;
+
+			if (scene.isLoaded()) {
+				drawData = scene.recordScene();
+				resourceManager.loadLights(renderer, drawData.frameLightData);
+			}
+
 
 			renderer.run(drawData, resourceManager, scene.getActiveCamera(), imGuiManager);
 		}

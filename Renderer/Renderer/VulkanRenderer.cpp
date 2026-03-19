@@ -90,6 +90,7 @@ void VulkanRenderer::initVulkan() {
 	
 	syncObjects.createSyncObjects(logicalDevice, MAX_FRAMES_IN_FLIGHT, swapChain.getSwapChainImages().size());
 
+
 }
 
 

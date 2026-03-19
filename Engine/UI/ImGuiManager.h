@@ -16,6 +16,8 @@ class ImGuiManager
 private:
     //fields
     VulkanDescriptorPool imGuiPool;
+	bool selected = false;
+    std::string selectePath;
 
 public:
     ImGuiManager() = default;
@@ -29,4 +31,9 @@ public:
 
 	void recordCommands(VulkanCommandBuffer& commandBuffer) const;  
 
+    void startUpFrame();
+
+	bool isSelected() const { return selected; }
+
+    const std::string& getSelectedPath() const { return selectePath; }
 }; 
