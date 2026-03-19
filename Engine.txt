@@ -1,0 +1,33 @@
+Engine/
+-Core/
+--defines.h // mega include that needs to be split
+-Loaders/
+--gltfloader
+-Resources/
+--ResourceManager
+-Scene/
+--camera
+--Scene
+-UI/
+--imguimanager
+Renderer/
+-Includes
+-Platform/
+--window
+-Renderer/
+--CommandBufferRecorder
+--DescritporManager
+--PipelineFactory
+--VulkanRenderer
+-Vulkan/
+--contains RAII wrapers for the vulkan objects
+Shaders/
+-Compiled/
+-- just mirrors the shader folder struct
+-environment/
+--envMap
+--equiToCube
+--ibl
+-include
+-PBR/
+--forwardPBR

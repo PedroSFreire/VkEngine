@@ -169,10 +169,10 @@ void VulkanRenderer::recreateSwapChain() {
 
 uint32_t VulkanRenderer::beginFrame() {
 	uint32_t imageIndex;
-	vkWaitForFences(logicalDevice.getDevice(), 1, &syncObjects.inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
+	vkWaitForFences(logicalDevice.getDevice(), 1, syncObjects.inFlightFences[currentFrame].getFencePtr(), VK_TRUE, UINT64_MAX);
 
 
-	VkResult result = vkAcquireNextImageKHR(logicalDevice.getDevice(), swapChain.getSwapChain(), UINT64_MAX, syncObjects.imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+	VkResult result = vkAcquireNextImageKHR(logicalDevice.getDevice(), swapChain.getSwapChain(), UINT64_MAX, syncObjects.imageAvailableSemaphores[currentFrame].getSemaphore(), VK_NULL_HANDLE, &imageIndex);
 
 	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
 		recreateSwapChain();
@@ -182,7 +182,7 @@ uint32_t VulkanRenderer::beginFrame() {
 		throw std::runtime_error("failed to acquire swap chain image!");
 	}
 
-	vkResetFences(logicalDevice.getDevice(), 1, &syncObjects.inFlightFences[currentFrame]);
+	vkResetFences(logicalDevice.getDevice(), 1, syncObjects.inFlightFences[currentFrame].getFencePtr());
 
 	vkResetCommandBuffer(commandBuffers[currentFrame].getCommandBuffer(), 0);
 
@@ -199,7 +199,7 @@ void VulkanRenderer::forwardPass(uint32_t imageIndex, SceneFramesData& drawData,
 	VkSubmitInfo submitInfo{};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-	VkSemaphore waitSemaphores[] = { syncObjects.imageAvailableSemaphores[currentFrame] };
+	VkSemaphore waitSemaphores[] = { syncObjects.imageAvailableSemaphores[currentFrame].getSemaphore()};
 	VkPipelineStageFlags waitStages[] = {
 		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 	submitInfo.waitSemaphoreCount = 1;
@@ -210,11 +210,11 @@ void VulkanRenderer::forwardPass(uint32_t imageIndex, SceneFramesData& drawData,
 	submitInfo.pCommandBuffers = &commandBuffers[currentFrame].getCommandBuffer();
 
 
-	VkSemaphore signalSemaphores[] = { syncObjects.renderFinishedSemaphores[imageIndex] };
+	VkSemaphore signalSemaphores[] = { syncObjects.renderFinishedSemaphores[imageIndex].getSemaphore()};
 	submitInfo.signalSemaphoreCount = 1;
 	submitInfo.pSignalSemaphores = signalSemaphores;
 
-	if (vkQueueSubmit(logicalDevice.getGraphicsQueue(), 1, &submitInfo, syncObjects.inFlightFences[currentFrame]) != VK_SUCCESS) {
+	if (vkQueueSubmit(logicalDevice.getGraphicsQueue(), 1, &submitInfo, syncObjects.inFlightFences[currentFrame].getFence()) != VK_SUCCESS) {
 		throw std::runtime_error("failed to submit draw command buffer!");
 	}
 }
@@ -222,7 +222,7 @@ void VulkanRenderer::forwardPass(uint32_t imageIndex, SceneFramesData& drawData,
 
 
 void VulkanRenderer::presentFrame(uint32_t imageIndex) {
-	VkSemaphore signalSemaphores[] = { syncObjects.renderFinishedSemaphores[imageIndex] };
+	VkSemaphore signalSemaphores[] = { syncObjects.renderFinishedSemaphores[imageIndex].getSemaphore()};
 
 	VkPresentInfoKHR presentInfo{};
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -324,7 +324,7 @@ void VulkanRenderer::createUniformBuffers() {
 
 
 
-void VulkanRenderer::cubePass(VulkanImageView& imgResource, CubeMapResource& cubeMap, VulkanSampler& sampler, MeshBuffers& cubeMesh, uint32_t texSize, bool irr) const {
+void VulkanRenderer::cubePass(VulkanImageView& imgResource, CubeMapResource& cubeMap, VulkanSampler& sampler, MeshBuffers& cubeMesh, uint32_t texSize,bool irr) const {
 
 
 	//view for each face of the cubemap
@@ -375,11 +375,17 @@ void VulkanRenderer::cubePass(VulkanImageView& imgResource, CubeMapResource& cub
 	DescriptorManager::updateCubeDescriptor(texDescriptorSet, imgResource.getImageView(), sampler.getSampler());
 
 	//record command buffer
+	VulkanCommandPool commandPoolTemp;
+	commandPoolTemp.createGraphicsCommandPool(physicalDevice, logicalDevice, surface);
 
-	VulkanCommandBuffer commandBuffer(logicalDevice, commandPool);
+	VulkanCommandBuffer commandBuffer(logicalDevice, commandPoolTemp);
 
 
 	CommandBufferRecorder::recordCommandBufferCubePass(*this, cubeRenderPass, frameBuffers, commandBuffer, pipeline, texSize, texDescriptorSet, cubeMesh);
+
+	//sync objects
+	VulkanFence fence(logicalDevice);
+	fence.reset();
 
 	//submit command Buffer
 	VkSubmitInfo submitInfo{};
@@ -387,15 +393,13 @@ void VulkanRenderer::cubePass(VulkanImageView& imgResource, CubeMapResource& cub
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pCommandBuffers = &(commandBuffer.getCommandBuffer());
 
-	vkResetFences(logicalDevice.getDevice(), 1, &syncObjects.inFlightFences[0]);
 
-	if (vkQueueSubmit(logicalDevice.getGraphicsQueue(), 1, &submitInfo, syncObjects.inFlightFences[0]) != VK_SUCCESS) {
+	if (vkQueueSubmit(logicalDevice.getGraphicsQueue(), 1, &submitInfo, fence.getFence()) != VK_SUCCESS) {
 		throw std::runtime_error("failed to submit draw command buffer!");
 	}
 
+	fence.wait();
 
-	//wait for completion
-	vkWaitForFences(logicalDevice.getDevice(), 1, &(syncObjects.inFlightFences[0]), VK_TRUE, UINT64_MAX);
 
 
 }
@@ -465,17 +469,23 @@ void VulkanRenderer::prefilteredCubePass(VulkanImageView& imgResource, CubeMapRe
 
 
 	//record command buffer
+	VulkanCommandPool commandPoolTemp;
+	commandPoolTemp.createGraphicsCommandPool(physicalDevice, logicalDevice, surface);
+
 	std::vector<VulkanCommandBuffer> commandBuffers;
 	std::vector<VkCommandBuffer> vkCommandBuffers;
 	commandBuffers.resize(levelCount);
 
 	for (int i = 0; i < levelCount; i++) {
-		commandBuffers[i].createCommandBuffer(logicalDevice, commandPool);
+		commandBuffers[i].createCommandBuffer(logicalDevice, commandPoolTemp);
 		float roughness = (float)i / (float)(levelCount - 1);
 		CommandBufferRecorder::recordCommandBufferPreFilteredCubePass(*this, cubeRenderPass, frameBuffers[i], commandBuffers[i], pipeline, texSize >>i, texDescriptorSet, cubeMesh, roughness);
 		vkCommandBuffers.push_back(commandBuffers[i].getCommandBuffer());
 	}
 
+	//sync objects
+	VulkanFence fence(logicalDevice);
+	fence.reset();
 
 	//submit command Buffer
 	VkSubmitInfo submitInfo{};
@@ -483,15 +493,14 @@ void VulkanRenderer::prefilteredCubePass(VulkanImageView& imgResource, CubeMapRe
 	submitInfo.commandBufferCount = levelCount;
 	submitInfo.pCommandBuffers = vkCommandBuffers.data();
 
-	vkResetFences(logicalDevice.getDevice(), 1, &syncObjects.inFlightFences[0]);
+	
 
-	if (vkQueueSubmit(logicalDevice.getGraphicsQueue(), 1, &submitInfo, syncObjects.inFlightFences[0]) != VK_SUCCESS) {
+	if (vkQueueSubmit(logicalDevice.getGraphicsQueue(), 1, &submitInfo, fence.getFence()) != VK_SUCCESS) {
 		throw std::runtime_error("failed to submit draw command buffer!");
 	}
 
+	fence.wait();
 
-	//wait for completion
-	vkWaitForFences(logicalDevice.getDevice(), 1, &(syncObjects.inFlightFences[0]), VK_TRUE, UINT64_MAX);
 
 
 }
@@ -531,13 +540,13 @@ void VulkanRenderer::brdfLutPass(VulkanImageView& imgView, VulkanSampler& sample
 	submitInfo.pCommandBuffers = &(commandBuffer.getCommandBuffer());
 
 
-	vkResetFences(logicalDevice.getDevice(), 1, &syncObjects.inFlightFences[0]);
+	vkResetFences(logicalDevice.getDevice(), 1, syncObjects.inFlightFences[0].getFencePtr());
 
 
-	if (vkQueueSubmit(logicalDevice.getGraphicsQueue(), 1, &submitInfo, syncObjects.inFlightFences[0]) != VK_SUCCESS) {
+	if (vkQueueSubmit(logicalDevice.getGraphicsQueue(), 1, &submitInfo, syncObjects.inFlightFences[0].getFence()) != VK_SUCCESS) {
 		throw std::runtime_error("failed to submit draw command buffer!");
 	}
 
 	//wait for completion
-	vkWaitForFences(logicalDevice.getDevice(), 1, &(syncObjects.inFlightFences[0]), VK_TRUE, UINT64_MAX);
+	vkWaitForFences(logicalDevice.getDevice(), 1, syncObjects.inFlightFences[0].getFencePtr(), VK_TRUE, UINT64_MAX);
 }

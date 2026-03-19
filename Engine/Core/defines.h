@@ -20,6 +20,8 @@
 #include "../../Renderer/Vulkan/VulkanImage.h"
 #include "../../Renderer/Vulkan/VulkanImageView.h"
 #include "../../Renderer/Vulkan/VulkanSampler.h"
+#include "../../Renderer/Vulkan/VulkanSemaphore.h"
+#include "../../Renderer/Vulkan/VulkanFence.h"
 
 
 
@@ -61,6 +63,44 @@ enum class LightType : uint32_t {
 	Point = 1,
 	Spot = 2
 };
+
+
+
+
+
+
+
+struct SwapChainSyncObjects {
+	std::vector<VulkanSemaphore> imageAvailableSemaphores;
+	std::vector<VulkanSemaphore> renderFinishedSemaphores;
+	std::vector<VulkanFence> inFlightFences;
+
+	SwapChainSyncObjects() = default;
+	SwapChainSyncObjects(SwapChainSyncObjects&) = delete;
+	SwapChainSyncObjects(SwapChainSyncObjects && other) noexcept : imageAvailableSemaphores(std::move(other.imageAvailableSemaphores)),
+	renderFinishedSemaphores(std::move(renderFinishedSemaphores)),inFlightFences(std::move(inFlightFences)){}
+
+	void createSyncObjects(const VulkanLogicalDevice& device, size_t maxFramesInFlight, size_t nSwapChainImages) {
+
+		imageAvailableSemaphores.reserve(maxFramesInFlight);
+		renderFinishedSemaphores.reserve(nSwapChainImages);
+		inFlightFences.reserve(maxFramesInFlight);
+
+
+		for (size_t i = 0; i < maxFramesInFlight; i++) {
+			VulkanFence fence(device);
+			VulkanSemaphore semaphore(device);
+
+			imageAvailableSemaphores.emplace_back(std::move(semaphore));
+			inFlightFences.emplace_back(std::move(fence));
+		}
+		for (size_t i = 0; i < nSwapChainImages; i++) {
+			VulkanSemaphore semaphore(device);
+			renderFinishedSemaphores.emplace_back(std::move(semaphore));
+		}
+	}
+};
+
 
 struct LightAsset {
 	LightType type;

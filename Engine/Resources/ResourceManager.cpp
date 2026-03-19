@@ -5,6 +5,9 @@
 #include "stb_image.h"
 
 
+#include "../../Renderer/Vulkan/VulkanFence.h"
+#include "../../Renderer/Vulkan/VulkanSemaphore.h"
+#include <omp.h>
 
 
 
@@ -819,7 +822,7 @@ void ResourceManager::createIBLCubeResources(const VulkanRenderer& renderer)
 	irradianceCubeDescriptorSet.createDescriptor();
 	prefilteredCubeDescriptorSet.createDescriptor();
 
-	
+
 	uint32_t textSize = 256;
 
 	// allocate cubemap image
@@ -827,16 +830,34 @@ void ResourceManager::createIBLCubeResources(const VulkanRenderer& renderer)
 	createCubeImage(renderer, prefilteredImage, textSize, static_cast<uint32_t>(std::floor(std::log2(textSize))) + 1);
 
 
-	//calculate irradiance map from cubemap**********************************
-	renderer.cubePass(cubemapImage.cubeImageView, irradianceImage, defaultCubeSampler.sampler, cubeMesh, textSize, true/*irradiance pass*/);
+	uint32_t prefilteredLayerCount = std::floor(std::log2(textSize)) + 1;
+
+#pragma omp parallel sections
+	{
+#pragma omp section
+	{
+		//calculate irradiance map from cubemap**********************************
+		renderer.cubePass(cubemapImage.cubeImageView, irradianceImage, defaultCubeSampler.sampler, cubeMesh, textSize, true/*irradiance pass*/);
+	}
+#pragma omp section
+	{
+		//calculate prefiltered map from cubemap**********************************
+		renderer.prefilteredCubePass(cubemapImage.cubeImageView, prefilteredImage, defaultCubeSampler.sampler, cubeMesh, textSize);
+	}
+}
+
+	//update descriptors
 
 	transitionImageLayout(renderer, irradianceImage.image, TextureTypeToVkFormat(TextureType::HDRColor), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, 6);
 	DescriptorManager::updateCubeDescriptor(irradianceCubeDescriptorSet, irradianceImage.cubeImageView.getImageView(), defaultCubeSampler.sampler.getSampler());
 
+<<<<<<< Better-Sync
+=======
 	//calculate prefiltered map from cubemap**********************************
 	uint32_t prefilteredLayerCount = std::floor(std::log2(textSize)) + 1;
 	renderer.prefilteredCubePass(cubemapImage.cubeImageView, prefilteredImage, preFilteredCubeSampler.sampler, cubeMesh, textSize);
 
+>>>>>>> master
 	transitionImageLayout(renderer, prefilteredImage.image, TextureTypeToVkFormat(TextureType::HDRColor), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, 6, prefilteredLayerCount);
 	DescriptorManager::updateCubeDescriptor(prefilteredCubeDescriptorSet, prefilteredImage.cubeImageView.getImageView(), preFilteredCubeSampler.sampler.getSampler());
 	
@@ -865,7 +886,7 @@ void ResourceManager::createEnvironmentMaps(const VulkanRenderer& renderer, cons
 	
 
 	//calculate cube map from equirectangular map
-	renderer.cubePass(equirectangularImage.imageView, cubemapImage, envSampler, cubeMesh,textSize*4,false/*not irradiance pass*/);
+	renderer.cubePass(equirectangularImage.imageView, cubemapImage, envSampler, cubeMesh,textSize*4, false/*not irradiance pass*/);
 
 	transitionImageLayout(renderer, cubemapImage.image, TextureTypeToVkFormat(TextureType::HDRColor), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,6);
 	DescriptorManager::updateCubeDescriptor(cubeDescriptorSet, cubemapImage.cubeImageView.getImageView(),defaultCubeSampler.sampler.getSampler());
