@@ -2,6 +2,7 @@
 #include <glm/glm.hpp>
 
 
+
 void CommandBufferRecorder::bindMesh(VulkanCommandBuffer& commandBuffer, const VulkanBuffer& vertBuffer, const VulkanBuffer& indexBuffer) {
 	VkBuffer vertexBuffers[] = { vertBuffer.getBuffer() };
 	VkDeviceSize offsets[] = { 0 };
@@ -12,18 +13,18 @@ void CommandBufferRecorder::bindMesh(VulkanCommandBuffer& commandBuffer, const V
 
 }
 
-void CommandBufferRecorder::recordDrawCall(VulkanRenderer& renderer, VulkanCommandBuffer& commandBuffer, const VulkanPipeline& graphicsPipeline, const CPUDrawCallData data, ResourceManager& resourceManager, VkDescriptorSet currentUBO) {
-	std::array<VkDescriptorSet, 6> descriptor{ currentUBO,resourceManager.getDescriptor(data.mat->resourceId).getDescriptorSet() ,resourceManager.getLightDescriptor().getDescriptorSet(),resourceManager.getIrradianceCubeDescriptor().getDescriptorSet() ,resourceManager.getPrefilteredCubeDescriptor().getDescriptorSet(),resourceManager.getBrdfLut().getDescriptorSet()};
+void CommandBufferRecorder::recordDrawCall(VulkanRenderer& renderer, VulkanCommandBuffer& commandBuffer, const VulkanPipeline& graphicsPipeline, const CPUDrawCallSurfaceData& data, ResourceManager& resourceManager, VkDescriptorSet currentUBO, int instanceCount, int instanceOffset) {
+	std::array<VkDescriptorSet, 6> descriptor{ currentUBO,resourceManager.getDescriptor(data.mat->resourceId).getDescriptorSet() ,resourceManager.getLightDescriptor().getDescriptorSet(),resourceManager.getIrradianceCubeDescriptor().getDescriptorSet() ,resourceManager.getPrefilteredCubeDescriptor().getDescriptorSet(),resourceManager.getBrdfLut().getDescriptorSet() };
 
 
 
-	const pushConstants pushData{ data.transform ,data.mat->colorFactor,data.mat->metallicFactor,data.mat->roughnessFactor,data.mat->emissiveStrenght,0,data.mat->emissiveFactor,0 };
+	const pushConstants pushData{ data.mat->colorFactor,data.mat->metallicFactor,data.mat->roughnessFactor,data.mat->emissiveStrenght,0,data.mat->emissiveFactor,0 };
 
 	vkCmdPushConstants(commandBuffer.getCommandBuffer(), graphicsPipeline.getPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(pushData), &pushData);
 
 	vkCmdBindDescriptorSets(commandBuffer.getCommandBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline.getPipelineLayout(), 0, descriptor.size(), descriptor.data(), 0, nullptr);
 
-	vkCmdDrawIndexed(commandBuffer.getCommandBuffer(), data.count, 1, data.startIndex, 0, 0);
+	vkCmdDrawIndexed(commandBuffer.getCommandBuffer(), data.count, instanceCount, data.startIndex, 0, instanceOffset);
 }
 
 void CommandBufferRecorder::recordCommandBufferForwardPass(VulkanRenderer& renderer, VulkanCommandBuffer& commandBuffer, const uint32_t imageIndex, SceneFramesData& drawData, VkDescriptorSet currentUBO, ResourceManager& resourceManager, ImGuiManager& ImGuiManager) {
@@ -96,14 +97,35 @@ void CommandBufferRecorder::recordCommandBufferForwardPass(VulkanRenderer& rende
 	vkCmdBindPipeline(commandBuffer.getCommandBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS,
 		renderer.getGraphicsPipeline().getPipeline());
 
-	for (CPUDrawCallInstanceData& instance : drawData.drawInstances) {
-		if (instance.meshResourceId == -1) continue;
-		MeshBuffers& mesh = resourceManager.getMesh(instance.meshResourceId).meshBuffers;
-		bindMesh(commandBuffer, mesh.vertexBuffer, mesh.indexBuffer);
+	if (drawData.drawInstances.size() != 0) {
 
-		for (CPUDrawCallData& drawCall : instance.cpuDrawCalls) {
+		std::vector<glm::mat4> totalTransforms;
+		std::vector <int> offsets;
+		VkDeviceSize baseOffset = 0;
+		//gather all the transforms of all instances of all meshes
+		for (CPUDrawCallMeshData& meshCall : drawData.drawInstances) {
+			offsets.emplace_back(totalTransforms.size());
+			totalTransforms.insert(totalTransforms.end(), meshCall.transforms.begin(), meshCall.transforms.end());
+		}
+		offsets.emplace_back(totalTransforms.size());
+		//upload and bind the total transforms buffer for the frame
+		auto& transformBuffer = renderer.getTransformBuffer(imageIndex);
+		memcpy(transformBuffer.getAllocationInfo().pMappedData, totalTransforms.data(), totalTransforms.size() * sizeof(glm::mat4));
+		vkCmdBindVertexBuffers(commandBuffer.getCommandBuffer(), 1, 1, &transformBuffer.getBuffer(), &baseOffset);
 
-			recordDrawCall(renderer,commandBuffer, renderer.getGraphicsPipeline(), drawCall, resourceManager, currentUBO);
+
+		for (int meshCallId = 0; meshCallId < drawData.drawInstances.size(); meshCallId++) {
+			CPUDrawCallMeshData& meshCalls = drawData.drawInstances[meshCallId];
+			if (meshCalls.meshResourceId == -1) continue;
+			MeshBuffers& mesh = resourceManager.getMesh(meshCalls.meshResourceId).meshBuffers;
+			bindMesh(commandBuffer, mesh.vertexBuffer, mesh.indexBuffer);
+			int instanceOffset = offsets[meshCallId];
+			int instanceCount = offsets[meshCallId + 1] - offsets[meshCallId];
+			for (auto& surfaceCalls : meshCalls.surfaceCalls) {
+				recordDrawCall(renderer, commandBuffer, renderer.getGraphicsPipeline(), surfaceCalls, resourceManager, currentUBO, instanceCount, instanceOffset);
+			}
+
+
 		}
 	}
 
@@ -136,20 +158,20 @@ void CommandBufferRecorder::recordCommandBufferCopyBuffer(VulkanCommandBuffer& c
 
 void CommandBufferRecorder::recordCommandBufferCubePass(const VulkanRenderer& renderer, VulkanRenderPass& renderpass, VulkanFrameBuffers& frameBuffers, VulkanCommandBuffer& commandBuffer, VulkanPipeline& pipeline, uint32_t cubemapSize, VulkanDescriptorSet& texDescriptor, const MeshBuffers& cube) {
 
-glm::mat4 captureViews[6] = {
-    // +X
-    glm::lookAt(glm::vec3(0), glm::vec3(1, 0, 0),  glm::vec3(0, -1, 0)),
-    // -X
-    glm::lookAt(glm::vec3(0), glm::vec3(-1, 0, 0), glm::vec3(0, -1, 0)),
-    // +Y
-    glm::lookAt(glm::vec3(0), glm::vec3(0, 1, 0),  glm::vec3(0, 0, 1)),
-    // -Y
-    glm::lookAt(glm::vec3(0), glm::vec3(0, -1, 0), glm::vec3(0, 0, -1)),
-    // +Z
-    glm::lookAt(glm::vec3(0), glm::vec3(0, 0, 1),  glm::vec3(0, -1, 0)),
-    // -Z
-    glm::lookAt(glm::vec3(0), glm::vec3(0, 0, -1), glm::vec3(0, -1, 0))
-};
+	glm::mat4 captureViews[6] = {
+		// +X
+		glm::lookAt(glm::vec3(0), glm::vec3(1, 0, 0),  glm::vec3(0, -1, 0)),
+		// -X
+		glm::lookAt(glm::vec3(0), glm::vec3(-1, 0, 0), glm::vec3(0, -1, 0)),
+		// +Y
+		glm::lookAt(glm::vec3(0), glm::vec3(0, 1, 0),  glm::vec3(0, 0, 1)),
+		// -Y
+		glm::lookAt(glm::vec3(0), glm::vec3(0, -1, 0), glm::vec3(0, 0, -1)),
+		// +Z
+		glm::lookAt(glm::vec3(0), glm::vec3(0, 0, 1),  glm::vec3(0, -1, 0)),
+		// -Z
+		glm::lookAt(glm::vec3(0), glm::vec3(0, 0, -1), glm::vec3(0, -1, 0))
+	};
 
 	VkCommandBufferBeginInfo beginInfo{};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -219,7 +241,7 @@ glm::mat4 captureViews[6] = {
 	}
 }
 
-void CommandBufferRecorder::recordCommandBufferPreFilteredCubePass(const VulkanRenderer& renderer, VulkanRenderPass& renderpass, VulkanFrameBuffers& frameBuffers, VulkanCommandBuffer& commandBuffer, VulkanPipeline& pipeline, uint32_t cubemapSize, VulkanDescriptorSet& texDescriptor, const MeshBuffers& cube,float roughness) {
+void CommandBufferRecorder::recordCommandBufferPreFilteredCubePass(const VulkanRenderer& renderer, VulkanRenderPass& renderpass, VulkanFrameBuffers& frameBuffers, VulkanCommandBuffer& commandBuffer, VulkanPipeline& pipeline, uint32_t cubemapSize, VulkanDescriptorSet& texDescriptor, const MeshBuffers& cube, float roughness) {
 
 	glm::mat4 captureViews[6] = {
 		// +X
@@ -304,7 +326,7 @@ void CommandBufferRecorder::recordCommandBufferPreFilteredCubePass(const VulkanR
 	}
 }
 
-void CommandBufferRecorder::recordCommandBufferBrdfLutPass(const VulkanRenderer& renderer, VulkanRenderPass& renderpass, VulkanFrameBuffers& frameBuffers, VulkanCommandBuffer& commandBuffer,VulkanPipeline& pipeline, uint32_t texSize, VulkanDescriptorSet& texDescriptor)
+void CommandBufferRecorder::recordCommandBufferBrdfLutPass(const VulkanRenderer& renderer, VulkanRenderPass& renderpass, VulkanFrameBuffers& frameBuffers, VulkanCommandBuffer& commandBuffer, VulkanPipeline& pipeline, uint32_t texSize, VulkanDescriptorSet& texDescriptor)
 {
 	VkCommandBufferBeginInfo beginInfo{};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -315,44 +337,44 @@ void CommandBufferRecorder::recordCommandBufferBrdfLutPass(const VulkanRenderer&
 		throw std::runtime_error("failed to begin recording command buffer!");
 	}
 
-		VkRenderPassBeginInfo renderPassInfo{};
-		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		renderPassInfo.renderPass = renderpass.getRenderPass();
-		renderPassInfo.framebuffer = frameBuffers.getFrameBufferAtIndex(0);
-		renderPassInfo.renderArea.offset = { 0, 0 };
-		renderPassInfo.renderArea.extent = { texSize, texSize };
+	VkRenderPassBeginInfo renderPassInfo{};
+	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	renderPassInfo.renderPass = renderpass.getRenderPass();
+	renderPassInfo.framebuffer = frameBuffers.getFrameBufferAtIndex(0);
+	renderPassInfo.renderArea.offset = { 0, 0 };
+	renderPassInfo.renderArea.extent = { texSize, texSize };
 
-		VkClearValue clearValue{};
-		clearValue.color = { {0.0f, 0.0f, 0.0f, 1.0f} };
+	VkClearValue clearValue{};
+	clearValue.color = { {0.0f, 0.0f, 0.0f, 1.0f} };
 
 
-		renderPassInfo.clearValueCount = 1;
-		renderPassInfo.pClearValues = &clearValue;
+	renderPassInfo.clearValueCount = 1;
+	renderPassInfo.pClearValues = &clearValue;
 
-		vkCmdBeginRenderPass(commandBuffer.getCommandBuffer(), &renderPassInfo,
-			VK_SUBPASS_CONTENTS_INLINE);
+	vkCmdBeginRenderPass(commandBuffer.getCommandBuffer(), &renderPassInfo,
+		VK_SUBPASS_CONTENTS_INLINE);
 
-		vkCmdBindPipeline(commandBuffer.getCommandBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS,
-			pipeline.getPipeline());
+	vkCmdBindPipeline(commandBuffer.getCommandBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS,
+		pipeline.getPipeline());
 
-		VkViewport viewport{};
-		viewport.x = 0.0f;
-		viewport.y = 0.0f;
-		viewport.width = static_cast<float>(texSize);
-		viewport.height = static_cast<float>(texSize);
-		viewport.minDepth = 0.0f;
-		viewport.maxDepth = 1.0f;
-		vkCmdSetViewport(commandBuffer.getCommandBuffer(), 0, 1, &viewport);
+	VkViewport viewport{};
+	viewport.x = 0.0f;
+	viewport.y = 0.0f;
+	viewport.width = static_cast<float>(texSize);
+	viewport.height = static_cast<float>(texSize);
+	viewport.minDepth = 0.0f;
+	viewport.maxDepth = 1.0f;
+	vkCmdSetViewport(commandBuffer.getCommandBuffer(), 0, 1, &viewport);
 
-		VkRect2D scissor{};
-		scissor.offset = { 0, 0 };
-		scissor.extent = { texSize, texSize };
-		vkCmdSetScissor(commandBuffer.getCommandBuffer(), 0, 1, &scissor);
+	VkRect2D scissor{};
+	scissor.offset = { 0, 0 };
+	scissor.extent = { texSize, texSize };
+	vkCmdSetScissor(commandBuffer.getCommandBuffer(), 0, 1, &scissor);
 
-		vkCmdDraw(commandBuffer.getCommandBuffer(), 3, 1, 0, 0);
+	vkCmdDraw(commandBuffer.getCommandBuffer(), 3, 1, 0, 0);
 
-		vkCmdEndRenderPass(commandBuffer.getCommandBuffer());
-	
+	vkCmdEndRenderPass(commandBuffer.getCommandBuffer());
+
 
 
 	if (vkEndCommandBuffer(commandBuffer.getCommandBuffer()) != VK_SUCCESS) {

@@ -70,7 +70,7 @@ void Scene::loadFile(const std::string& filePath)
 SceneFramesData& Scene::recordScene() {
 
 	for (auto& drawInstance : frameData.drawInstances)
-		drawInstance.cpuDrawCalls.clear();
+		drawInstance.surfaceCalls.clear();
 
 	frameData.frameLightData.clear();
 
@@ -119,26 +119,23 @@ void  Scene::recordNode(int nodeId, glm::mat4& transforMat) {
 void Scene::recordMesh(int meshId, glm::mat4& transform) {
 
 	auto& meshAsset = scene.meshAssets[meshId];
+	
 
 
-	int prevSize = frameData.drawInstances[meshId].cpuDrawCalls.size();
-	frameData.drawInstances[meshId].cpuDrawCalls.reserve(prevSize + meshAsset.get()->surfaces.size());
+	frameData.drawInstances[meshId].surfaceCalls.resize(meshAsset.get()->surfaces.size());
 	frameData.drawInstances[meshId].meshId = meshId;
 	frameData.drawInstances[meshId].meshResourceId = meshAsset->resourceId;
 	if (meshAsset->resourceId == -1)
 		printf("");
 	for (int i = 0; i < meshAsset.get()->surfaces.size(); i++) {
 
-		CPUDrawCallData newDrawCall;
-		newDrawCall.startIndex = meshAsset->surfaces[i].startIndex;
-		newDrawCall.count = meshAsset->surfaces[i].count;
-		newDrawCall.materialDescriptorId = meshAsset->resourceId;
-		newDrawCall.mat = (scene.materials[meshAsset.get()->surfaces[i].materialIndex]).get();
-		newDrawCall.transform = transform;
-
-		frameData.drawInstances[meshId].cpuDrawCalls.emplace_back(std::move(newDrawCall));
+		CPUDrawCallSurfaceData newDrawCall;
+		frameData.drawInstances[meshId].surfaceCalls[i].startIndex = meshAsset->surfaces[i].startIndex;
+		frameData.drawInstances[meshId].surfaceCalls[i].count = meshAsset->surfaces[i].count;
+		frameData.drawInstances[meshId].surfaceCalls[i].materialDescriptorId = meshAsset->resourceId;
+		frameData.drawInstances[meshId].surfaceCalls[i].mat = (scene.materials[meshAsset.get()->surfaces[i].materialIndex]).get();
 
 	}
-
+	frameData.drawInstances[meshId].transforms.emplace_back(transform);
 }
 

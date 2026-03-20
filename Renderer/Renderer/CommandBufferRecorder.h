@@ -16,7 +16,7 @@ public:
 
 	static void bindMesh(VulkanCommandBuffer& commandBuffer, const VulkanBuffer& vertBuffer, const VulkanBuffer& indexBuffer);
 
-	static void recordDrawCall(VulkanRenderer& renderer,VulkanCommandBuffer& commandBuffer, const VulkanPipeline& graphicsPipeline, const CPUDrawCallData data,  ResourceManager& resourceManager, VkDescriptorSet currentUBO);
+	static void recordDrawCall(VulkanRenderer& renderer,VulkanCommandBuffer& commandBuffer, const VulkanPipeline& graphicsPipeline, const CPUDrawCallSurfaceData& data,  ResourceManager& resourceManager, VkDescriptorSet currentUBO, int instanceCount, int instanceOffset);
 
 	static void recordCommandBufferForwardPass(VulkanRenderer& renderer, VulkanCommandBuffer& commandBuffer, const uint32_t imageIndex, SceneFramesData& drawData, VkDescriptorSet descriptorSet, ResourceManager& resourceManager, ImGuiManager& ImGuiManager);
 

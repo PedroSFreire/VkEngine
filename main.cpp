@@ -66,6 +66,8 @@ int main() {
 				imGuiManager.recordFrame(deltaTime);
 			}
 
+		
+
 
 			SceneFramesData drawData;
 
