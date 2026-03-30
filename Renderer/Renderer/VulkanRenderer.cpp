@@ -13,7 +13,6 @@
 
 
 
-
 #define VMA_IMPLEMENTATION
 #include <vma/vk_mem_alloc.h>
 
@@ -56,7 +55,20 @@ void VulkanRenderer::initVulkan() {
 		DescriptorManager::createUBODescriptorLayout(logicalDevice,descriptorSets[i], descriptorPool);
 		descriptorSets[i].createDescriptor();
 		DescriptorManager::updateUBODescriptor(descriptorSets[i],uniformBuffers[i]);
+
+		
 	}
+
+	VulkanBufferCreateInfo bufferInfo{};
+	bufferInfo.size = MAX_INSTANCES * sizeof(glm::mat4); 
+	bufferInfo.elementCount = 1;
+	bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+	bufferInfo.vmaUsage = VMA_MEMORY_USAGE_AUTO;
+	bufferInfo.vmaFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+
+	tranformBuffers.resize(swapChain.getSwapChainImages().size());
+	for(int i = 0; i < swapChain.getSwapChainImages().size(); i++)
+		tranformBuffers[i].createBuffer(allocator, bufferInfo);
 
 	VulkanDescriptorPool matDescriptorPool, lightDescriptorPool, cubeDescriptorPool, imageDescriptorPool;
 	VulkanDescriptorSet matDescriptorSet, lightDescriptor, cubeDescriptor, imageDescriptor;
@@ -89,7 +101,6 @@ void VulkanRenderer::initVulkan() {
 	frameBuffers.createFramebuffers(logicalDevice, swapChain, renderPass, depthImageView,colorImageView);
 	
 	syncObjects.createSyncObjects(logicalDevice, MAX_FRAMES_IN_FLIGHT, swapChain.getSwapChainImages().size());
-
 
 }
 
@@ -255,6 +266,7 @@ void VulkanRenderer::presentFrame(uint32_t imageIndex) {
 
 void VulkanRenderer::drawFrame(SceneFramesData& drawData, ResourceManager& resourceManager,Camera& camera, ImGuiManager& ImGuiManager)
 {
+
 	//acquire image from swap chain and wait and reset sync objects and frame resources
 	uint32_t imageIndex = beginFrame();
 

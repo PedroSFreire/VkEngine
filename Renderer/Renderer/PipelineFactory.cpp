@@ -76,14 +76,29 @@ void PipelineFactory::createGraphicsPipeline(VulkanPipeline& pipeline,const Vulk
 
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
 
-    auto bindingDescription = Vertex::getBindingDescription();
-    auto attributeDescriptions = Vertex::getAttributeDescriptions();
+    auto vertexBindingDescription = Vertex::getBindingDescription();
+    auto vertexAttributeDescriptions = Vertex::getAttributeDescriptions();
+
+    auto transformBindingDescription = InstanceTransform::getBindingDescription();
+    auto transformAttributeDescriptions = InstanceTransform::getAttributeDescriptions();
 
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
-    vertexInputInfo.vertexBindingDescriptionCount = 1;
-    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
-    vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+    vertexInputInfo.vertexBindingDescriptionCount = 2;
+    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexAttributeDescriptions.size() + transformAttributeDescriptions.size());
+
+	std::array<VkVertexInputBindingDescription, 2> bindingDescriptions{ vertexBindingDescription ,transformBindingDescription };
+
+	std::vector<VkVertexInputAttributeDescription> attributeDescriptions{};
+    attributeDescriptions.resize(vertexInputInfo.vertexAttributeDescriptionCount);
+    for (size_t i = 0; i < vertexAttributeDescriptions.size(); i++) {
+        attributeDescriptions[i] = vertexAttributeDescriptions[i];
+	}
+    for (size_t i = 0; i < transformAttributeDescriptions.size(); i++) {
+        attributeDescriptions[i + vertexAttributeDescriptions.size()] = transformAttributeDescriptions[i];
+	}
+
+    vertexInputInfo.pVertexBindingDescriptions = bindingDescriptions.data();
     vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
 

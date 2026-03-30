@@ -47,7 +47,6 @@ layout(set = 5, binding = 0) uniform sampler2D  brdfLutTexture;
 
 
 layout(push_constant) uniform PushConstants{
-    mat4 transform;
     vec4 colorFactor;
 
 

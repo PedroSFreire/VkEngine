@@ -166,7 +166,6 @@ struct UniformBufferObject {
 };
 
 struct pushConstants {
-	glm::mat4 transform;
 	glm::vec4 colorFactor;
 
 	uint32_t metallicFactor;
@@ -380,6 +379,36 @@ struct Vertex {
 
 
 
+struct InstanceTransform {
+	glm::mat4 model;
+
+	static VkVertexInputBindingDescription getBindingDescription() {
+		VkVertexInputBindingDescription bindingDescription{};
+
+		bindingDescription.binding = 1;
+		bindingDescription.stride = sizeof(InstanceTransform);
+		bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
+
+
+		return bindingDescription;
+	}
+
+	static std::array<VkVertexInputAttributeDescription, 4> getAttributeDescriptions() {
+		std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions{};
+
+		for (int i = 0; i < 4; i++) {
+			attributeDescriptions[i].binding = 1;
+			attributeDescriptions[i].location = 5 + i;
+			attributeDescriptions[i].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+			attributeDescriptions[i].offset = sizeof(glm::vec4)*i;
+		}
+		return attributeDescriptions;
+	}
+
+};
+
+
+
 
 struct SimpleVertex {
 	glm::vec3 pos;
@@ -455,36 +484,37 @@ struct MeshResource {
 };
 
 
-struct CPUDrawCallData {
+struct CPUDrawCallSurfaceData {
 	uint32_t startIndex;
 	uint32_t count;
 	uint32_t materialDescriptorId = -1;
-	glm::mat4 transform;
 	MaterialAsset* mat;
 };
 
 
-struct CPUDrawCallInstanceData {
+struct CPUDrawCallMeshData {
 	uint32_t meshResourceId = -1;
 	uint32_t meshId = -1;
-	std::vector<CPUDrawCallData> cpuDrawCalls;
+	std::vector<CPUDrawCallSurfaceData> surfaceCalls;
+	std::vector < glm::mat4> transforms;
 };
 
 
 
 
-struct DrawCallData {
+
+struct DrawSurfaceCallData {
 
 	VulkanDescriptorSet* descriptorSet;
 	MaterialAsset* mat;
-	glm::mat4 transform;
+	std::vector<glm::mat4> transforms;
 };
 
 struct DrawCallBatchData {
 
 	VulkanBuffer* indexBuffer;
 	VulkanBuffer* vertexBuffer;
-	std::vector<DrawCallData> drawCalls;
+	std::vector<DrawSurfaceCallData> surfaceCalls;
 };
 
 
@@ -503,9 +533,9 @@ struct SceneData {
 
 
 struct SceneFramesData {
-	std::vector<CPUDrawCallInstanceData> drawInstances;
+	std::vector<CPUDrawCallMeshData> drawInstances;
 	std::vector<LightGPUData> frameLightData;
-	SceneFramesData(std::vector<CPUDrawCallInstanceData>& instances, std::vector<LightGPUData>& lights)
+	SceneFramesData(std::vector<CPUDrawCallMeshData>& instances, std::vector<LightGPUData>& lights)
 		: drawInstances(instances), frameLightData(lights) {
 	}
 	SceneFramesData() = default;

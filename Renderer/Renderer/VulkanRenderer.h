@@ -36,7 +36,7 @@
 
 
 static const int MAX_FRAMES_IN_FLIGHT = 2;
-
+const uint32_t MAX_INSTANCES = 3000;
 class VulkanRenderer
 {
 
@@ -72,12 +72,15 @@ public:
 	const VulkanSurface& getSurface() const { return surface; }
 	const VulkanInstance& getInstance() const { return instance; }
 	const Window& getWindow() const { return window; }
-
+	const VulkanBuffer& getTransformBuffer(int currentFrame) const { return tranformBuffers[currentFrame]; }
 
 	// cupe map creation for env and irradiance maps
 	void cubePass(VulkanImageView& imgResource, CubeMapResource& cubeMap, VulkanSampler& sampler, MeshBuffers& cubeMesh, uint32_t texSize,  bool irr) const;
 	void prefilteredCubePass(VulkanImageView& imgResource, CubeMapResource& cubeMap, VulkanSampler& sampler, MeshBuffers& cubeMesh,const uint32_t texSize) const;
 	void brdfLutPass(VulkanImageView& imgView, VulkanSampler& sampler, const uint32_t texSize)const;
+
+
+
 
 private:
 
@@ -123,6 +126,7 @@ private:
 
 	//Resources
 
+	std::vector<VulkanBuffer>							tranformBuffers;
 
 	std::vector<VulkanBuffer>							uniformBuffers;
 

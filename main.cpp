@@ -18,8 +18,7 @@
 
 #include <chrono>
 
-std::chrono::high_resolution_clock timer;
-std::chrono::time_point<std::chrono::high_resolution_clock> prevTime,currentTime;
+
 float deltaTime;
 
 
@@ -31,6 +30,9 @@ int main() {
 
 	ResourceManager resourceManager(renderer);
 	Scene scene;
+
+	std::chrono::high_resolution_clock timer;
+	std::chrono::time_point<std::chrono::high_resolution_clock> prevTime, currentTime;
 
 	std::string pathToRoot = "../../../";
 	//scene.loadFile(pathToRoot + "scenes/BoomBoxWithAxes/glTF/BoomBoxWithAxes.gltf");
@@ -65,6 +67,8 @@ int main() {
 			}else {
 				imGuiManager.recordFrame(deltaTime);
 			}
+
+		
 
 
 			SceneFramesData drawData;
