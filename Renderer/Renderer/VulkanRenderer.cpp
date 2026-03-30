@@ -13,7 +13,6 @@
 
 
 
-
 #define VMA_IMPLEMENTATION
 #include <vma/vk_mem_alloc.h>
 
@@ -61,7 +60,7 @@ void VulkanRenderer::initVulkan() {
 	}
 
 	VulkanBufferCreateInfo bufferInfo{};
-	bufferInfo.size = MAX_INSTANCES;
+	bufferInfo.size = MAX_INSTANCES * sizeof(glm::mat4); 
 	bufferInfo.elementCount = 1;
 	bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 	bufferInfo.vmaUsage = VMA_MEMORY_USAGE_AUTO;
@@ -267,6 +266,7 @@ void VulkanRenderer::presentFrame(uint32_t imageIndex) {
 
 void VulkanRenderer::drawFrame(SceneFramesData& drawData, ResourceManager& resourceManager,Camera& camera, ImGuiManager& ImGuiManager)
 {
+
 	//acquire image from swap chain and wait and reset sync objects and frame resources
 	uint32_t imageIndex = beginFrame();
 

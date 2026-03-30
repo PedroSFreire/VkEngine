@@ -100,11 +100,14 @@ void CommandBufferRecorder::recordCommandBufferForwardPass(VulkanRenderer& rende
 	if (drawData.drawInstances.size() != 0) {
 
 		std::vector<glm::mat4> totalTransforms;
+
 		std::vector <int> offsets;
 		VkDeviceSize baseOffset = 0;
 		//gather all the transforms of all instances of all meshes
 		for (CPUDrawCallMeshData& meshCall : drawData.drawInstances) {
 			offsets.emplace_back(totalTransforms.size());
+			if (meshCall.transforms.size() > 1)
+				std::cout << "bbbbb" << std::endl;
 			totalTransforms.insert(totalTransforms.end(), meshCall.transforms.begin(), meshCall.transforms.end());
 		}
 		offsets.emplace_back(totalTransforms.size());
@@ -120,13 +123,14 @@ void CommandBufferRecorder::recordCommandBufferForwardPass(VulkanRenderer& rende
 			MeshBuffers& mesh = resourceManager.getMesh(meshCalls.meshResourceId).meshBuffers;
 			bindMesh(commandBuffer, mesh.vertexBuffer, mesh.indexBuffer);
 			int instanceOffset = offsets[meshCallId];
-			int instanceCount = offsets[meshCallId + 1] - offsets[meshCallId];
 			for (auto& surfaceCalls : meshCalls.surfaceCalls) {
-				recordDrawCall(renderer, commandBuffer, renderer.getGraphicsPipeline(), surfaceCalls, resourceManager, currentUBO, instanceCount, instanceOffset);
+				recordDrawCall(renderer, commandBuffer, renderer.getGraphicsPipeline(), surfaceCalls, resourceManager, currentUBO, meshCalls.transforms.size(), instanceOffset);
 			}
 
 
 		}
+
+		totalTransforms.clear();
 	}
 
 	ImGuiManager.recordCommands(commandBuffer);

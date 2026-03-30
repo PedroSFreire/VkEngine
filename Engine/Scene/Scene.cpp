@@ -69,8 +69,10 @@ void Scene::loadFile(const std::string& filePath)
 
 SceneFramesData& Scene::recordScene() {
 
-	for (auto& drawInstance : frameData.drawInstances)
+	for (auto& drawInstance : frameData.drawInstances) {
+		drawInstance.transforms.clear();
 		drawInstance.surfaceCalls.clear();
+	}
 
 	frameData.frameLightData.clear();
 
